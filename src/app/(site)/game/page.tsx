@@ -1,0 +1,1 @@
+export default function GamePage(){return(<div className="mx-auto max-w-5xl py-12"><h1 className="text-2xl font-semibold">Game Showcase</h1><p className="mt-3">Live web demo will appear here. Recommended: wired connection, modern GPU, Chrome/Edge.</p></div>);}
