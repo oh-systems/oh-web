@@ -1,6 +1,49 @@
+'use client';
+
 import Image from "next/image";
+import { useEffect } from "react";
 
 export default function Home() {
+  useEffect(() => {
+    // Simulate loading some assets to test the ring loader
+    const simulateLoading = async () => {
+      // Import the loading manager
+      const { appLoading } = await import('../lib/three/loadingManager');
+      
+      // Simulate loading multiple assets
+      const assets = [
+        '/next.svg',
+        '/vercel.svg',
+        '/file.svg',
+        '/window.svg',
+        '/globe.svg'
+      ];
+
+      // Create fake loaders to simulate progress
+      assets.forEach((asset, index) => {
+        setTimeout(() => {
+          // Simulate progress updates
+          appLoading.ratio = (index + 1) / assets.length;
+          appLoading.emit();
+        }, (index + 1) * 400); // 400ms intervals
+      });
+
+      // After all assets are loaded, wait a bit then trigger completion
+      setTimeout(() => {
+        console.log('All assets loaded, ring should be in final clear state');
+        // Ring will stay in clear state until you call appLoading.complete()
+        
+        // Simulate next step - wait 2 seconds then complete the loader
+        setTimeout(() => {
+          console.log('Triggering loader completion...');
+          appLoading.complete();
+        }, 2000);
+      }, assets.length * 400 + 500);
+    };
+
+    simulateLoading();
+  }, []);
+
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
