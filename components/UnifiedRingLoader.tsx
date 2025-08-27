@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { appLoading } from '../src/lib/three/loadingManager';
 import '../src/styles/ring-loader.css';
@@ -149,7 +149,7 @@ export default function UnifiedRingLoader({ onTransitionComplete }: UnifiedRingL
     window.addEventListener('resize', resize);
 
     let raf = 0;
-    let t0 = performance.now();
+    const t0 = performance.now();
     let stableStartTime = 0;
     let transitionStartTime = 0;
     let overlayFadeStartTime = 0;

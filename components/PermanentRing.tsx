@@ -132,12 +132,9 @@ export default function PermanentRing({ visible, className = '' }: PermanentRing
     }
 
     return cleanup;
-  }, []);
+  }, [visible]); // Include visible since it's used in the initial setup
 
-  // Update opacity when visibility changes
-  useEffect(() => {
-    // The animation loop will handle the smooth transition
-  }, [visible]);
+  // The second useEffect is no longer needed since visible is in the main useEffect dependency
 
   return (
     <div 
