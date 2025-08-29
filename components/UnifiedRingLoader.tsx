@@ -318,7 +318,9 @@ export default function UnifiedRingLoader({ onContentShow, onTransitionComplete 
           targetProgress = 1.0;
         }
       }
-    });    function cleanup() {
+    });
+
+    function cleanup() {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
       geometry.dispose();
