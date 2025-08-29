@@ -31,12 +31,12 @@ void main() {
 
     float transitionProgress = 1.0;
     
-    float endSize = 22.5;
+    float endSize = 15.0;
     float radius = (endSize * 0.5) / u_resolution.y;
     float thick = 0.002;
     
-    float leftOffset = -u_aspect * 0.5 + (45.0) / u_resolution.x * u_aspect;
-    float topOffset = 0.5 - (30.0) / u_resolution.y;
+    float leftOffset = -u_aspect * 0.5 + (35.0) / u_resolution.x * u_aspect;
+    float topOffset = 0.5 - (20.0) / u_resolution.y;
     vec2 ringPosition = vec2(leftOffset, topOffset);
     
     vec2 adjustedP = p - ringPosition;
