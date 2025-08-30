@@ -3,6 +3,8 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { RectAreaLightHelper } from 'three/examples/jsm/helpers/RectAreaLightHelper.js';
+import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 import type { GUI } from 'dat.gui';
 
 // Types and Interfaces
@@ -25,16 +27,13 @@ const CAMERA_CONFIG = {
 
 const LIGHT_CONFIG = {
   color: 0xffffff,      // White light
-  intensity: 2,         // Full intensity
+  intensity: 20,        // Higher intensity for rect area light
+  width: 2,             // Width of the area light
+  height: 1,            // Height of the area light
   position: {           // Light position
-    x: -0.2,
+    x: 0.5,
     y: 2.4,
-    z: -0.6
-  },
-  rotation: {           // Light rotation
-    x: 0,
-    y: 0,
-    z: 0
+    z: -2.2
   }
 };
 
@@ -51,7 +50,7 @@ export default function Model3D({
   const mousePosition = useRef({ x: 0, y: 0 });
   const targetRotation = useRef({ x: 0, y: 0 });
   const currentRotation = useRef({ x: 0, y: 0 });
-  const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster());
+  const mouseLightRef = useRef<THREE.PointLight | null>(null);
 
   // Main Three.js setup and rendering logic
   useEffect(() => {
@@ -82,22 +81,33 @@ export default function Model3D({
     renderer.setSize(containerRect.width, containerRect.height);
     container.appendChild(renderer.domElement);
 
-    // Lighting initialization
-    const light = new THREE.DirectionalLight(
+    // Initialize RectAreaLight
+    RectAreaLightUniformsLib.init();
+
+        // Create mouse light - smaller and more subtle
+    const mouseLight = new THREE.PointLight(0xffffff, 0.8, 2, 2);
+    mouseLight.position.set(0, 0, 1);
+    scene.add(mouseLight);
+    mouseLightRef.current = mouseLight;
+    
+    // Main area light initialization
+    const light = new THREE.RectAreaLight(
       LIGHT_CONFIG.color,
-      LIGHT_CONFIG.intensity
+      LIGHT_CONFIG.intensity,
+      LIGHT_CONFIG.width,
+      LIGHT_CONFIG.height
     );
     light.position.set(
       LIGHT_CONFIG.position.x,
       LIGHT_CONFIG.position.y,
       LIGHT_CONFIG.position.z
     );
-    light.rotation.set(
-      LIGHT_CONFIG.rotation.x,
-      LIGHT_CONFIG.rotation.y,
-      LIGHT_CONFIG.rotation.z
-    );
+    // Initial lookAt will be updated once model is loaded
     scene.add(light);
+
+    // Add light helper for visualization
+    const lightHelper = new RectAreaLightHelper(light);
+    light.add(lightHelper);
 
     // Model loading and setup
     const loader = new GLTFLoader();
@@ -120,11 +130,15 @@ export default function Model3D({
         );
         model.scale.set(1, 1, 1);          // Scale of 1
         
-        // Set initial material color to white
+        // Update light to look at the model
+        light.lookAt(model.position);
+        
+        // Set initial material properties
         model.traverse((child) => {
           if (child instanceof THREE.Mesh) {
             const material = child.material as THREE.MeshStandardMaterial;
             material.color.set(0xffffff);  // White color (#ffffff)
+            material.roughness = 0.3;     // Set initial roughness
           }
         });
         
@@ -147,11 +161,20 @@ export default function Model3D({
           // Position controls
           const position = { x: model.position.x, y: model.position.y, z: model.position.z };
           transformFolder.add(position, 'x', 0, 0.3, 0.01)
-            .onChange((value: number) => { model.position.x = value; });
+            .onChange((value: number) => { 
+              model.position.x = value;
+              light.lookAt(model.position);
+            });
           transformFolder.add(position, 'y', 0, 0.2, 0.01)
-            .onChange((value: number) => { model.position.y = value; });
+            .onChange((value: number) => { 
+              model.position.y = value;
+              light.lookAt(model.position);
+            });
           transformFolder.add(position, 'z', -0.1, 0.1, 0.01)
-            .onChange((value: number) => { model.position.z = value; });
+            .onChange((value: number) => { 
+              model.position.z = value;
+              light.lookAt(model.position);
+            });
 
           // Rotation controls
           const rotation = {
@@ -171,21 +194,77 @@ export default function Model3D({
           transformFolder.add(scale, 'uniform', 0.5, 2, 0.1).name('scale')
             .onChange((value: number) => { model.scale.set(value, value, value); });
 
-          // Create material folder for model color
+          // Create material folder with advanced properties
           const materialFolder = gui.addFolder('Material');
           model.traverse((child) => {
             if (child instanceof THREE.Mesh) {
               const material = child.material as THREE.MeshStandardMaterial;
+              
+              // Color control
               const materialColor = { color: '#' + material.color.getHexString() };
               materialFolder.addColor(materialColor, 'color')
                 .onChange((value: string) => {
                   material.color.set(value);
                 });
+              
+              // Main Material properties
+              materialFolder.add(material, 'metalness', 0, 1, 0.01)
+                .name('metalness');
+              materialFolder.add(material, 'roughness', 0, 1, 0.01)
+                .name('roughness');
+              materialFolder.add(material, 'envMapIntensity', 0, 1, 0.01)
+                .name('environment');
+                
+              // Surface Properties
+              const surfaceFolder = materialFolder.addFolder('Surface Properties');
+              surfaceFolder.add(material, 'wireframe');
+              surfaceFolder.add(material, 'flatShading')
+                .onChange(() => material.needsUpdate = true);
+              surfaceFolder.add(material, 'aoMapIntensity', 0, 1, 0.01)
+                .name('ambient occlusion');
+              
+              // Advanced Properties
+              const advancedFolder = materialFolder.addFolder('Advanced Properties');
+              // Add normal scale control (affects normal mapping)
+              const normalScaleFolder = advancedFolder.addFolder('Normal Scale');
+              normalScaleFolder.add(material.normalScale, 'x', 0, 1, 0.01)
+                .name('X scale');
+              normalScaleFolder.add(material.normalScale, 'y', 0, 1, 0.01)
+                .name('Y scale');
+              
+              // Displacement control
+              advancedFolder.add(material, 'displacementScale', 0, 1, 0.01)
+                .name('displacement');
+              
+              // Emission Properties
+              const emissionFolder = materialFolder.addFolder('Emission');
+              emissionFolder.add(material, 'emissiveIntensity', 0, 1, 0.01)
+                .name('intensity');
+              const emissiveColor = { color: '#000000' };
+              emissionFolder.addColor(emissiveColor, 'color')
+                .name('color')
+                .onChange((value: string) => {
+                  material.emissive.set(value);
+                });
+              
+              // Material Rendering
+              const renderFolder = materialFolder.addFolder('Render Settings');
+              renderFolder.add(material, 'transparent');
+              renderFolder.add(material, 'opacity', 0, 1, 0.01)
+                .name('opacity');
+              renderFolder.add(material, 'alphaTest', 0, 1, 0.01)
+                .name('alpha test');
+              renderFolder.add(material, 'side', {
+                Front: THREE.FrontSide,
+                Back: THREE.BackSide,
+                Double: THREE.DoubleSide
+              })
+                .onChange(() => material.needsUpdate = true);
             }
           });
 
           // Create light controls folder
-          const lightFolder = gui.addFolder('Light');
+          const lightFolder = gui.addFolder('Area Light');
           
           // Light color
           const lightColor = { color: '#' + light.color.getHexString() };
@@ -196,10 +275,32 @@ export default function Model3D({
 
           // Light intensity
           const lightIntensity = { value: light.intensity };
-          lightFolder.add(lightIntensity, 'value', 0, 2, 0.1)
+          lightFolder.add(lightIntensity, 'value', 0, 10, 0.1)
             .name('intensity')
             .onChange((value: number) => {
               light.intensity = value;
+            });
+
+          // Light dimensions
+          const lightDimensions = {
+            width: light.width,
+            height: light.height
+          };
+          lightFolder.add(lightDimensions, 'width', 0.1, 5, 0.1)
+            .onChange((value: number) => { 
+              light.width = value;
+              // Re-create helper when dimensions change
+              light.remove(lightHelper);
+              const newHelper = new RectAreaLightHelper(light);
+              light.add(newHelper);
+            });
+          lightFolder.add(lightDimensions, 'height', 0.1, 5, 0.1)
+            .onChange((value: number) => { 
+              light.height = value;
+              // Re-create helper when dimensions change
+              light.remove(lightHelper);
+              const newHelper = new RectAreaLightHelper(light);
+              light.add(newHelper);
             });
 
           // Light position
@@ -209,27 +310,20 @@ export default function Model3D({
             z: light.position.z
           };
           lightFolder.add(lightPosition, 'x', -10, 10, 0.1)
-            .onChange((value: number) => { light.position.x = value; });
+            .onChange((value: number) => { 
+              light.position.x = value;
+              light.lookAt(modelRef.current?.position || new THREE.Vector3());
+            });
           lightFolder.add(lightPosition, 'y', -10, 10, 0.1)
-            .onChange((value: number) => { light.position.y = value; });
+            .onChange((value: number) => { 
+              light.position.y = value;
+              light.lookAt(modelRef.current?.position || new THREE.Vector3());
+            });
           lightFolder.add(lightPosition, 'z', -10, 10, 0.1)
-            .onChange((value: number) => { light.position.z = value; });
-
-          // Light rotation
-          const lightRotation = {
-            x: light.rotation.x * (180/Math.PI),
-            y: light.rotation.y * (180/Math.PI),
-            z: light.rotation.z * (180/Math.PI)
-          };
-          lightFolder.add(lightRotation, 'x', -180, 180, 1)
-            .name('rotate X')
-            .onChange((value: number) => { light.rotation.x = value * (Math.PI/180); });
-          lightFolder.add(lightRotation, 'y', -180, 180, 1)
-            .name('rotate Y')
-            .onChange((value: number) => { light.rotation.y = value * (Math.PI/180); });
-          lightFolder.add(lightRotation, 'z', -180, 180, 1)
-            .name('rotate Z')
-            .onChange((value: number) => { light.rotation.z = value * (Math.PI/180); });
+            .onChange((value: number) => { 
+              light.position.z = value;
+              light.lookAt(modelRef.current?.position || new THREE.Vector3());
+            });
 
           // Open folders
           transformFolder.open();
@@ -258,8 +352,14 @@ export default function Model3D({
         y: x * 0.05
       };
 
-      // Update target light position
-
+      // Update mouse light position with subtle movement
+      if (mouseLightRef.current) {
+        mouseLightRef.current.position.set(
+          x * 1.5,  // Reduced range of movement
+          y * 1.5,  // Reduced range of movement
+          1.5      // Slightly further from the model for softer lighting
+        );
+      }
     };
 
     // Add mouse event listener
@@ -278,7 +378,16 @@ export default function Model3D({
         modelRef.current.rotation.x = (4 * Math.PI/180) + currentRotation.current.x;
         modelRef.current.rotation.y = (48 * Math.PI/180) + currentRotation.current.y;
 
+        // Update light to keep looking at the model
+        light.lookAt(modelRef.current.position);
 
+        // Animate mouse light with subtle pulsing
+        if (mouseLightRef.current) {
+          const time = Date.now() * 0.001; // Convert to seconds
+          // Gentle pulsing intensity
+          const pulseValue = (Math.sin(time * 1.5) * 0.2) + 0.8; // Values between 0.6 and 1.0
+          mouseLightRef.current.intensity = pulseValue * 0.8; // Keep intensity subtle
+        }
       }
       
       renderer.render(scene, camera);

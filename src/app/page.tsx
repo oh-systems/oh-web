@@ -65,12 +65,6 @@ export default function Home() {
         <div className="w-full h-full">
           <Model3D 
             modelPath="/models/INITIAL OBJECT MID POLYS.glb"
-            cameraPosition={[0, 2, 25]}
-            enableControls={false}
-            autoRotate={false}
-            scale={2.3}
-            position={[0.4, 0.2, -1.4]}
-            rotation={[THREE.MathUtils.degToRad(8), THREE.MathUtils.degToRad(40), THREE.MathUtils.degToRad(84)]}
             className=""
           />
         </div>
