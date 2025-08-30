@@ -50,7 +50,10 @@ export default function Model3D({
   const mousePosition = useRef({ x: 0, y: 0 });
   const targetRotation = useRef({ x: 0, y: 0 });
   const currentRotation = useRef({ x: 0, y: 0 });
+  const rotationVelocity = useRef({ x: 0, y: 0 });
   const mouseLightRef = useRef<THREE.PointLight | null>(null);
+  const lightPosition = useRef({ x: 0, y: 0, z: 1.5 });
+  const lightVelocity = useRef({ x: 0, y: 0 });
 
   // Main Three.js setup and rendering logic
   useEffect(() => {
@@ -79,6 +82,12 @@ export default function Model3D({
       alpha: true
     });
     renderer.setSize(containerRect.width, containerRect.height);
+    
+    // Initialize tone mapping and color management
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    
     container.appendChild(renderer.domElement);
 
     // Initialize RectAreaLight
@@ -325,10 +334,50 @@ export default function Model3D({
               light.lookAt(modelRef.current?.position || new THREE.Vector3());
             });
 
+          // Create renderer controls folder
+          const rendererFolder = gui.addFolder('Renderer Settings');
+          
+          // Tone Mapping
+          const toneMappingOptions = {
+            None: THREE.NoToneMapping,
+            Linear: THREE.LinearToneMapping,
+            Reinhard: THREE.ReinhardToneMapping,
+            Cineon: THREE.CineonToneMapping,
+            'ACES Filmic': THREE.ACESFilmicToneMapping,
+            Custom: THREE.CustomToneMapping
+          };
+          
+          const rendererSettings = {
+            toneMapping: 'ACES Filmic',
+            exposure: 1.0
+          };
+
+          // Tone Mapping Type
+          rendererFolder.add(rendererSettings, 'toneMapping', Object.keys(toneMappingOptions))
+            .onChange((value: keyof typeof toneMappingOptions) => {
+              renderer.toneMapping = toneMappingOptions[value];
+              
+              // Update materials to trigger refresh
+              modelRef.current?.traverse((child) => {
+                if (child instanceof THREE.Mesh) {
+                  const material = child.material as THREE.MeshStandardMaterial;
+                  material.needsUpdate = true;
+                }
+              });
+            });
+
+          // Exposure
+          rendererFolder.add(rendererSettings, 'exposure', 0, 2, 0.01)
+            .name('exposure')
+            .onChange((value: number) => {
+              renderer.toneMappingExposure = value;
+            });
+
           // Open folders
           transformFolder.open();
           materialFolder.open();
           lightFolder.open();
+          rendererFolder.open();
         };
 
         setupGUI().catch(console.error);
@@ -346,20 +395,17 @@ export default function Model3D({
       
       mousePosition.current = { x, y };
       
-      // Set target rotation (scaled down for subtle effect)
+      // Set target rotation with eased values for smoother movement
       targetRotation.current = {
-        x: y * 0.05,
-        y: x * 0.05
+        x: y * 0.03, // Reduced rotation amount for more subtle movement
+        y: x * 0.03
       };
 
-      // Update mouse light position with subtle movement
-      if (mouseLightRef.current) {
-        mouseLightRef.current.position.set(
-          x * 1.5,  // Reduced range of movement
-          y * 1.5,  // Reduced range of movement
-          1.5      // Slightly further from the model for softer lighting
-        );
-      }
+      // Store target light position for smooth interpolation
+      mousePosition.current = {
+        x: x * 1.5,  // Range of movement
+        y: y * 1.5   // Range of movement
+      };
     };
 
     // Add mouse event listener
@@ -370,9 +416,25 @@ export default function Model3D({
       frameRef.current = requestAnimationFrame(animate);
       
       if (modelRef.current) {
-        // Smoothly interpolate current rotation towards target rotation
-        currentRotation.current.x += (targetRotation.current.x - currentRotation.current.x) * 0.1;
-        currentRotation.current.y += (targetRotation.current.y - currentRotation.current.y) * 0.1;
+        // Calculate target velocities with greatly reduced speed
+        const targetVelocityX = (targetRotation.current.x - currentRotation.current.x) * 0.012;
+        const targetVelocityY = (targetRotation.current.y - currentRotation.current.y) * 0.012;
+
+        // Smoothly adjust velocities with speed limiting
+        const maxVelocity = 0.0005; // Quarter of original maximum rotation speed
+        const velocitySmoothing = 0.08; // Even smoother transitions
+
+        // Update velocities with smoothing and clamping
+        rotationVelocity.current.x += (targetVelocityX - rotationVelocity.current.x) * velocitySmoothing;
+        rotationVelocity.current.y += (targetVelocityY - rotationVelocity.current.y) * velocitySmoothing;
+
+        // Clamp velocities to maximum speed
+        rotationVelocity.current.x = Math.max(Math.min(rotationVelocity.current.x, maxVelocity), -maxVelocity);
+        rotationVelocity.current.y = Math.max(Math.min(rotationVelocity.current.y, maxVelocity), -maxVelocity);
+
+        // Apply velocities to current rotation
+        currentRotation.current.x += rotationVelocity.current.x;
+        currentRotation.current.y += rotationVelocity.current.y;
         
         // Apply rotation while preserving initial rotation
         modelRef.current.rotation.x = (4 * Math.PI/180) + currentRotation.current.x;
@@ -381,9 +443,37 @@ export default function Model3D({
         // Update light to keep looking at the model
         light.lookAt(modelRef.current.position);
 
-        // Animate mouse light with subtle pulsing
+        // Animate mouse light with smooth movement and subtle pulsing
         if (mouseLightRef.current) {
           const time = Date.now() * 0.001; // Convert to seconds
+          
+          // Calculate target velocities for light movement with greatly reduced speed
+          const targetVelocityX = (mousePosition.current.x - lightPosition.current.x) * 0.012;
+          const targetVelocityY = (mousePosition.current.y - lightPosition.current.y) * 0.012;
+
+          // Smoothly adjust light velocities
+          const maxLightVelocity = 0.02; // Halved maximum light movement speed
+          const lightSmoothing = 0.08; // Even smoother light response
+
+          // Update velocities with smoothing and clamping
+          lightVelocity.current.x += (targetVelocityX - lightVelocity.current.x) * lightSmoothing;
+          lightVelocity.current.y += (targetVelocityY - lightVelocity.current.y) * lightSmoothing;
+
+          // Clamp velocities
+          lightVelocity.current.x = Math.max(Math.min(lightVelocity.current.x, maxLightVelocity), -maxLightVelocity);
+          lightVelocity.current.y = Math.max(Math.min(lightVelocity.current.y, maxLightVelocity), -maxLightVelocity);
+
+          // Update light position
+          lightPosition.current.x += lightVelocity.current.x;
+          lightPosition.current.y += lightVelocity.current.y;
+
+          // Apply position to light
+          mouseLightRef.current.position.set(
+            lightPosition.current.x,
+            lightPosition.current.y,
+            lightPosition.current.z
+          );
+
           // Gentle pulsing intensity
           const pulseValue = (Math.sin(time * 1.5) * 0.2) + 0.8; // Values between 0.6 and 1.0
           mouseLightRef.current.intensity = pulseValue * 0.8; // Keep intensity subtle
