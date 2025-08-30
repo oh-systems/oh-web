@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from "react";
+import * as THREE from 'three';
 import { Model3D, Navigation, HeroText } from "../../components";
 
 export default function Home() {
@@ -18,7 +19,6 @@ export default function Home() {
         
         // Simulate loading multiple assets including our 3D model
         const assets = [
-          '/models/INITIAL OBJECT LOWER POLYS.glb',
           '/models/INITIAL OBJECT MID POLYS.glb',
           '/next.svg',
           '/vercel.svg',
@@ -64,13 +64,13 @@ export default function Home() {
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="w-full h-full">
           <Model3D 
-            modelPath="/models/INITIAL OBJECT LOWER POLYS.glb"
+            modelPath="/models/INITIAL OBJECT MID POLYS.glb"
             cameraPosition={[0, 2, 25]}
             enableControls={false}
             autoRotate={false}
             scale={2.3}
-            position={[0.5, -1.2, 0]}
-            rotation={[0, -0.7, 0]}
+            position={[0.4, 0.2, -1.4]}
+            rotation={[THREE.MathUtils.degToRad(8), THREE.MathUtils.degToRad(40), THREE.MathUtils.degToRad(84)]}
             className=""
           />
         </div>
