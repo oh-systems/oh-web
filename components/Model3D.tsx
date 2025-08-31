@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RectAreaLightHelper } from 'three/examples/jsm/helpers/RectAreaLightHelper.js';
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
+import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 
 // Types and Interfaces
 interface Model3DProps {
@@ -22,7 +23,7 @@ const CAMERA_CONFIG = {
 
 const LIGHT_CONFIG = {
   color: 0xffffff,
-  intensity: 20,
+  intensity: 200,
   width: 2,
   height: 1,
   position: { x: 0.5, y: 2.4, z: -2.2 }
@@ -59,6 +60,12 @@ export default function Model3D({
   const frameRef = useRef<number | null>(null);
   const modelRef = useRef<THREE.Group | null>(null);
   const mouseLightRef = useRef<THREE.PointLight | null>(null);
+  const directionalLightRef = useRef<THREE.DirectionalLight | null>(null);
+  
+  // Light refs for GUI controls
+  const rectLightRef = useRef<THREE.RectAreaLight | null>(null);
+  const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
+  const fillLightRef = useRef<THREE.DirectionalLight | null>(null);
   
   // Ensure client-side only
   useEffect(() => {
@@ -70,6 +77,10 @@ export default function Model3D({
   const targetRotation = useRef({ x: 0, y: 0 });
   const currentRotation = useRef({ x: 0, y: 0 });
   const rotationVelocity = useRef({ x: 0, y: 0 });
+
+  // Shadow light position tracking  
+  const shadowLightPosition = useRef({ x: 5, y: 10, z: 5 });
+
   // Mouse light state - commented out for now
   // const lightPosition = useRef({ x: 0, y: 0, z: 1.5 });
   // const lightVelocity = useRef({ x: 0, y: 0 });
@@ -130,6 +141,7 @@ export default function Model3D({
       LIGHT_CONFIG.height
     );
     rectLight.position.set(LIGHT_CONFIG.position.x, LIGHT_CONFIG.position.y, LIGHT_CONFIG.position.z);
+    rectLightRef.current = rectLight;
     scene.add(rectLight);
     
     const lightHelper = new RectAreaLightHelper(rectLight);
@@ -141,7 +153,7 @@ export default function Model3D({
     // scene.add(mouseLight);
     // mouseLightRef.current = mouseLight;
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
     directionalLight.position.set(5, 10, 5);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 1024;
@@ -154,13 +166,16 @@ export default function Model3D({
     directionalLight.shadow.camera.bottom = -5;
     directionalLight.shadow.bias = -0.001;
     directionalLight.shadow.normalBias = 0.02;
+    directionalLightRef.current = directionalLight;
     scene.add(directionalLight);
 
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
+    ambientLightRef.current = ambientLight;
     scene.add(ambientLight);
 
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    const fillLight = new THREE.DirectionalLight(0xffffff, 2);
     fillLight.position.set(-3, 5, -3);
+    fillLightRef.current = fillLight;
     scene.add(fillLight);
 
     // Model Loading
@@ -247,22 +262,82 @@ export default function Model3D({
       (error) => console.error('Error loading model:', error)
     );
 
-    // GUI Setup - No environment controls needed
+    // GUI Setup for Light Controls
     const setupGUI = async () => {
       try {
-        console.log('Environment removed - no GUI controls needed');
-        // GUI removed since environment is disabled
+        const gui = new GUI();
+        gui.title('Lighting Controls');
+        
+        // Light toggle controls
+        const lightControls = {
+          rectLight: true,
+          directionalLight: true,
+          ambientLight: true,
+          fillLight: true
+        };
+        
+        // RectArea Light Controls
+        const rectFolder = gui.addFolder('RectArea Light (Main)');
+        rectFolder.add(lightControls, 'rectLight').name('Enable').onChange((value: boolean) => {
+          if (rectLightRef.current) {
+            rectLightRef.current.visible = value;
+          }
+        });
+        if (rectLightRef.current) {
+          rectFolder.add(rectLightRef.current, 'intensity', 0, 100, 1).name('Intensity');
+        }
+        rectFolder.open();
+        
+        // Directional Light (Shadow) Controls
+        const dirFolder = gui.addFolder('Directional Light (Shadow)');
+        dirFolder.add(lightControls, 'directionalLight').name('Enable').onChange((value: boolean) => {
+          if (directionalLightRef.current) {
+            directionalLightRef.current.visible = value;
+          }
+        });
+        if (directionalLightRef.current) {
+          dirFolder.add(directionalLightRef.current, 'intensity', 0, 5, 0.1).name('Intensity');
+        }
+        dirFolder.open();
+        
+        // Ambient Light Controls
+        const ambientFolder = gui.addFolder('Ambient Light (Fill)');
+        ambientFolder.add(lightControls, 'ambientLight').name('Enable').onChange((value: boolean) => {
+          if (ambientLightRef.current) {
+            ambientLightRef.current.visible = value;
+          }
+        });
+        if (ambientLightRef.current) {
+          ambientFolder.add(ambientLightRef.current, 'intensity', 0, 2, 0.1).name('Intensity');
+        }
+        ambientFolder.open();
+        
+        // Fill Light Controls
+        const fillFolder = gui.addFolder('Fill Light (Secondary)');
+        fillFolder.add(lightControls, 'fillLight').name('Enable').onChange((value: boolean) => {
+          if (fillLightRef.current) {
+            fillLightRef.current.visible = value;
+          }
+        });
+        if (fillLightRef.current) {
+          fillFolder.add(fillLightRef.current, 'intensity', 0, 2, 0.1).name('Intensity');
+        }
+        fillFolder.open();
+        
+        console.log('Light controls GUI initialized');
       } catch (error) {
         console.error('Error setting up GUI:', error);
       }
-    };    // Mouse Movement Handler
+    };
+
+    // Mouse Movement Handler
     const handleMouseMove = (event: MouseEvent) => {
       const rect = container.getBoundingClientRect();
       const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
       
       mousePosition.current = { x, y };
-      targetRotation.current = { x: y * 0.03, y: x * 0.03 };
+      targetRotation.current = { x: y * 0.08, y: x * 0.08 };
     };
 
     container.addEventListener('mousemove', handleMouseMove);
@@ -273,9 +348,9 @@ export default function Model3D({
       
       if (modelRef.current) {
         // Smooth rotation animation
-        const targetVelocityX = (targetRotation.current.x - currentRotation.current.x) * 0.012;
-        const targetVelocityY = (targetRotation.current.y - currentRotation.current.y) * 0.012;
-        const maxVelocity = 0.0005;
+        const targetVelocityX = (targetRotation.current.x - currentRotation.current.x) * 0.018;
+        const targetVelocityY = (targetRotation.current.y - currentRotation.current.y) * 0.018;
+        const maxVelocity = 0.0012;
         const velocitySmoothing = 0.08;
 
         rotationVelocity.current.x += (targetVelocityX - rotationVelocity.current.x) * velocitySmoothing;
@@ -291,6 +366,30 @@ export default function Model3D({
         modelRef.current.rotation.y = (INITIAL_TRANSFORM.rotation.y * Math.PI/180) + currentRotation.current.y;
 
         rectLight.lookAt(modelRef.current.position);
+
+        // Smooth shadow light following
+        if (directionalLightRef.current) {
+          // Calculate target position based on model rotation (simplified approach)
+          const baseOffset = { x: 5, y: 10, z: 5 };
+          const rotationInfluence = 0.3;
+          
+          const targetX = baseOffset.x + Math.sin(currentRotation.current.y) * rotationInfluence * 3;
+          const targetY = baseOffset.y + Math.sin(currentRotation.current.x) * rotationInfluence * 2;
+          const targetZ = baseOffset.z + Math.cos(currentRotation.current.y) * rotationInfluence * 3;
+
+          // Smooth interpolation to target position
+          const shadowSmoothing = 0.02;
+          
+          shadowLightPosition.current.x += (targetX - shadowLightPosition.current.x) * shadowSmoothing;
+          shadowLightPosition.current.y += (targetY - shadowLightPosition.current.y) * shadowSmoothing;
+          shadowLightPosition.current.z += (targetZ - shadowLightPosition.current.z) * shadowSmoothing;
+
+          directionalLightRef.current.position.set(
+            shadowLightPosition.current.x,
+            shadowLightPosition.current.y,
+            shadowLightPosition.current.z
+          );
+        }
 
         // Mouse light animation - commented out for now
         // if (mouseLightRef.current) {
@@ -360,9 +459,20 @@ export default function Model3D({
 
   return (
     <div 
-      ref={mountRef}
-      className={`w-full h-full ${className}`}
+      className={`w-full h-full relative ${className}`}
       style={{ background: 'transparent' }}
-    />
+    >
+      <div 
+        ref={mountRef}
+        className="w-full h-full"
+      />
+      {/* Black gradient overlay from bottom - extends higher */}
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 10%, rgba(0,0,0,0.9) 20%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0) 80%, rgba(0,0,0,0) 95%, transparent 100%)'
+        }}
+      />
+    </div>
   );
 }
