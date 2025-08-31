@@ -1,124 +1,169 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RectAreaLightHelper } from 'three/examples/jsm/helpers/RectAreaLightHelper.js';
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
-import type { GUI } from 'dat.gui';
 
 // Types and Interfaces
 interface Model3DProps {
-  modelPath?: string;    // Path to the 3D model file
-  className?: string;    // CSS classes for styling
+  modelPath?: string;
+  className?: string;
 }
 
-// Constants for Three.js setup
+// Configuration Constants
 const CAMERA_CONFIG = {
-  fov: 5,               // Field of view in degrees
-  near: 0.1,            // Near clipping plane
-  far: 2000,            // Far clipping plane
-  position: {           // Camera position
-    x: 0,
-    y: 0,
-    z: 10
-  }
+  fov: 5,
+  near: 0.1,
+  far: 2000,
+  position: { x: 0, y: 0, z: 10 }
 };
 
 const LIGHT_CONFIG = {
-  color: 0xffffff,      // White light
-  intensity: 20,        // Higher intensity for rect area light
-  width: 2,             // Width of the area light
-  height: 1,            // Height of the area light
-  position: {           // Light position
-    x: 0.5,
-    y: 2.4,
-    z: -2.2
-  }
+  color: 0xffffff,
+  intensity: 20,
+  width: 2,
+  height: 1,
+  position: { x: 0.5, y: 2.4, z: -2.2 }
+};
+
+const INITIAL_TRANSFORM = {
+  position: { x: 0.15, y: 0.1, z: 0 },
+  rotation: { x: 4, y: 48, z: 84 }, // degrees
+  scale: { x: 1, y: 1, z: 1 }
+};
+
+const MATERIAL_CONFIG = {
+  color: 0xffffff,
+  metalness: 0.0,
+  roughness: 0.3,
+  reflectivity: 0.84,
+  clearcoat: 0.0,
+  clearcoatRoughness: 0.1,
+  ior: 1.24,
+  transmission: 0.0,
+  thickness: 1.68,
+  displacementScale: 1.0
 };
 
 export default function Model3D({ 
-  modelPath = '/models/INITIAL OBJECT LOWER POLYS.glb',
+  modelPath = '/models/BLENDER OBJECT MID POLYS.glb',
   className = ''
 }: Model3DProps) {
-  // Component refs
+  // State for client-side rendering
+  const [mounted, setMounted] = useState(false);
+  
+  // Refs
   const mountRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<number | null>(null);
   const modelRef = useRef<THREE.Group | null>(null);
+  const mouseLightRef = useRef<THREE.PointLight | null>(null);
   
-  // Mouse interaction refs
+  // Ensure client-side only
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  // Mouse interaction state
   const mousePosition = useRef({ x: 0, y: 0 });
   const targetRotation = useRef({ x: 0, y: 0 });
   const currentRotation = useRef({ x: 0, y: 0 });
   const rotationVelocity = useRef({ x: 0, y: 0 });
-  const mouseLightRef = useRef<THREE.PointLight | null>(null);
-  const lightPosition = useRef({ x: 0, y: 0, z: 1.5 });
-  const lightVelocity = useRef({ x: 0, y: 0 });
+  // Mouse light state - commented out for now
+  // const lightPosition = useRef({ x: 0, y: 0, z: 1.5 });
+  // const lightVelocity = useRef({ x: 0, y: 0 });
 
-  // Main Three.js setup and rendering logic
   useEffect(() => {
-    // Initial setup validation
-    if (!mountRef.current) return;
+    if (!mounted || !mountRef.current) return;
+    
     const container = mountRef.current;
     const containerRect = container.getBoundingClientRect();
 
-    // Scene initialization
+    // Scene Setup
     const scene = new THREE.Scene();
+    // No environment mapping - using lighting only
 
-    // Camera initialization
+    // Camera Setup
     const camera = new THREE.PerspectiveCamera(
       CAMERA_CONFIG.fov,
       containerRect.width / containerRect.height,
       CAMERA_CONFIG.near,
       CAMERA_CONFIG.far
     );
-    const { x, y, z } = CAMERA_CONFIG.position;
-    camera.position.set(x, y, z);
+    camera.position.set(CAMERA_CONFIG.position.x, CAMERA_CONFIG.position.y, CAMERA_CONFIG.position.z);
     camera.lookAt(0, 0, 0);
 
-    // Renderer initialization
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: true
-    });
+    // Renderer Setup
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(containerRect.width, containerRect.height);
-    
-    // Initialize tone mapping and color management
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    
     container.appendChild(renderer.domElement);
 
-    // Initialize RectAreaLight
-    RectAreaLightUniformsLib.init();
+    // Helper function to update environment intensity
+    const updateEnvironmentIntensity = () => {
+      if (modelRef.current) {
+        modelRef.current.traverse((child) => {
+          if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshPhysicalMaterial) {
+            child.material.envMapIntensity = 0; // No environment mapping
+            child.material.needsUpdate = true;
+          }
+        });
+        console.log('Environment mapping disabled');
+      }
+    };
 
-        // Create mouse light - smaller and more subtle
-    const mouseLight = new THREE.PointLight(0xffffff, 0.8, 2, 2);
-    mouseLight.position.set(0, 0, 1);
-    scene.add(mouseLight);
-    mouseLightRef.current = mouseLight;
+    // Environment removed - using lighting only
+    updateEnvironmentIntensity();
+
+    // Lighting Setup
+    RectAreaLightUniformsLib.init();
     
-    // Main area light initialization
-    const light = new THREE.RectAreaLight(
+    const rectLight = new THREE.RectAreaLight(
       LIGHT_CONFIG.color,
       LIGHT_CONFIG.intensity,
       LIGHT_CONFIG.width,
       LIGHT_CONFIG.height
     );
-    light.position.set(
-      LIGHT_CONFIG.position.x,
-      LIGHT_CONFIG.position.y,
-      LIGHT_CONFIG.position.z
-    );
-    // Initial lookAt will be updated once model is loaded
-    scene.add(light);
+    rectLight.position.set(LIGHT_CONFIG.position.x, LIGHT_CONFIG.position.y, LIGHT_CONFIG.position.z);
+    scene.add(rectLight);
+    
+    const lightHelper = new RectAreaLightHelper(rectLight);
+    rectLight.add(lightHelper);
 
-    // Add light helper for visualization
-    const lightHelper = new RectAreaLightHelper(light);
-    light.add(lightHelper);
+    // Mouse light - commented out for now
+    // const mouseLight = new THREE.PointLight(0xffffff, 0.8, 2, 2);
+    // mouseLight.position.set(0, 0, 1);
+    // scene.add(mouseLight);
+    // mouseLightRef.current = mouseLight;
 
-    // Model loading and setup
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    directionalLight.position.set(5, 10, 5);
+    directionalLight.castShadow = true;
+    directionalLight.shadow.mapSize.width = 1024;
+    directionalLight.shadow.mapSize.height = 1024;
+    directionalLight.shadow.camera.near = 0.5;
+    directionalLight.shadow.camera.far = 25;
+    directionalLight.shadow.camera.left = -5;
+    directionalLight.shadow.camera.right = 5;
+    directionalLight.shadow.camera.top = 5;
+    directionalLight.shadow.camera.bottom = -5;
+    directionalLight.shadow.bias = -0.001;
+    directionalLight.shadow.normalBias = 0.02;
+    scene.add(directionalLight);
+
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+    scene.add(ambientLight);
+
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    fillLight.position.set(-3, 5, -3);
+    scene.add(fillLight);
+
+    // Model Loading
     const loader = new GLTFLoader();
     loader.load(
       modelPath,
@@ -130,374 +175,165 @@ export default function Model3D({
         const center = boundingBox.getCenter(new THREE.Vector3());
         model.position.sub(center);
         
-        // Apply initial transformations
-        model.position.set(0.15, 0.1, 0);  // Match GUI values
+        // Apply initial transform
+        model.position.set(INITIAL_TRANSFORM.position.x, INITIAL_TRANSFORM.position.y, INITIAL_TRANSFORM.position.z);
         model.rotation.set(
-          4 * Math.PI/180,     // 4 degrees
-          48 * Math.PI/180,    // 48 degrees
-          84 * Math.PI/180     // 84 degrees
+          INITIAL_TRANSFORM.rotation.x * Math.PI/180,
+          INITIAL_TRANSFORM.rotation.y * Math.PI/180,
+          INITIAL_TRANSFORM.rotation.z * Math.PI/180
         );
-        model.scale.set(1, 1, 1);          // Scale of 1
+        model.scale.set(INITIAL_TRANSFORM.scale.x, INITIAL_TRANSFORM.scale.y, INITIAL_TRANSFORM.scale.z);
         
-        // Update light to look at the model
-        light.lookAt(model.position);
+        // Update light target
+        rectLight.lookAt(model.position);
         
-        // Set initial material properties
+        // Configure materials
         model.traverse((child) => {
           if (child instanceof THREE.Mesh) {
-            const material = child.material as THREE.MeshStandardMaterial;
-            material.color.set(0xffffff);  // White color (#ffffff)
-            material.roughness = 0.3;     // Set initial roughness
+            // Ensure smooth normals
+            child.geometry.computeVertexNormals();
+            
+            // Compute tangents if possible
+            const hasIndex = child.geometry.index !== null;
+            const hasPosition = !!child.geometry.attributes.position;
+            const hasNormal = !!child.geometry.attributes.normal;
+            const hasUV = !!child.geometry.attributes.uv;
+            
+            if (!child.geometry.attributes.tangent && hasIndex && hasPosition && hasNormal && hasUV) {
+              try {
+                child.geometry.computeTangents();
+              } catch (error) {
+                console.warn('Failed to compute tangents:', error);
+              }
+            }
+            
+            // Apply physical material
+            const material = new THREE.MeshPhysicalMaterial({
+              color: MATERIAL_CONFIG.color,
+              metalness: MATERIAL_CONFIG.metalness,
+              roughness: MATERIAL_CONFIG.roughness,
+              reflectivity: MATERIAL_CONFIG.reflectivity,
+              clearcoat: MATERIAL_CONFIG.clearcoat,
+              clearcoatRoughness: MATERIAL_CONFIG.clearcoatRoughness,
+              ior: MATERIAL_CONFIG.ior,
+              transmission: MATERIAL_CONFIG.transmission,
+              thickness: MATERIAL_CONFIG.thickness,
+              side: THREE.DoubleSide,
+              envMapIntensity: 0, // No environment mapping
+              flatShading: false,
+              displacementScale: MATERIAL_CONFIG.displacementScale
+            });
+            
+            if (child.material) {
+              (child.material as THREE.Material).dispose();
+            }
+            child.material = material;
+            
+            child.castShadow = true;
+            child.receiveShadow = true;
           }
         });
         
         scene.add(model);
         modelRef.current = model;
-        // Initialize GUI controls
-        const setupGUI = async () => {
-          const dat = await import('dat.gui');
-          const gui = new dat.GUI();
-
-          // Configure GUI container
-          const guiContainer = gui.domElement.parentElement;
-          if (guiContainer) {
-            guiContainer.style.cssText = 'position: fixed !important; z-index: 999999 !important; top: 0 !important; right: 16px !important;';
-          }
-
-          // Create transform controls folder
-          const transformFolder = gui.addFolder('Transform');
-          
-          // Position controls
-          const position = { x: model.position.x, y: model.position.y, z: model.position.z };
-          transformFolder.add(position, 'x', 0, 0.3, 0.01)
-            .onChange((value: number) => { 
-              model.position.x = value;
-              light.lookAt(model.position);
-            });
-          transformFolder.add(position, 'y', 0, 0.2, 0.01)
-            .onChange((value: number) => { 
-              model.position.y = value;
-              light.lookAt(model.position);
-            });
-          transformFolder.add(position, 'z', -0.1, 0.1, 0.01)
-            .onChange((value: number) => { 
-              model.position.z = value;
-              light.lookAt(model.position);
-            });
-
-          // Rotation controls
-          const rotation = {
-            x: THREE.MathUtils.radToDeg(model.rotation.x),
-            y: THREE.MathUtils.radToDeg(model.rotation.y),
-            z: THREE.MathUtils.radToDeg(model.rotation.z)
-          };
-          transformFolder.add(rotation, 'x', -10, 20, 1).name('rotate X')
-            .onChange((value: number) => { model.rotation.x = THREE.MathUtils.degToRad(value); });
-          transformFolder.add(rotation, 'y', 30, 66, 1).name('rotate Y')
-            .onChange((value: number) => { model.rotation.y = THREE.MathUtils.degToRad(value); });
-          transformFolder.add(rotation, 'z', 70, 98, 1).name('rotate Z')
-            .onChange((value: number) => { model.rotation.z = THREE.MathUtils.degToRad(value); });
-
-          // Scale control
-          const scale = { uniform: 1.0 };
-          transformFolder.add(scale, 'uniform', 0.5, 2, 0.1).name('scale')
-            .onChange((value: number) => { model.scale.set(value, value, value); });
-
-          // Create material folder with advanced properties
-          const materialFolder = gui.addFolder('Material');
-          model.traverse((child) => {
-            if (child instanceof THREE.Mesh) {
-              const material = child.material as THREE.MeshStandardMaterial;
-              
-              // Color control
-              const materialColor = { color: '#' + material.color.getHexString() };
-              materialFolder.addColor(materialColor, 'color')
-                .onChange((value: string) => {
-                  material.color.set(value);
-                });
-              
-              // Main Material properties
-              materialFolder.add(material, 'metalness', 0, 1, 0.01)
-                .name('metalness');
-              materialFolder.add(material, 'roughness', 0, 1, 0.01)
-                .name('roughness');
-              materialFolder.add(material, 'envMapIntensity', 0, 1, 0.01)
-                .name('environment');
-                
-              // Surface Properties
-              const surfaceFolder = materialFolder.addFolder('Surface Properties');
-              surfaceFolder.add(material, 'wireframe');
-              surfaceFolder.add(material, 'flatShading')
-                .onChange(() => material.needsUpdate = true);
-              surfaceFolder.add(material, 'aoMapIntensity', 0, 1, 0.01)
-                .name('ambient occlusion');
-              
-              // Advanced Properties
-              const advancedFolder = materialFolder.addFolder('Advanced Properties');
-              // Add normal scale control (affects normal mapping)
-              const normalScaleFolder = advancedFolder.addFolder('Normal Scale');
-              normalScaleFolder.add(material.normalScale, 'x', 0, 1, 0.01)
-                .name('X scale');
-              normalScaleFolder.add(material.normalScale, 'y', 0, 1, 0.01)
-                .name('Y scale');
-              
-              // Displacement control
-              advancedFolder.add(material, 'displacementScale', 0, 1, 0.01)
-                .name('displacement');
-              
-              // Emission Properties
-              const emissionFolder = materialFolder.addFolder('Emission');
-              emissionFolder.add(material, 'emissiveIntensity', 0, 1, 0.01)
-                .name('intensity');
-              const emissiveColor = { color: '#000000' };
-              emissionFolder.addColor(emissiveColor, 'color')
-                .name('color')
-                .onChange((value: string) => {
-                  material.emissive.set(value);
-                });
-              
-              // Material Rendering
-              const renderFolder = materialFolder.addFolder('Render Settings');
-              renderFolder.add(material, 'transparent');
-              renderFolder.add(material, 'opacity', 0, 1, 0.01)
-                .name('opacity');
-              renderFolder.add(material, 'alphaTest', 0, 1, 0.01)
-                .name('alpha test');
-              renderFolder.add(material, 'side', {
-                Front: THREE.FrontSide,
-                Back: THREE.BackSide,
-                Double: THREE.DoubleSide
-              })
-                .onChange(() => material.needsUpdate = true);
-            }
-          });
-
-          // Create light controls folder
-          const lightFolder = gui.addFolder('Area Light');
-          
-          // Light color
-          const lightColor = { color: '#' + light.color.getHexString() };
-          lightFolder.addColor(lightColor, 'color')
-            .onChange((value: string) => {
-              light.color.set(value);
-            });
-
-          // Light intensity
-          const lightIntensity = { value: light.intensity };
-          lightFolder.add(lightIntensity, 'value', 0, 10, 0.1)
-            .name('intensity')
-            .onChange((value: number) => {
-              light.intensity = value;
-            });
-
-          // Light dimensions
-          const lightDimensions = {
-            width: light.width,
-            height: light.height
-          };
-          lightFolder.add(lightDimensions, 'width', 0.1, 5, 0.1)
-            .onChange((value: number) => { 
-              light.width = value;
-              // Re-create helper when dimensions change
-              light.remove(lightHelper);
-              const newHelper = new RectAreaLightHelper(light);
-              light.add(newHelper);
-            });
-          lightFolder.add(lightDimensions, 'height', 0.1, 5, 0.1)
-            .onChange((value: number) => { 
-              light.height = value;
-              // Re-create helper when dimensions change
-              light.remove(lightHelper);
-              const newHelper = new RectAreaLightHelper(light);
-              light.add(newHelper);
-            });
-
-          // Light position
-          const lightPosition = {
-            x: light.position.x,
-            y: light.position.y,
-            z: light.position.z
-          };
-          lightFolder.add(lightPosition, 'x', -10, 10, 0.1)
-            .onChange((value: number) => { 
-              light.position.x = value;
-              light.lookAt(modelRef.current?.position || new THREE.Vector3());
-            });
-          lightFolder.add(lightPosition, 'y', -10, 10, 0.1)
-            .onChange((value: number) => { 
-              light.position.y = value;
-              light.lookAt(modelRef.current?.position || new THREE.Vector3());
-            });
-          lightFolder.add(lightPosition, 'z', -10, 10, 0.1)
-            .onChange((value: number) => { 
-              light.position.z = value;
-              light.lookAt(modelRef.current?.position || new THREE.Vector3());
-            });
-
-          // Create renderer controls folder
-          const rendererFolder = gui.addFolder('Renderer Settings');
-          
-          // Tone Mapping
-          const toneMappingOptions = {
-            None: THREE.NoToneMapping,
-            Linear: THREE.LinearToneMapping,
-            Reinhard: THREE.ReinhardToneMapping,
-            Cineon: THREE.CineonToneMapping,
-            'ACES Filmic': THREE.ACESFilmicToneMapping,
-            Custom: THREE.CustomToneMapping
-          };
-          
-          const rendererSettings = {
-            toneMapping: 'ACES Filmic',
-            exposure: 1.0
-          };
-
-          // Tone Mapping Type
-          rendererFolder.add(rendererSettings, 'toneMapping', Object.keys(toneMappingOptions))
-            .onChange((value: keyof typeof toneMappingOptions) => {
-              renderer.toneMapping = toneMappingOptions[value];
-              
-              // Update materials to trigger refresh
-              modelRef.current?.traverse((child) => {
-                if (child instanceof THREE.Mesh) {
-                  const material = child.material as THREE.MeshStandardMaterial;
-                  material.needsUpdate = true;
-                }
-              });
-            });
-
-          // Exposure
-          rendererFolder.add(rendererSettings, 'exposure', 0, 2, 0.01)
-            .name('exposure')
-            .onChange((value: number) => {
-              renderer.toneMappingExposure = value;
-            });
-
-          // Open folders
-          transformFolder.open();
-          materialFolder.open();
-          lightFolder.open();
-          rendererFolder.open();
-        };
-
-        setupGUI().catch(console.error);
+        updateEnvironmentIntensity();
+        
+        // Add a small delay to ensure everything is initialized
+        setTimeout(() => {
+          setupGUI();
+        }, 100);
       },
       undefined,
       (error) => console.error('Error loading model:', error)
     );
 
-    // Mouse movement handler
+    // GUI Setup - No environment controls needed
+    const setupGUI = async () => {
+      try {
+        console.log('Environment removed - no GUI controls needed');
+        // GUI removed since environment is disabled
+      } catch (error) {
+        console.error('Error setting up GUI:', error);
+      }
+    };    // Mouse Movement Handler
     const handleMouseMove = (event: MouseEvent) => {
-      // Calculate mouse position relative to container
       const rect = container.getBoundingClientRect();
       const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
       
       mousePosition.current = { x, y };
-      
-      // Set target rotation with eased values for smoother movement
-      targetRotation.current = {
-        x: y * 0.03, // Reduced rotation amount for more subtle movement
-        y: x * 0.03
-      };
-
-      // Store target light position for smooth interpolation
-      mousePosition.current = {
-        x: x * 1.5,  // Range of movement
-        y: y * 1.5   // Range of movement
-      };
+      targetRotation.current = { x: y * 0.03, y: x * 0.03 };
     };
 
-    // Add mouse event listener
     container.addEventListener('mousemove', handleMouseMove);
 
-    // Animation loop with smooth interpolation
+    // Animation Loop
     const animate = () => {
       frameRef.current = requestAnimationFrame(animate);
       
       if (modelRef.current) {
-        // Calculate target velocities with greatly reduced speed
+        // Smooth rotation animation
         const targetVelocityX = (targetRotation.current.x - currentRotation.current.x) * 0.012;
         const targetVelocityY = (targetRotation.current.y - currentRotation.current.y) * 0.012;
+        const maxVelocity = 0.0005;
+        const velocitySmoothing = 0.08;
 
-        // Smoothly adjust velocities with speed limiting
-        const maxVelocity = 0.0005; // Quarter of original maximum rotation speed
-        const velocitySmoothing = 0.08; // Even smoother transitions
-
-        // Update velocities with smoothing and clamping
         rotationVelocity.current.x += (targetVelocityX - rotationVelocity.current.x) * velocitySmoothing;
         rotationVelocity.current.y += (targetVelocityY - rotationVelocity.current.y) * velocitySmoothing;
 
-        // Clamp velocities to maximum speed
         rotationVelocity.current.x = Math.max(Math.min(rotationVelocity.current.x, maxVelocity), -maxVelocity);
         rotationVelocity.current.y = Math.max(Math.min(rotationVelocity.current.y, maxVelocity), -maxVelocity);
 
-        // Apply velocities to current rotation
         currentRotation.current.x += rotationVelocity.current.x;
         currentRotation.current.y += rotationVelocity.current.y;
         
-        // Apply rotation while preserving initial rotation
-        modelRef.current.rotation.x = (4 * Math.PI/180) + currentRotation.current.x;
-        modelRef.current.rotation.y = (48 * Math.PI/180) + currentRotation.current.y;
+        modelRef.current.rotation.x = (INITIAL_TRANSFORM.rotation.x * Math.PI/180) + currentRotation.current.x;
+        modelRef.current.rotation.y = (INITIAL_TRANSFORM.rotation.y * Math.PI/180) + currentRotation.current.y;
 
-        // Update light to keep looking at the model
-        light.lookAt(modelRef.current.position);
+        rectLight.lookAt(modelRef.current.position);
 
-        // Animate mouse light with smooth movement and subtle pulsing
-        if (mouseLightRef.current) {
-          const time = Date.now() * 0.001; // Convert to seconds
-          
-          // Calculate target velocities for light movement with greatly reduced speed
-          const targetVelocityX = (mousePosition.current.x - lightPosition.current.x) * 0.012;
-          const targetVelocityY = (mousePosition.current.y - lightPosition.current.y) * 0.012;
+        // Mouse light animation - commented out for now
+        // if (mouseLightRef.current) {
+        //   const time = Date.now() * 0.001;
+        //   const targetVelocityX = (mousePosition.current.x - lightPosition.current.x) * 0.012;
+        //   const targetVelocityY = (mousePosition.current.y - lightPosition.current.y) * 0.012;
+        //   const maxLightVelocity = 0.02;
+        //   const lightSmoothing = 0.08;
 
-          // Smoothly adjust light velocities
-          const maxLightVelocity = 0.02; // Halved maximum light movement speed
-          const lightSmoothing = 0.08; // Even smoother light response
+        //   lightVelocity.current.x += (targetVelocityX - lightVelocity.current.x) * lightSmoothing;
+        //   lightVelocity.current.y += (targetVelocityY - lightVelocity.current.y) * lightSmoothing;
 
-          // Update velocities with smoothing and clamping
-          lightVelocity.current.x += (targetVelocityX - lightVelocity.current.x) * lightSmoothing;
-          lightVelocity.current.y += (targetVelocityY - lightVelocity.current.y) * lightSmoothing;
+        //   lightVelocity.current.x = Math.max(Math.min(lightVelocity.current.x, maxLightVelocity), -maxLightVelocity);
+        //   lightVelocity.current.y = Math.max(Math.min(lightVelocity.current.y, maxLightVelocity), -maxLightVelocity);
 
-          // Clamp velocities
-          lightVelocity.current.x = Math.max(Math.min(lightVelocity.current.x, maxLightVelocity), -maxLightVelocity);
-          lightVelocity.current.y = Math.max(Math.min(lightVelocity.current.y, maxLightVelocity), -maxLightVelocity);
+        //   lightPosition.current.x += lightVelocity.current.x;
+        //   lightPosition.current.y += lightVelocity.current.y;
 
-          // Update light position
-          lightPosition.current.x += lightVelocity.current.x;
-          lightPosition.current.y += lightVelocity.current.y;
+        //   mouseLightRef.current.position.set(
+        //     lightPosition.current.x,
+        //     lightPosition.current.y,
+        //     lightPosition.current.z
+        //   );
 
-          // Apply position to light
-          mouseLightRef.current.position.set(
-            lightPosition.current.x,
-            lightPosition.current.y,
-            lightPosition.current.z
-          );
-
-          // Gentle pulsing intensity
-          const pulseValue = (Math.sin(time * 1.5) * 0.2) + 0.8; // Values between 0.6 and 1.0
-          mouseLightRef.current.intensity = pulseValue * 0.8; // Keep intensity subtle
-        }
+        //   const pulseValue = (Math.sin(time * 1.5) * 0.2) + 0.8;
+        //   mouseLightRef.current.intensity = pulseValue * 0.8;
+        // }
       }
       
       renderer.render(scene, camera);
     };
     animate();
 
-    // Cleanup function
+    // Cleanup
     return () => {
-      // Remove event listener
       container.removeEventListener('mousemove', handleMouseMove);
       
-      // Stop animation loop
       if (frameRef.current) {
         cancelAnimationFrame(frameRef.current);
       }
 
-      // Dispose of Three.js resources
       renderer.dispose();
       
-      // Clean up model geometries and materials
       if (modelRef.current) {
         modelRef.current.traverse((child) => {
           if (child instanceof THREE.Mesh) {
@@ -511,14 +347,22 @@ export default function Model3D({
         });
       }
     };
-  }, [modelPath]);
+  }, [modelPath, mounted]);
 
-  // Render the container div that will hold the Three.js canvas
+  if (!mounted) {
+    return (
+      <div 
+        className={`w-full h-full ${className}`}
+        style={{ background: 'transparent' }}
+      />
+    );
+  }
+
   return (
     <div 
-      ref={mountRef}                           // Attach our ref
-      className={`w-full h-full ${className}`} // Apply sizing and custom classes
-      style={{ background: 'transparent' }}    // Make background transparent
+      ref={mountRef}
+      className={`w-full h-full ${className}`}
+      style={{ background: 'transparent' }}
     />
   );
 }

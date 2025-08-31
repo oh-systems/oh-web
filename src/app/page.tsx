@@ -19,7 +19,7 @@ export default function Home() {
         
         // Simulate loading multiple assets including our 3D model
         const assets = [
-          '/models/INITIAL OBJECT MID POLYS.glb',
+          '/models/BLENDER OBJECT MID POLYS.glb',
           '/next.svg',
           '/vercel.svg',
           '/file.svg'
@@ -64,7 +64,7 @@ export default function Home() {
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="w-full h-full">
           <Model3D 
-            modelPath="/models/INITIAL OBJECT MID POLYS.glb"
+            modelPath="/models/BLENDER OBJECT MID POLYS.glb"
             className=""
           />
         </div>
