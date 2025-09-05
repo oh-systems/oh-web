@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import * as THREE from 'three';
-import { Model3D_Dev as Model3D, Model3D_Static, Navigation, HeroText } from "../../components";
-
+// import { Model3D_Dev as Model3D, Model3D_Static, Navigation, HeroText } from "../../components"; // dev mode
+import { Model3D, Model3D_Static, Navigation, HeroText } from "../../components"; // production mode
 
 export default function Home() {
   useEffect(() => {
