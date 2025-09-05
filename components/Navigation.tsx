@@ -1,12 +1,43 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 interface NavigationProps {
   className?: string;
 }
 
 export default function Navigation({ className = '' }: NavigationProps) {
+  const [scrollY, setScrollY] = useState(0);
+  const [opacity, setOpacity] = useState(1);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      setScrollY(currentScrollY);
+      
+      // Fade out as menu approaches top of screen
+      const fadeStart = 50;   // Start fading after 50px scroll
+      const fadeEnd = 200;    // Fully transparent at 200px
+      
+      if (currentScrollY <= fadeStart) {
+        setOpacity(1);
+      } else if (currentScrollY >= fadeEnd) {
+        setOpacity(0);
+      } else {
+        const fadeProgress = (currentScrollY - fadeStart) / (fadeEnd - fadeStart);
+        setOpacity(1 - fadeProgress);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <nav className={`absolute top-0 right-0 z-50 py-4 pl-8 pr-16 ${className}`}>
+    <nav 
+      className={`fixed top-0 right-0 z-50 py-4 pl-8 pr-16 transition-opacity duration-300 ease-out ${className}`}
+      style={{ opacity }}
+    >
       <ul className="flex space-x-32 text-white">
         <li>
           <a 
