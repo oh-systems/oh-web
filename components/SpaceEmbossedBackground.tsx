@@ -4,20 +4,19 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-// Types and Interfaces
-interface Model3DStaticProps {
+interface SpaceEmbossedBackgroundProps {
   modelPath: string;
   className?: string;
 }
 
-export default function Model3D_Static({ 
+export default function SpaceEmbossedBackground({ 
   modelPath,
   className = ''
-}: Model3DStaticProps) {
+}: SpaceEmbossedBackgroundProps) {
   const [mounted, setMounted] = useState(false);
   const mountRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<number | null>(null);
-  
+
   useEffect(() => {
     setMounted(true);
   }, []);
