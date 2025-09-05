@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import * as THREE from 'three';
-// import { Model3D_Dev as Model3D, Model3D_Static, Navigation, HeroText } from "../../components"; // dev mode
-import { Model3D, Model3D_Static, Navigation, HeroText } from "../../components"; // production mode
+// import { ObjectPolysDev as ObjectPolysModel, SpaceEmbossedBackground, Navigation, HeroText } from "../../components"; // dev mode
+import { ObjectPolysModel , SpaceEmbossedBackground, Navigation, HeroText } from "../../components"; // production mode
 
 export default function Home() {
   useEffect(() => {
@@ -46,7 +46,7 @@ export default function Home() {
 
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-full h-full">
-            <Model3D 
+            <ObjectPolysModel 
               modelPath="/models/INITIAL OBJECT MID POLYS.glb"
             />
           </div>
@@ -54,7 +54,7 @@ export default function Home() {
       </div>
 
       <div className="absolute inset-0 z-1 w-full h-full">
-        <Model3D_Static 
+        <SpaceEmbossedBackground 
           modelPath="/models/SPACE EMBOSSED.glb"
         />
       </div>
