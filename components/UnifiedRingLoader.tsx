@@ -39,24 +39,6 @@ void main() {
     vec2 p = centeredUV * vec2(u_aspect, 1.0);
 
     float initialPulsePhase = step(u_progress, 0.001);
-    
-    float basePulse;
-    float pulseStrength;
-    
-    if (initialPulsePhase > 0.5) {
-        basePulse = 0.3 + 0.7 * sin(u_time * 1.8);
-        pulseStrength = 0.6;
-    } else {
-        basePulse = 0.5 + 0.5 * sin(u_time * mix(1.6, 0.6, u_progress));
-        pulseStrength = mix(0.5, 0.0, u_phase);
-    }
-    
-    float stableTransition = u_stable;
-    if (u_stable > 0.5) {
-        pulseStrength = pulseStrength * (1.0 - smoothstep(0.5, 1.0, u_stable));
-    }
-    
-    float pulse = 1.0 + pulseStrength * basePulse;
 
     float t = ease(u_progress);
     
@@ -73,13 +55,8 @@ void main() {
         float targetPixelSize = 276.0;
         float targetRadius = (targetPixelSize * 0.5) / u_resolution.y;
         
-        if (u_stable > 0.5) {
-            float pulsedRadius = mix(0.22, targetRadius, t) * pulse;
-            float fixedRadius = mix(0.22, targetRadius, t);
-            radius = mix(pulsedRadius, fixedRadius, smoothstep(0.5, 1.0, u_stable));
-        } else {
-            radius = mix(0.22, targetRadius, t) * pulse;
-        }
+        // Remove all radius pulsing - keep radius completely stable
+        radius = mix(0.22, targetRadius, t);
         
         thick = mix(0.02, 0.04, t);
     } else {
@@ -101,25 +78,42 @@ void main() {
     
     float focusProgress = u_progress;
     float blurCurve;
+    
+    // Create smooth continuous curve instead of discrete steps
     if (focusProgress < 0.01) {
         blurCurve = 0.0;
-    } else if (focusProgress < 0.5) {
-        blurCurve = focusProgress / 0.5 * 0.2;
-    } else if (focusProgress < 0.75) {
-        float t = (focusProgress - 0.5) / 0.25;
-        float smoothT = smoothstep(0.0, 1.0, t);
-        blurCurve = 0.2 + smoothT * 0.5;
     } else {
-        float t = (focusProgress - 0.75) / 0.25;
-        float extraSmoothT = smoothstep(0.0, 1.0, smoothstep(0.0, 1.0, t));
-        blurCurve = 0.7 + extraSmoothT * 0.3;
+        // Single smooth curve from 0.01 to 1.0
+        float normalizedProgress = (focusProgress - 0.01) / 0.99;
+        
+        // Use multiple smoothstep layers for ultra-smooth transitions
+        float curve1 = smoothstep(0.0, 1.0, normalizedProgress);
+        float curve2 = smoothstep(0.0, 1.0, curve1);
+        float curve3 = smoothstep(0.0, 1.0, curve2);
+        
+        // Blend the curves for maximum smoothness
+        float finalCurve = mix(curve1, curve2, 0.5);
+        finalCurve = mix(finalCurve, curve3, 0.3);
+        
+        blurCurve = finalCurve;
     }
     
-    float blur = mix(1.2, 0.0001, blurCurve);
+    // Base blur from progress - make the final state much sharper
+    float baseBlur = mix(0.4, 0.0001, blurCurve);
     
-    if (u_phase > 0.5) {
-        blur = 0.0001;
+    // Add smooth glow pulsing instead of radius pulsing
+    float glowPulse = 0.0;
+    // Only pulse during active loading - stop completely when stable or transitioning
+    if (u_stable < 0.1 && u_phase < 0.1) {
+        // Create more visible breathing glow effect
+        // glowPulse = sin(u_time * 1.5) * 0.5 + 0.5; // Smooth sine wave from 0 to 1
+        // glowPulse = smoothstep(0.2, 0.8, glowPulse); // Enhanced smoothing with more contrast
     }
+    
+    // Apply glow pulse to blur for breathing effect with stronger intensity
+    float blur = baseBlur * (1.0 + glowPulse * 1.5); // Increased multiplier for more visible pulse
+    
+    // Remove the stable transition - let progress-based blur handle sharpening naturally
 
     float d = sdRing(adjustedP, radius, thick);
     float alpha = 1.0 - smoothstep(-blur, blur, d);
@@ -261,7 +255,14 @@ export default function UnifiedRingLoader({ onContentShow, onTransitionComplete 
 
       if (currentProgress >= 1.0 && stableStartTime === 0) {
         stableStartTime = now;
-        uniforms.u_stable.value = 1.0;
+      }
+
+      // Smooth transition for u_stable instead of instant jump
+      if (stableStartTime > 0) {
+        const stableElapsed = now - stableStartTime;
+        const STABLE_TRANSITION_DURATION = 500; // 500ms smooth transition
+        const stableProgress = Math.min(stableElapsed / STABLE_TRANSITION_DURATION, 1.0);
+        uniforms.u_stable.value = stableProgress; // Gradual 0 to 1 transition
       }
 
       if (stableStartTime > 0 && (now - stableStartTime) >= STABLE_DURATION && contentShowTime === 0) {
