@@ -116,7 +116,7 @@ export default function InitialLoadSequence({
 
     let frameIndex = 0;
     const targetFrameTime = 1000 / effectiveFPS;
-    let startTime = Date.now();
+    const startTime = Date.now();
 
     const animate = () => {
       const currentTime = Date.now();
