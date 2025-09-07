@@ -1,14 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, createContext, useContext } from 'react';
 import { UnifiedRingLoader, PermanentRing } from '../../components';
+
+// Create context to share transition state
+const AppContext = createContext({
+  contentVisible: false,
+  transitionComplete: false
+});
+
+export const useAppContext = () => useContext(AppContext);
 
 export default function AppContent({ children }: { children: React.ReactNode }) {
   const [contentVisible, setContentVisible] = useState(false);
   const [transitionComplete, setTransitionComplete] = useState(false);
   
   return (
-    <>
+    <AppContext.Provider value={{ contentVisible, transitionComplete }}>
       {/* Loading phase: show UnifiedRingLoader until transition complete */}
       {!transitionComplete && (
         <UnifiedRingLoader 
@@ -29,6 +37,6 @@ export default function AppContent({ children }: { children: React.ReactNode }) 
       }}>
         {children}
       </div>
-    </>
+    </AppContext.Provider>
   );
 }

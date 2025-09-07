@@ -1,0 +1,109 @@
+/* CSS 3D Transform Utilities for Image-based Models */
+
+.model-container {
+  perspective: 1000px;
+  perspective-origin: center center;
+  transform-style: preserve-3d;
+}
+
+.model-image {
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease-in-out;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+/* Rotation utilities */
+.rotate-x-slow {
+  animation: rotateX 20s linear infinite;
+}
+
+.rotate-y-slow {
+  animation: rotateY 15s linear infinite;
+}
+
+.rotate-xy-slow {
+  animation: rotateXY 25s linear infinite;
+}
+
+/* Float animation */
+.float-animation {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Hover effects */
+.model-hover:hover {
+  transform: scale(1.05) rotateY(10deg);
+}
+
+.model-tilt:hover {
+  transform: rotateX(5deg) rotateY(10deg);
+}
+
+/* Scroll-based transform classes */
+.parallax-slow {
+  transform: translateZ(-1px) scale(2);
+}
+
+.parallax-medium {
+  transform: translateZ(-2px) scale(3);
+}
+
+.parallax-fast {
+  transform: translateZ(-3px) scale(4);
+}
+
+/* Keyframe animations */
+@keyframes rotateX {
+  from { transform: rotateX(0deg); }
+  to { transform: rotateX(360deg); }
+}
+
+@keyframes rotateY {
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(360deg); }
+}
+
+@keyframes rotateXY {
+  0% { transform: rotateX(0deg) rotateY(0deg); }
+  25% { transform: rotateX(90deg) rotateY(90deg); }
+  50% { transform: rotateX(180deg) rotateY(180deg); }
+  75% { transform: rotateX(270deg) rotateY(270deg); }
+  100% { transform: rotateX(360deg) rotateY(360deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .model-container {
+    perspective: 500px;
+  }
+  
+  .model-image {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* Performance optimizations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Loading states */
+.model-loading {
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.model-loaded {
+  opacity: 1;
+  transform: scale(1);
+}
