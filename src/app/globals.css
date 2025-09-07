@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Import custom CSS transforms for image-based models */
+@import "../styles/transforms.css";
+
 :root {
   --background: #000000;
   --foreground: #ededed;
