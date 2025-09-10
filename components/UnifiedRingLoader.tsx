@@ -1,167 +1,134 @@
-// Pure CSS/SVG loader replacing Three.js implementation for simpler layering.
-// This file contains a single, self-contained implementation (no debug DOM or Three.js).
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { appLoading } from '../src/lib/three/loadingManager';
-import '../src/styles/ring-loader.css';
+import React, { useEffect, useState, useRef } from 'react';
 
 interface UnifiedRingLoaderProps {
   onContentShow?: () => void;
   onTransitionComplete?: () => void;
 }
 
-// Development flag: when true the loader stays centered until PermanentRing takes over
-// Set to false for normal behavior.
-const KEEP_VISIBLE_ALWAYS = false;
-
 export default function UnifiedRingLoader({ onContentShow, onTransitionComplete }: UnifiedRingLoaderProps) {
-  const [progress, setProgress] = useState<number>(typeof appLoading !== 'undefined' ? appLoading.ratio : 0);
-  const [contentShown, setContentShown] = useState(false);
-  const [shouldHide, setShouldHide] = useState(false);
-  const [isPulsing, setIsPulsing] = useState(true);
-  const rafRef = useRef<number | null>(null);
-  const timeoutRef = useRef<number | null>(null);
-  const contentNotifiedRef = useRef(false);
-
-  // Poll appLoading.ratio on animation frames. This is simple and avoids
-  // coupling to any custom event emitter.
+  const [transitionProgress, setTransitionProgress] = useState(0);
+  const [isComplete, setIsComplete] = useState(false);
+  const [fadeProgress, setFadeProgress] = useState(0);
+  
+  // Use refs to store callbacks and prevent re-running the effect
+  const onContentShowRef = useRef(onContentShow);
+  const onTransitionCompleteRef = useRef(onTransitionComplete);
+  
+  // Update refs when callbacks change
   useEffect(() => {
-    let mounted = true;
+    onContentShowRef.current = onContentShow;
+    onTransitionCompleteRef.current = onTransitionComplete;
+  }, [onContentShow, onTransitionComplete]);
 
-    // Stop pulsing and start loading after initial pulse animation
-    const pulseTimer = setTimeout(() => {
-      if (mounted) setIsPulsing(false);
-    }, 2000);
+  useEffect(() => {
+    let animationId: number;
+    let hasStarted = false; // Prevent double execution
+    
+    // Start times for different phases
+    const fadeStartTime = Date.now() + 2000; // Start fade at 2s
+    const morphStartTime = Date.now() + 5000; // Start morph at 5s
+    const fadeDuration = 2000; // 2 second fade
+    const morphDuration = 5000; // 5 second morph
 
-    const frame = () => {
-      if (!mounted) return;
-      const r = typeof appLoading !== 'undefined' ? appLoading.ratio : 0;
-      setProgress(r);
-      rafRef.current = requestAnimationFrame(frame);
+    const animate = () => {
+      if (!hasStarted) hasStarted = true;
+      
+      const now = Date.now();
+      
+      // Phase 1: Fade in progress (2-4 seconds)
+      const fadeElapsed = Math.max(0, now - fadeStartTime);
+      const fadeProgressValue = Math.min(fadeElapsed / fadeDuration, 1);
+      setFadeProgress(fadeProgressValue);
+      
+      // Phase 2: Morph progress (5-10 seconds)
+      const morphElapsed = Math.max(0, now - morphStartTime);
+      const morphProgressValue = Math.min(morphElapsed / morphDuration, 1);
+      const easedMorphProgress = 1 - Math.pow(1 - morphProgressValue, 3);
+      setTransitionProgress(easedMorphProgress);
+
+      if (morphProgressValue < 1) {
+        animationId = requestAnimationFrame(animate);
+      } else {
+        // Animation complete - keep the ring visible
+        setIsComplete(true);
+        if (onContentShowRef.current) onContentShowRef.current();
+        if (onTransitionCompleteRef.current) onTransitionCompleteRef.current();
+      }
     };
-    rafRef.current = requestAnimationFrame(frame);
+
+    animationId = requestAnimationFrame(animate);
 
     return () => {
-      mounted = false;
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
-      clearTimeout(pulseTimer);
+      if (animationId) cancelAnimationFrame(animationId);
     };
   }, []);
 
-  // When progress reaches 1.0, notify that content can be shown and optionally
-  // schedule the final transition complete callback. We debounce to allow
-  // the rest of the page to render first.
-  useEffect(() => {
-    if (progress >= 1 && !contentNotifiedRef.current) {
-      contentNotifiedRef.current = true;
-      // small delay so layout can settle
-      timeoutRef.current = window.setTimeout(() => {
-        setContentShown(true);
-        if (onContentShow) onContentShow();
-
-        // Trigger transition complete immediately with content so PermanentRing shows right away
-        if (onTransitionComplete) onTransitionComplete();
-        // Hide the unified ring after triggering transition so PermanentRing takes over
-        setShouldHide(true);
-      }, 600);
-    }
-  }, [progress, onContentShow, onTransitionComplete]);
-
-  const finalRadius = 120; // Final ring radius for normal state
-  const initialRadius = 160; // Larger initial radius during pulse phase
+  // Interpolate all values based on progress
+  const size = 600 - (transitionProgress * 324); // 600px -> 276px (smaller initial size)
+  const blur = 60 * (1 - transitionProgress); // 60px -> 0px (reduced blur for performance)
+  const opacity = 0.6 + (transitionProgress * 0.4); // 0.6 -> 1.0
+  const scale = size / 600; // Calculate scale factor instead of recalculating size
   
-  // Get current radius based on pulsing state
-  const getCurrentRadius = () => {
-    return isPulsing ? initialRadius : finalRadius;
-  };
+  // Create a strong gradient background for initial state that fades as ring becomes defined
+  const gradientOpacity = (1 - transitionProgress) * 0.8;
   
-  const radius = getCurrentRadius();
+  // Calculate final opacity combining fade-in and transition
+  const finalOpacity = fadeProgress * (0.6 + (transitionProgress * 0.4));
   
-  // Three distinct visual states based on progress
-  // Stage 1 (0-0.4): Extremely blurry, massive soft ring with huge shadows
-  // Stage 2 (0.4-0.8): Medium blur, more defined
-  // Stage 3 (0.8-1.0): Sharp, fully defined ring
-  const getBlurAmount = (progress: number) => {
-    // If still pulsing, show maximum blur with breathing effect
-    if (isPulsing) {
-      return 200; // Even more expanded initial blur
-    }
-    
-    if (progress < 0.4) {
-      // Stage 1: Massive initial blur (180px blur reducing to 80px)
-      return 180 - (progress / 0.4) * 100;
-    } else if (progress < 0.8) {
-      // Stage 2: Medium blur (80px reducing to 25px)
-      return 80 - ((progress - 0.4) / 0.4) * 55;
-    } else {
-      // Stage 3: Sharp definition (25px reducing to 0px)
-      return 25 - ((progress - 0.8) / 0.2) * 25;
-    }
-  };
-  
-  const blurPx = getBlurAmount(Math.min(Math.max(progress, 0), 1));
-  
-  // Dynamic viewBox - keep it fixed so ring doesn't shrink visually
-  const viewBoxSize = 800; // Fixed viewBox size
-  const centerPoint = viewBoxSize / 2;
-
   return (
-    <div 
-      className={`ring-loader-overlay ${contentShown ? 'ring-overlay-transparent' : ''}`} 
-      aria-label="Loading" 
-      role="status"
-      style={{ opacity: shouldHide ? 0 : 1, transition: 'opacity 500ms ease' }}
-    >
-      <div className="ring-center">
-        <svg 
-          className="ring-svg" 
-          viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`} 
-          aria-hidden
-          style={{ background: 'transparent' }}
-        >
-          <defs>
-            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="1.0" />
-              <stop offset="50%" stopColor="#ffffff" stopOpacity="1.0" />
-              <stop offset="100%" stopColor="#ffffff" stopOpacity="1.0" />
-            </linearGradient>
-          </defs>
-
-          {/* Main ring - complete circle, with initial pulse animation */}
-          <circle
-            cx={centerPoint}
-            cy={centerPoint}
-            r={radius}
-            strokeWidth="32"
-            stroke="url(#ringGrad)"
-            fill="none"
-            className="ring-progress"
-            style={{ 
-              filter: `blur(${blurPx}px)`, 
-              transition: isPulsing ? 'none' : 'filter 800ms cubic-bezier(0.4, 0, 0.2, 1), r 800ms cubic-bezier(0.4, 0, 0.2, 1)',
-              animation: isPulsing ? 'ringPulse 2s ease-in-out infinite' : 'none'
-            }}
-          />
-
-          {/* Subtle inner glow for depth */}
-          <circle 
-            cx={centerPoint} 
-            cy={centerPoint} 
-            r={radius - 16} 
-            strokeWidth="8" 
-            stroke="url(#ringGrad)" 
-            strokeOpacity="0.3" 
-            fill="none"
-            style={{ 
-              filter: `blur(${Math.max(blurPx - 10, 0)}px)`, 
-              transition: isPulsing ? 'none' : 'filter 800ms cubic-bezier(0.4, 0, 0.2, 1), r 800ms cubic-bezier(0.4, 0, 0.2, 1)',
-              animation: isPulsing ? 'ringPulse 2s ease-in-out infinite 0.3s' : 'none'
-            }}
-          />
-        </svg>
-      </div>
+    <div className={`unified-ring-container ${isComplete ? 'completed' : ''}`}>
+      {/* Ring with gradual fade-in and morphing transition */}
+      <div 
+        className="unified-ring"
+        style={{
+          width: '600px', // Fixed base size
+          height: '600px',
+          transform: `translate(-50%, -50%) scale(${scale})`, // Use transform for size changes
+          filter: blur > 0 ? `blur(${blur}px)` : 'none',
+          opacity: finalOpacity, // Gradual fade from black, then animate during morph
+          border: '56px solid rgba(255, 255, 255, 1)',
+          boxShadow: transitionProgress >= 0.95 
+            ? 'none' 
+            : `
+              0 0 180px 60px rgba(255, 255, 255, ${gradientOpacity * 0.4}),
+              0 0 360px 120px rgba(255, 255, 255, ${gradientOpacity * 0.2})
+            `, // Only 2 shadows with fixed values
+          left: '50vw',
+          top: '50vh',
+        }}
+      />
+      
+      <style jsx>{`
+        .unified-ring-container {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          background-color: black;
+          z-index: 9999;
+          pointer-events: none;
+          transition: background-color 1s ease;
+          transform: none;
+          margin: 0;
+          padding: 0;
+        }
+        
+        .unified-ring-container.completed {
+          background-color: transparent;
+        }
+        
+        .unified-ring {
+          border-radius: 50%;
+          background: transparent;
+          position: absolute;
+          z-index: 1;
+          will-change: transform, filter, opacity;
+          transform-origin: center center;
+        }
+      `}</style>
     </div>
   );
 }
