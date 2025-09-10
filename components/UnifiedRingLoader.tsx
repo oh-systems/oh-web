@@ -5,22 +5,36 @@ import React, { useEffect, useState, useRef } from 'react';
 interface UnifiedRingLoaderProps {
   onContentShow?: () => void;
   onTransitionComplete?: () => void;
+  onCenterComplete?: () => void;
+  moveToCorner?: boolean;
+  onCornerComplete?: () => void;
 }
 
-export default function UnifiedRingLoader({ onContentShow, onTransitionComplete }: UnifiedRingLoaderProps) {
+export default function UnifiedRingLoader({ 
+  onContentShow, 
+  onTransitionComplete, 
+  onCenterComplete,
+  moveToCorner = false,
+  onCornerComplete 
+}: UnifiedRingLoaderProps) {
   const [transitionProgress, setTransitionProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [fadeProgress, setFadeProgress] = useState(0);
+  const [cornerTransition, setCornerTransition] = useState(false);
   
   // Use refs to store callbacks and prevent re-running the effect
   const onContentShowRef = useRef(onContentShow);
   const onTransitionCompleteRef = useRef(onTransitionComplete);
+  const onCenterCompleteRef = useRef(onCenterComplete);
+  const onCornerCompleteRef = useRef(onCornerComplete);
   
   // Update refs when callbacks change
   useEffect(() => {
     onContentShowRef.current = onContentShow;
     onTransitionCompleteRef.current = onTransitionComplete;
-  }, [onContentShow, onTransitionComplete]);
+    onCenterCompleteRef.current = onCenterComplete;
+    onCornerCompleteRef.current = onCornerComplete;
+  }, [onContentShow, onTransitionComplete, onCenterComplete, onCornerComplete]);
 
   useEffect(() => {
     let animationId: number;
@@ -51,10 +65,9 @@ export default function UnifiedRingLoader({ onContentShow, onTransitionComplete 
       if (morphProgressValue < 1) {
         animationId = requestAnimationFrame(animate);
       } else {
-        // Animation complete - keep the ring visible
+        // Animation complete - ring is now in center, ready for initial load
         setIsComplete(true);
-        if (onContentShowRef.current) onContentShowRef.current();
-        if (onTransitionCompleteRef.current) onTransitionCompleteRef.current();
+        if (onCenterCompleteRef.current) onCenterCompleteRef.current();
       }
     };
 
@@ -64,6 +77,19 @@ export default function UnifiedRingLoader({ onContentShow, onTransitionComplete 
       if (animationId) cancelAnimationFrame(animationId);
     };
   }, []);
+
+  // Separate effect to handle corner transition when moveToCorner becomes true
+  useEffect(() => {
+    if (moveToCorner && isComplete) {
+      setCornerTransition(true);
+      // Give some time for the transition, then call completion
+      const timer = setTimeout(() => {
+        if (onCornerCompleteRef.current) onCornerCompleteRef.current();
+      }, 2500); // Longer duration for corner transition
+      
+      return () => clearTimeout(timer);
+    }
+  }, [moveToCorner, isComplete]);
 
   // Interpolate all values based on progress
   const size = 600 - (transitionProgress * 324); // 600px -> 276px (smaller initial size)
@@ -76,6 +102,29 @@ export default function UnifiedRingLoader({ onContentShow, onTransitionComplete 
   
   // Calculate final opacity combining fade-in and transition
   const finalOpacity = fadeProgress * (0.6 + (transitionProgress * 0.4));
+
+  // Corner transition styles
+  const getTransformStyle = () => {
+    if (cornerTransition) {
+      // Moving to corner
+      return 'translate(-50%, -50%) scale(0.05)'; // Small size for corner
+    }
+    return `translate(-50%, -50%) scale(${scale})`;
+  };
+
+  const getPositionStyle = () => {
+    if (cornerTransition) {
+      return {
+        left: '55px', // Corner position
+        top: '35px',
+        transition: 'left 1.5s cubic-bezier(0.4, 0.0, 0.2, 1), top 1.5s cubic-bezier(0.4, 0.0, 0.2, 1)'
+      };
+    }
+    return {
+      left: '50vw',
+      top: '50vh',
+    };
+  };
   
   return (
     <div className={`unified-ring-container ${isComplete ? 'completed' : ''}`}>
@@ -85,7 +134,7 @@ export default function UnifiedRingLoader({ onContentShow, onTransitionComplete 
         style={{
           width: '600px', // Fixed base size
           height: '600px',
-          transform: `translate(-50%, -50%) scale(${scale})`, // Use transform for size changes
+          transform: getTransformStyle(),
           filter: blur > 0 ? `blur(${blur}px)` : 'none',
           opacity: finalOpacity, // Gradual fade from black, then animate during morph
           border: '56px solid rgba(255, 255, 255, 1)',
@@ -95,8 +144,8 @@ export default function UnifiedRingLoader({ onContentShow, onTransitionComplete 
               0 0 180px 60px rgba(255, 255, 255, ${gradientOpacity * 0.4}),
               0 0 360px 120px rgba(255, 255, 255, ${gradientOpacity * 0.2})
             `, // Only 2 shadows with fixed values
-          left: '50vw',
-          top: '50vh',
+          transition: cornerTransition ? 'transform 1.5s cubic-bezier(0.4, 0.0, 0.2, 1)' : 'none',
+          ...getPositionStyle()
         }}
       />
       

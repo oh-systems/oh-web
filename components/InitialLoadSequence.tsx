@@ -154,32 +154,8 @@ export default function InitialLoadSequence({
   const pause = useCallback(() => setIsPlaying(false), []);
 
   if (isLoading) {
-    const isVerifying = nativeImagesLoaded && !loadingComplete;
-    const mainText = isVerifying ? "Finalizing Cache..." : "Preloading Animation...";
-    const statusText = isVerifying
-      ? "Decoding images..."
-      : `${Math.round(nativeProgress)}% • Loading frames`;
-    
-    return (
-      <div 
-        className={`flex items-center justify-center bg-black/20 rounded-lg ${className}`}
-        style={{ width, height }}
-      >
-        <div className="text-center text-white">
-          <div className="mb-4 text-lg font-semibold">{mainText}</div>
-          <div className="w-48 bg-gray-800 rounded-full h-2 mb-2">
-            <div 
-              className="bg-white h-2 rounded-full transition-all duration-300"
-              style={{ width: isVerifying ? '100%' : `${nativeProgress}%` }}
-            />
-          </div>
-          <div className="text-sm text-gray-400">{statusText}</div>
-          <div className="text-xs text-gray-500 mt-2">
-            {duration}s duration • {effectiveFPS.toFixed(1)} FPS
-          </div>
-        </div>
-      </div>
-    );
+    // Just wait invisibly until ready
+    return <div style={{ width, height, backgroundColor: 'transparent' }} />;
   }
 
   const currentImagePath = imagePaths[currentFrame];
@@ -215,6 +191,20 @@ export default function InitialLoadSequence({
           backfaceVisibility: 'hidden',
           transform: 'translateZ(0)',
           opacity: 1
+        }}
+      />
+      
+      {/* Bottom gradient overlay - black to transparent covering 20% */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: '20%',
+          background: 'linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%)',
+          pointerEvents: 'none',
+          zIndex: 1
         }}
       />
     </div>

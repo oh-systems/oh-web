@@ -9,7 +9,7 @@ interface HeroTextProps {
   size?: 'normal' | 'large';
   uppercase?: boolean;
   weight?: 'normal' | 'bold';
-  scrollBehavior?: 'fade' | 'sticky' | 'delayed' | 'none';
+  scrollBehavior?: 'fade' | 'sticky' | 'delayed' | 'castShadows' | 'none';
 }
 
 export default function HeroText({ 
@@ -92,6 +92,28 @@ export default function HeroText({
           setOpacity(1);
         } else if (currentScrollY <= fadeEnd) {
           const fadeProgress = (currentScrollY - fadeStart) / (fadeEnd - fadeStart);
+          setOpacity(1 - fadeProgress);
+        } else {
+          setOpacity(0);
+        }
+      } else if (scrollBehavior === 'castShadows') {
+        // Custom behavior for Cast Shadows section (starts at 110vh ≈ 1100px)
+        const windowHeight = window.innerHeight;
+        const castShadowsStart = windowHeight * 1.1; // 110vh
+        const fadeInStart = castShadowsStart - 100; // Start fading 100px before
+        const fadeInEnd = castShadowsStart + 200; // Complete fade in 200px after
+        const fadeOutStart = castShadowsStart + windowHeight - 200; // Start fading out near end
+        const fadeOutEnd = castShadowsStart + windowHeight; // Complete fade out
+        
+        if (currentScrollY <= fadeInStart) {
+          setOpacity(0);
+        } else if (currentScrollY <= fadeInEnd) {
+          const fadeProgress = (currentScrollY - fadeInStart) / (fadeInEnd - fadeInStart);
+          setOpacity(fadeProgress);
+        } else if (currentScrollY <= fadeOutStart) {
+          setOpacity(1);
+        } else if (currentScrollY <= fadeOutEnd) {
+          const fadeProgress = (currentScrollY - fadeOutStart) / (fadeOutEnd - fadeOutStart);
           setOpacity(1 - fadeProgress);
         } else {
           setOpacity(0);
