@@ -28,18 +28,18 @@ export default function PermanentRing({ visible, className = '', style }: Perman
 
   if (!visible) return null;
 
-  // Ring style - starts in corner position, immediately visible
+  // Ring style - starts in corner position, stays visible once it appears
   const ringStyle = {
     position: 'absolute' as const,
-    top: '35px',
+    top: '16px', // Align with navigation (top-4)
     left: '50px',
     width: '30px',
     height: '30px',
     border: '3px solid white',
     borderRadius: '50%',
-    transform: `translateY(${navigationFadeProgress * -20}px) scale(${1 - navigationFadeProgress * 0.06})`,
-    transition: navigationFadeProgress > 0 ? 'none' : 'all 0.1s ease',
-    opacity: (1 - navigationFadeProgress), // Always visible when component is shown
+    transform: `translateY(0px) scale(1)`, // Keep ring in fixed position and size
+    transition: hasTransitioned ? 'none' : 'all 0.3s ease',
+    opacity: 1, // Always visible once component is shown
     boxSizing: 'border-box' as const
   };
 

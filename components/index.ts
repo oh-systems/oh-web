@@ -2,6 +2,7 @@
 export { default as PermanentRing } from './PermanentRing';
 export { default as UnifiedRingLoader } from './UnifiedRingLoader';
 export { default as Navigation } from './Navigation';
+export { default as SectionIndicator } from './SectionIndicator';
 export { default as ScrollDrivenText } from './ScrollDrivenText';
 export { default as CastShadowsText } from './CastShadowsText';
 export { default as Card } from './Card';

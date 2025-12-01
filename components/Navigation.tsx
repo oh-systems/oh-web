@@ -8,7 +8,7 @@ interface NavigationProps {
   onNavClick?: (item: string) => void;
 }
 
-const NAV_ITEMS = ['About', 'Space', 'Contact'];
+const NAV_ITEMS = ['ABOUT', 'SPACE', 'CONTACT'];
 
 export default function Navigation({ className = '', style, onNavClick }: NavigationProps) {
   const handleClick = (item: string, e: React.MouseEvent) => {
@@ -20,13 +20,12 @@ export default function Navigation({ className = '', style, onNavClick }: Naviga
 
   return (
     <div 
-      className={`navigation-container fixed top-4 right-16 ${className}`}
+      className={`navigation-container fixed top-4 ${className}`}
       style={{
+        right: '40px',
         ...style,
-        pointerEvents: 'auto',
-        zIndex: 999999999, // Extremely high to ensure it's above everything
-        position: 'fixed',
       }}
+
     >
       <div className="flex space-x-32">
         {NAV_ITEMS.map((item) => (
@@ -37,9 +36,11 @@ export default function Navigation({ className = '', style, onNavClick }: Naviga
               console.log('Mouse down on:', item);
               e.preventDefault();
             }}
-            className="text-white text-lg font-bold hover:opacity-70 transition-opacity duration-200 bg-transparent border-none cursor-pointer"
+            className="text-white hover:opacity-70 transition-opacity duration-200 bg-transparent border-none cursor-pointer"
             style={{
               fontFamily: 'Helvetica, Arial, sans-serif',
+              fontSize: '20px',
+              fontWeight: '400',
               padding: '8px 16px',
               minHeight: '40px',
               minWidth: '80px',
