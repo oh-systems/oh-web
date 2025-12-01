@@ -22,7 +22,7 @@ export default function Sound({
         ...style,
         position: 'fixed',
         top: '93vh',
-        left: '10vw',
+        left: '6vw',
         transform: 'translate(-50%, -50%)',
         zIndex: 999999999,
         display: 'flex',
