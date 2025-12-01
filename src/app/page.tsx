@@ -50,14 +50,11 @@ export default function Home() {
 
   // Handle sound toggle
   const handleSoundToggle = () => {
-    console.log("Sound toggle called - before:", soundEnabled);
     setSoundEnabled(!soundEnabled);
-    console.log("Sound toggled - after:", !soundEnabled);
   };
 
   // Handle navigation clicks
   const handleNavClick = (item: string) => {
-    console.log("Navigation clicked:", item); // Debug log
     if (item === "about" || item === "contact") {
       setActiveCard(activeCard === item ? null : item); // Toggle card visibility
     } else if (item === "space") {
@@ -67,7 +64,7 @@ export default function Home() {
 
   // Handle section navigation clicks
   const handleSectionClick = (section: 'overview' | 'mission' | 'space') => {
-    console.log("Section clicked:", section);
+
     
     // Stop auto-play and directly control scroll position
     isAutoPlayingRef.current = false;
@@ -285,15 +282,17 @@ export default function Home() {
       }
       setCastAnimationProgress(castAnimationProgress);
 
-      // Calculate first hero text fade out progress
+      // Calculate first hero text fade out progress - slow and smooth
       if (
-        rawProgress >= TEXT_SEQUENCE.firstHeroEnd - 0.02 &&
-        rawProgress <= TEXT_SEQUENCE.firstHeroEnd + 0.02
+        rawProgress >= TEXT_SEQUENCE.firstHeroEnd - 0.05 &&
+        rawProgress <= TEXT_SEQUENCE.firstHeroEnd + 0.05
       ) {
         const fadeProgress =
-          (rawProgress - (TEXT_SEQUENCE.firstHeroEnd - 0.02)) / 0.04;
-        setFirstHeroFadeOut(fadeProgress);
-      } else if (rawProgress > TEXT_SEQUENCE.firstHeroEnd + 0.02) {
+          (rawProgress - (TEXT_SEQUENCE.firstHeroEnd - 0.05)) / 0.10;
+        // Apply smooth easing
+        const smoothFade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
+        setFirstHeroFadeOut(smoothFade);
+      } else if (rawProgress > TEXT_SEQUENCE.firstHeroEnd + 0.05) {
         setFirstHeroFadeOut(1);
       } else {
         setFirstHeroFadeOut(0);
@@ -304,18 +303,20 @@ export default function Home() {
         rawProgress >= TEXT_SEQUENCE.secondHeroStart &&
         rawProgress <= TEXT_SEQUENCE.secondHeroEnd
       ) {
-        const fadeInDuration = 0.05; // 5% for fade in
-        const fadeOutStart = TEXT_SEQUENCE.secondHeroEnd - 0.08; // Start fade out 8% before end for complete fade
+        const fadeInDuration = 0.08; // 8% for slower fade in
+        const fadeOutStart = TEXT_SEQUENCE.secondHeroEnd - 0.12; // Start fade out 12% before end for slower fade
 
         if (rawProgress < TEXT_SEQUENCE.secondHeroStart + fadeInDuration) {
-          // Fade in
+          // Fade in with smooth easing
           const fadeProgress =
             (rawProgress - TEXT_SEQUENCE.secondHeroStart) / fadeInDuration;
-          setSecondHeroOpacity(fadeProgress);
+          const smoothFade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
+          setSecondHeroOpacity(smoothFade);
         } else if (rawProgress > fadeOutStart) {
-          // Fade out - ensure complete fade by cast shadows start
-          const fadeProgress = (rawProgress - fadeOutStart) / 0.08;
-          setSecondHeroOpacity(Math.max(0, 1 - fadeProgress));
+          // Fade out with smooth easing - ensure complete fade by cast shadows start
+          const fadeProgress = (rawProgress - fadeOutStart) / 0.12;
+          const smoothFade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
+          setSecondHeroOpacity(Math.max(0, 1 - smoothFade));
         } else {
           // Fully visible
           setSecondHeroOpacity(1);
@@ -329,18 +330,20 @@ export default function Home() {
         rawProgress >= TEXT_SEQUENCE.descriptiveStart &&
         rawProgress <= TEXT_SEQUENCE.descriptiveEnd
       ) {
-        const fadeInDuration = 0.05; // 5% for fade in
-        const fadeOutStart = TEXT_SEQUENCE.descriptiveEnd - 0.08; // Start fade out 8% before end for complete fade
+        const fadeInDuration = 0.08; // 8% for slower fade in
+        const fadeOutStart = TEXT_SEQUENCE.descriptiveEnd - 0.12; // Start fade out 12% before end for slower fade
 
         if (rawProgress < TEXT_SEQUENCE.descriptiveStart + fadeInDuration) {
-          // Fade in
+          // Fade in with smooth easing
           const fadeProgress =
             (rawProgress - TEXT_SEQUENCE.descriptiveStart) / fadeInDuration;
-          setDescriptiveTextOpacity(fadeProgress);
+          const smoothFade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
+          setDescriptiveTextOpacity(smoothFade);
         } else if (rawProgress > fadeOutStart) {
-          // Fade out - ensure complete fade by cast shadows start
-          const fadeProgress = (rawProgress - fadeOutStart) / 0.08;
-          setDescriptiveTextOpacity(Math.max(0, 1 - fadeProgress));
+          // Fade out with smooth easing - ensure complete fade by cast shadows start
+          const fadeProgress = (rawProgress - fadeOutStart) / 0.12;
+          const smoothFade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
+          setDescriptiveTextOpacity(Math.max(0, 1 - smoothFade));
         } else {
           // Fully visible
           setDescriptiveTextOpacity(1);
@@ -632,7 +635,6 @@ export default function Home() {
       />
 
       {/* Sound Control - bottom left corner */}
-      {console.log('Rendering Sound component, soundEnabled:', soundEnabled, 'transitionComplete:', transitionComplete)}
       <Sound
         isEnabled={soundEnabled}
         onToggle={handleSoundToggle}

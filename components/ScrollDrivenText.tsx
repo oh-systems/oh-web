@@ -57,11 +57,8 @@ export default function ScrollDrivenText({
       return 'translateY(0px)';
     }
 
-    // Each line moves up with less aggressive stagger
-    const staggerDelay = lineIndex * 0.05; // Reduce stagger for more uniform movement
-    const adjustedProgress = Math.max(0, Math.min(1, 
-      (scrollAnimationProgress - staggerDelay) / (1 - staggerDelay * heroLines.length * 0.1)
-    ));
+    // All lines move together as one unit - no stagger
+    const adjustedProgress = scrollAnimationProgress;
     
     // Adjust movement based on stopAtMiddle flag
     const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
@@ -88,11 +85,8 @@ export default function ScrollDrivenText({
       return 1;
     }
 
-    // Smoother fade out - all lines fade together more uniformly
-    const staggerDelay = lineIndex * 0.05; // Reduce stagger for more uniform fade
-    const adjustedProgress = Math.max(0, Math.min(1, 
-      (scrollAnimationProgress - staggerDelay) / (1 - staggerDelay * heroLines.length * 0.1)
-    ));
+    // All lines fade together as one unit - no stagger
+    const adjustedProgress = scrollAnimationProgress;
     
     if (stopAtMiddle) {
       // For middle-stopping text, don't fade out - stay visible

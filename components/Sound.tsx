@@ -15,8 +15,6 @@ export default function Sound({
   onToggle,
   isEnabled = true
 }: SoundProps) {
-  console.log('Sound component rendering:', { isEnabled, style });
-  
   return (
     <div 
       className={`sound-container ${className}`}
@@ -32,13 +30,8 @@ export default function Sound({
         gap: '10px',
         cursor: 'pointer',
         userSelect: 'none',
-        padding: '20px',
-        fontSize: '20px',
       }}
-      onClick={(e) => {
-        console.log('Sound clicked');
-        onToggle?.();
-      }}
+      onClick={onToggle}
     >
       {/* SOUND Text */}
       <span 
