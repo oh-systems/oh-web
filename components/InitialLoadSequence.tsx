@@ -33,6 +33,7 @@ export default function InitialLoadSequence({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [loadingComplete, setLoadingComplete] = useState(false);
+  const [isInView, setIsInView] = useState(true); // Always load immediately for initial load screen
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Generate array of image paths
@@ -73,6 +74,7 @@ export default function InitialLoadSequence({
   }, [totalFrames]);
   
   useEffect(() => {
+    // Always load immediately for initial loading screen
     const imageObjects: HTMLImageElement[] = [];
     let loadedCount = 0;
     

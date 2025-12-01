@@ -98,8 +98,8 @@ export default function Home() {
   // ==================== STAGE CONFIGURATION ====================
   // Stage 1: Navigation & Ring Fade Out
   const STAGE_1_CONFIG = {
-    fadeStartProgress: 0.01, // Start fading at 1% of scroll progress (almost immediate)
-    fadeDuration: 0.08, // Complete fade over 8% of scroll progress (1% to 9%) - very quick fade
+    fadeStartProgress: 0.001, // Start fading immediately (0.1% of scroll progress)
+    fadeDuration: 0.02, // Complete fade over 2% of scroll progress - very quick fade
     slideDistance: 20, // Pixels to slide upward during fade animation
   };
 
@@ -108,14 +108,14 @@ export default function Home() {
     swapStart: 0.55, // Start Cast Shadows after descriptive text completes
     swapEnd: 0.551, // Instant transition - 0.1% crossfade into Cast Shadows
     animationStart: 0.551, // Cast Shadows animation begins immediately
-    animationEnd: 0.92, // Much longer range for extended Cast Shadows with all operating principles
+    animationEnd: 0.85, // Extended range for slower Cast Shadows animation
   };
 
   // Stage 3: Third Laptop Model Swap (Cast Shadows to Third Laptop)
   const LAPTOP_SWAP_CONFIG = {
-    swapStart: 0.92, // Begin laptop after much longer Cast Shadows range
-    swapEnd: 0.921, // Instant transition - 0.1% crossfade into laptop
-    animationStart: 0.921, // Laptop animation begins immediately
+    swapStart: 0.85, // Begin laptop after slower Cast Shadows range
+    swapEnd: 0.851, // Instant transition - 0.1% crossfade into laptop
+    animationStart: 0.851, // Laptop animation begins immediately
     animationEnd: 1.0, // Laptop runs for remaining scroll range
   }; // Text Sequence Configuration - Complete flow
   const TEXT_SEQUENCE = {
@@ -176,7 +176,7 @@ export default function Home() {
     
     // Initialize refs
     scrollAccumulatorRef.current = 0;
-    autoPlayTimeRef.current = -10; // Start at -10 seconds to create a 10-second delay
+    autoPlayTimeRef.current = 0; // Start immediately when content is visible
     lastAutoPlayTimeRef.current = performance.now();
     isAutoPlayingRef.current = true;
 
@@ -195,9 +195,9 @@ export default function Home() {
         // Auto-play speed with 10-second initial delay
         autoPlayTimeRef.current += deltaTime;
 
-        // Only start auto-scroll after the delay period
-        if (autoPlayTimeRef.current > 0) {
-          const autoScrollProgress = (autoPlayTimeRef.current / 45) * maxScrollRange; // 45 seconds total: 10s delay + 35s animation (12s + 10s + 15s sequences)
+        // Start auto-scroll immediately when content is visible
+        if (autoPlayTimeRef.current >= 0) {
+          const autoScrollProgress = (autoPlayTimeRef.current / 35) * maxScrollRange; // 35 seconds total animation (12s + 10s + 15s sequences)
 
           // Use auto-play progress if it's ahead of manual scroll
           if (autoScrollProgress > scrollAccumulatorRef.current) {
@@ -271,17 +271,8 @@ export default function Home() {
           1
         );
 
-        // Apply cubic easing for ultra-smooth animation progression
-        const t = linearProgress;
-        castAnimationProgress = t * t * (3 - 2 * t); // smoothstep
-        // Apply additional smoothing with cubic ease-in-out
-        castAnimationProgress =
-          castAnimationProgress < 0.5
-            ? 4 *
-              castAnimationProgress *
-              castAnimationProgress *
-              castAnimationProgress
-            : 1 - Math.pow(-2 * castAnimationProgress + 2, 3) / 2;
+        // Use linear progression with no easing effects
+        castAnimationProgress = linearProgress;
       }
       setCastAnimationProgress(castAnimationProgress);
 
@@ -610,7 +601,7 @@ export default function Home() {
       <Navigation
         onNavClick={handleNavClick}
         style={{
-          opacity: navigationFadeProgress > 0 ? 1 : 0,
+          opacity: 1, // Always visible once transition completes
           transform: `translateY(0px)`,
           transition: "opacity 0.3s ease-in-out",
           position: "fixed",
@@ -626,7 +617,7 @@ export default function Home() {
         currentSection={currentSection}
         onSectionClick={handleSectionClick}
         style={{
-          opacity: navigationFadeProgress > 0 ? 1 : 0,
+          opacity: 1, // Always visible once transition completes
           transition: "opacity 0.3s ease-in-out",
         }}
       />

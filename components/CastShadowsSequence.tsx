@@ -42,6 +42,7 @@ export default function CastShadowsSequence({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [loadingComplete, setLoadingComplete] = useState(false);
+  const [isInView, setIsInView] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Generate array of image paths for CAST SHADOWS using configuration
@@ -77,6 +78,9 @@ export default function CastShadowsSequence({
   );
 
   useEffect(() => {
+    // Only start loading images when component is in view
+    if (!isInView) return;
+
     const imageObjects: HTMLImageElement[] = [];
     let loadedCount = 0;
 
@@ -100,15 +104,34 @@ export default function CastShadowsSequence({
         img.onerror = null;
       });
     };
-  }, [imagePaths, updateProgress]);
+  }, [imagePaths, updateProgress, isInView]);
+
+  // Intersection observer for lazy loading
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' } // Start loading when component is near viewport
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   // Animation logic - use scroll progress if provided, otherwise use auto-play
   const isScrollDriven = typeof scrollProgress === "number";
 
-  // Initialize scroll speed limiter for frame-based limiting
+  // Initialize scroll speed limiter for frame-based limiting - slower settings
   const frameSpeedLimiter = useScrollSpeedLimiter({
-    maxVelocity: 600, // Lower for smoother animations
-    smoothingFactor: 0.2,
+    maxVelocity: 300, // Much lower for slower, smoother animations
+    smoothingFactor: 0.15, // More smoothing for slower progression
     enabled: isScrollDriven
   });
 
@@ -137,16 +160,11 @@ export default function CastShadowsSequence({
         return previousFrameRef.current;
       }
       
-      // Apply ultra-smooth cubic easing for the smoothest possible transitions
+      // Use linear progression with no easing effects
       const normalizedProgress = limitedFrame / (totalFrames - 1);
       
-      // First apply smoothstep
-      let easedProgress = normalizedProgress * normalizedProgress * (3 - 2 * normalizedProgress);
-      
-      // Then apply additional cubic ease-in-out for ultra-smoothness
-      easedProgress = easedProgress < 0.5 
-        ? 4 * easedProgress * easedProgress * easedProgress
-        : 1 - Math.pow(-2 * easedProgress + 2, 3) / 2;
+      // Direct linear mapping for consistent animation speed
+      let easedProgress = normalizedProgress;
       
       const easedFrame = easedProgress * (totalFrames - 1);
       // Use floor instead of round for more predictable frame progression
@@ -243,7 +261,6 @@ export default function CastShadowsSequence({
       {/* Main Image Display */}
       <div
         className="relative w-full h-full"
-        style={{ opacity: loadingComplete ? 1 : 0.7 }}
       >
         <Image
           key={currentImageSrc}
@@ -252,6 +269,7 @@ export default function CastShadowsSequence({
           width={width}
           height={height}
           priority={priority || displayFrame < 20}
+          loading={priority || displayFrame < 20 ? 'eager' : 'lazy'}
           unoptimized
           quality={100}
           onError={() => {
@@ -276,6 +294,7 @@ export default function CastShadowsSequence({
             alt="preload"
             width={width}
             height={height}
+            loading="lazy"
             unoptimized
             quality={100}
             style={{

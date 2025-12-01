@@ -26,6 +26,7 @@ export default function InitialScrollSequence({
   priority = false,
 }: InitialScrollSequenceProps) {
   const [loadingComplete, setLoadingComplete] = useState(false);
+  const [isInView, setIsInView] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Generate array of image paths for Initial Scroll (0-indexed, 601 frames total)
@@ -54,6 +55,9 @@ export default function InitialScrollSequence({
   );
 
   useEffect(() => {
+    // Only start loading images when component is in view
+    if (!isInView) return;
+
     let isMounted = true;
     const imageObjects: HTMLImageElement[] = [];
     let loadedCount = 0;
@@ -81,7 +85,26 @@ export default function InitialScrollSequence({
         img.onerror = null;
       });
     };
-  }, [imagePaths, updateProgress]);
+  }, [imagePaths, updateProgress, isInView]);
+
+  // Intersection observer for lazy loading
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: '50px' }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   // Animation logic - use scroll progress (always scroll-driven for this component)
   const isScrollDriven = typeof scrollProgress === "number";
@@ -89,8 +112,8 @@ export default function InitialScrollSequence({
   // Calculate current frame based on scroll progress with better smoothing
   const calculateCurrentFrame = () => {
     if (isScrollDriven) {
-      // Apply smoothstep easing to the scroll progress for more natural transitions
-      const easedScrollProgress = scrollProgress * scrollProgress * (3 - 2 * scrollProgress);
+      // Use linear progression for consistent animation speed
+      const easedScrollProgress = scrollProgress;
       const easedFrame = easedScrollProgress * (totalFrames - 1);
       
       // Use the eased frame calculation with Math.round for smoother transitions
@@ -135,7 +158,6 @@ export default function InitialScrollSequence({
       {/* Main Image Display */}
       <div
         className="relative w-full h-full"
-        style={{ opacity: loadingComplete ? 1 : 0.7 }}
       >
         <Image
           key={currentImageSrc}
@@ -144,6 +166,7 @@ export default function InitialScrollSequence({
           width={width}
           height={height}
           priority={priority || displayFrame < 20}
+          loading={priority || displayFrame < 20 ? 'eager' : 'lazy'}
           unoptimized
           quality={100}
           onError={() => {
@@ -167,6 +190,7 @@ export default function InitialScrollSequence({
             alt="preload"
             width={width}
             height={height}
+            loading="lazy"
             unoptimized
             quality={100}
             style={{

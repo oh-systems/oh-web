@@ -101,12 +101,12 @@ export default function UnifiedRingLoader({
     return {
       position: 'absolute' as const,
       left: '50px', // Final corner position
-      top: '35px',
+      top: '16px', // Match PermanentRing position exactly
       width: '30px',
       height: '30px',
       transform: 'translate(0, 0)',
       transition: 'all 3s cubic-bezier(0.4, 0.0, 0.2, 1)',
-      border: '3px solid rgba(255, 255, 255, 1)'
+      border: '3px solid white' // Match PermanentRing border exactly
     };
   };
 
@@ -135,7 +135,7 @@ export default function UnifiedRingLoader({
           ...transformStyle,
           filter: blur > 0 ? `blur(${blur}px)` : 'none',
           opacity: finalOpacity,
-          border: moveToCorner && isComplete ? '3px solid rgba(255, 255, 255, 1)' : '56px solid rgba(255, 255, 255, 1)',
+          border: moveToCorner && isComplete ? '3px solid white' : '56px solid rgba(255, 255, 255, 1)',
           boxShadow: transitionProgress >= 0.95 || (moveToCorner && isComplete)
             ? 'none' 
             : `

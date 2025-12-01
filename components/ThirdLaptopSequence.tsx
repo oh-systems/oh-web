@@ -41,6 +41,7 @@ export default function ThirdLaptopSequence({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [loadingComplete, setLoadingComplete] = useState(false);
+  const [isInView, setIsInView] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Generate array of image paths for THIRD LAPTOP
@@ -76,6 +77,9 @@ export default function ThirdLaptopSequence({
   );
 
   useEffect(() => {
+    // Only start loading images when component is in view
+    if (!isInView) return;
+
     const imageObjects: HTMLImageElement[] = [];
     let loadedCount = 0;
 
@@ -99,7 +103,26 @@ export default function ThirdLaptopSequence({
         img.onerror = null;
       });
     };
-  }, [imagePaths, updateProgress]);
+  }, [imagePaths, updateProgress, isInView]);
+
+  // Intersection observer for lazy loading
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
 
   // Animation logic - use scroll progress if provided, otherwise use auto-play
   const isScrollDriven = typeof scrollProgress === "number";
@@ -107,8 +130,8 @@ export default function ThirdLaptopSequence({
   // Calculate current frame based on mode with better smoothing
   const calculateCurrentFrame = () => {
     if (isScrollDriven) {
-      // Apply smoothstep easing to the scroll progress for more natural transitions
-      const easedScrollProgress = scrollProgress! * scrollProgress! * (3 - 2 * scrollProgress!);
+      // Use linear progression for consistent animation speed
+      const easedScrollProgress = scrollProgress!;
       const easedFrame = easedScrollProgress * (totalFrames - 1);
       
       // Use the eased frame calculation with Math.round for smoother transitions
@@ -208,15 +231,15 @@ export default function ThirdLaptopSequence({
       {/* Main Image Display */}
       <div
         className="relative w-full h-full"
-        style={{ opacity: loadingComplete ? 1 : 0.7 }}
       >
         <Image
           key={currentImageSrc}
           src={currentImageSrc}
-          alt={`Third Laptop frame ${displayFrame + 1}`}
+          alt={`Third laptop frame ${displayFrame + 1}`}
           width={width}
           height={height}
           priority={priority || displayFrame < 20}
+          loading={priority || displayFrame < 20 ? 'eager' : 'lazy'}
           unoptimized
           quality={100}
           onError={() => {
@@ -239,6 +262,7 @@ export default function ThirdLaptopSequence({
             alt="preload"
             width={width}
             height={height}
+            loading="lazy"
             unoptimized
             quality={100}
             style={{
