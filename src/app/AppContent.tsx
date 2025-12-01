@@ -1,0 +1,119 @@
+"use client";
+
+import { useState, createContext, useContext, useEffect } from "react";
+import {
+  UnifiedRingLoader,
+  PermanentRing,
+  InitialLoadSequence,
+} from "../../components";
+
+// Create context to share loading sequence state and navigation fade
+const AppContext = createContext({
+  contentVisible: false,
+  transitionComplete: false,
+  showInitialLoad: false,
+  ringInCenter: false,
+  ringMovedToCorner: false,
+  navigationFadeProgress: 0,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  setNavigationFadeProgress: (progress: number) => {},
+});
+
+export const useAppContext = () => useContext(AppContext);
+
+export default function AppContent({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [contentVisible, setContentVisible] = useState(false);
+  const [transitionComplete, setTransitionComplete] = useState(false);
+  const [showInitialLoad, setShowInitialLoad] = useState(false);
+  const [ringInCenter, setRingInCenter] = useState(false);
+  const [ringMovedToCorner, setRingMovedToCorner] = useState(false);
+  const [navigationFadeProgress, setNavigationFadeProgress] = useState(0);
+
+  const handleRingCenterComplete = () => {
+    // Ring has completed morphing in center, now show initial load
+    setRingInCenter(true);
+    setShowInitialLoad(true);
+  };
+
+  const handleInitialLoadComplete = () => {
+    // Initial load sequence finished, move ring to corner
+    setShowInitialLoad(false);
+    setRingMovedToCorner(true);
+  };
+
+  const handleRingMovedToCorner = () => {
+    // Ring is now in corner as permanent ring
+    setTransitionComplete(true);
+    // Wait a bit longer for the seamless transition, then fade in text
+    setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      setContentVisible(true);
+    }, 500); // Reduced delay since transition is now smoother
+  };
+
+  return (
+    <AppContext.Provider
+      value={{
+        contentVisible,
+        transitionComplete,
+        showInitialLoad,
+        ringInCenter,
+        ringMovedToCorner,
+        navigationFadeProgress,
+        setNavigationFadeProgress,
+      }}
+    >
+      {/* Loading phase: show UnifiedRingLoader until moved to corner - only on first visit */}
+      {!transitionComplete && (
+        <UnifiedRingLoader
+          onCenterComplete={handleRingCenterComplete}
+          moveToCorner={ringMovedToCorner}
+          onCornerComplete={handleRingMovedToCorner}
+        />
+      )}
+
+      {/* Initial Load Sequence: shows when ring is in center - only on first visit */}
+      {showInitialLoad && (
+        <div
+          style={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            zIndex: 500,
+          }}
+        >
+          <InitialLoadSequence
+            width={800}
+            height={800}
+            autoPlay={true}
+            startAnimation={true}
+            duration={6} // Longer transition for better pacing
+            loop={false}
+            priority={true}
+            onSequenceComplete={handleInitialLoadComplete}
+          />
+        </div>
+      )}
+
+      {/* Permanent phase: show static PermanentRing after transition */}
+      {transitionComplete && <PermanentRing visible={true} />}
+
+      {/* Content slides up from bottom when ring moves to corner */}
+      <div
+        style={{
+          transition:
+            "transform 2000ms cubic-bezier(0.4, 0, 0.2, 1), opacity 2000ms cubic-bezier(0.4, 0, 0.2, 1)",
+          transform: contentVisible ? "translateY(0)" : "translateY(100px)",
+          opacity: contentVisible ? 1 : 0,
+        }}
+      >
+        {children}
+      </div>
+    </AppContext.Provider>
+  );
+}
