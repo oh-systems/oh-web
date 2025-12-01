@@ -164,7 +164,7 @@ export default function CastShadowsSequence({
       const normalizedProgress = limitedFrame / (totalFrames - 1);
       
       // Direct linear mapping for consistent animation speed
-      let easedProgress = normalizedProgress;
+      const easedProgress = normalizedProgress;
       
       const easedFrame = easedProgress * (totalFrames - 1);
       // Use floor instead of round for more predictable frame progression
