@@ -4,6 +4,7 @@ import { useState, useLayoutEffect, useRef, useEffect } from "react";
 import {
   Navigation,
   SectionIndicator,
+  Sound,
   ScrollDrivenText,
   InitialScrollSequence,
   InitialLoadSequence,
@@ -23,6 +24,7 @@ export default function Home() {
   const [currentSection, setCurrentSection] = useState<'overview' | 'mission' | 'space'>('overview');
   const [castAnimationProgress, setCastAnimationProgress] = useState(0);
   const [laptopSwapProgress, setLaptopSwapProgress] = useState(0);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [laptopAnimationProgress, setLaptopAnimationProgress] = useState(0);
   const [descriptiveTextOpacity, setDescriptiveTextOpacity] = useState(0);
   const [secondHeroOpacity, setSecondHeroOpacity] = useState(0);
@@ -45,6 +47,13 @@ export default function Home() {
   const autoPlayTimeRef = useRef(-10);
   const lastAutoPlayTimeRef = useRef(0);
   const updateAnimationProgressRef = useRef<(() => void) | null>(null);
+
+  // Handle sound toggle
+  const handleSoundToggle = () => {
+    console.log("Sound toggle called - before:", soundEnabled);
+    setSoundEnabled(!soundEnabled);
+    console.log("Sound toggled - after:", !soundEnabled);
+  };
 
   // Handle navigation clicks
   const handleNavClick = (item: string) => {
@@ -619,6 +628,18 @@ export default function Home() {
         style={{
           opacity: 1, // Always visible once transition completes
           transition: "opacity 0.3s ease-in-out",
+        }}
+      />
+
+      {/* Sound Control - bottom left corner */}
+      {console.log('Rendering Sound component, soundEnabled:', soundEnabled, 'transitionComplete:', transitionComplete)}
+      <Sound
+        isEnabled={soundEnabled}
+        onToggle={handleSoundToggle}
+        style={{
+          opacity: 1, // Always visible once transition completes
+          transition: "opacity 0.3s ease-in-out",
+          zIndex: 999999998, // High z-index to ensure visibility
         }}
       />
 
