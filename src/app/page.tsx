@@ -21,7 +21,9 @@ export default function Home() {
   const [navigationFadeProgress, setNavigationFadeProgress] = useState(0);
   const [activeCard, setActiveCard] = useState<string | null>(null);
   const [castSwapProgress, setCastSwapProgress] = useState(0);
-  const [currentSection, setCurrentSection] = useState<'overview' | 'mission' | 'space'>('overview');
+  const [currentSection, setCurrentSection] = useState<
+    "overview" | "mission" | "space"
+  >("overview");
   const [castAnimationProgress, setCastAnimationProgress] = useState(0);
   const [laptopSwapProgress, setLaptopSwapProgress] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -63,42 +65,40 @@ export default function Home() {
   };
 
   // Handle section navigation clicks
-  const handleSectionClick = (section: 'overview' | 'mission' | 'space') => {
-
-    
+  const handleSectionClick = (section: "overview" | "mission" | "space") => {
     // Stop auto-play and directly control scroll position
     isAutoPlayingRef.current = false;
-    
+
     // Set scroll accumulator based on section (0 to window.innerHeight * 3)
     const maxScroll = window.innerHeight * 3;
-    
-    if (section === 'overview') {
-      scrollAccumulatorRef.current = maxScroll * 0.2; // 20% through
-      setCurrentSection('overview');
+
+    if (section === "overview") {
+      scrollAccumulatorRef.current = maxScroll * 0.2; // 20% through (within 0-55% overview range)
+      setCurrentSection("overview");
       setAnimationProgress(0.2);
-    } else if (section === 'mission') {
-      scrollAccumulatorRef.current = maxScroll * 0.7; // 70% through  
-      setCurrentSection('mission');
+    } else if (section === "mission") {
+      scrollAccumulatorRef.current = maxScroll * 0.7; // 70% through (within 55-90% mission range)
+      setCurrentSection("mission");
       setAnimationProgress(0.7);
-    } else if (section === 'space') {
-      scrollAccumulatorRef.current = maxScroll * 0.95; // 95% through
-      setCurrentSection('space');
+    } else if (section === "space") {
+      scrollAccumulatorRef.current = maxScroll * 0.95; // 95% through (within 90-100% space range)
+      setCurrentSection("space");
       setAnimationProgress(0.95);
     }
-    
+
     // Update auto-play time to current position
     autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScroll) * 45;
-    
-    // Force animation update
+
+    // Force animation update (this will recalculate section but should match what we just set)
     if (updateAnimationProgressRef.current) {
       updateAnimationProgressRef.current();
     }
-    
-    // Resume auto-play after 2 seconds
-    setTimeout(() => {
-      isAutoPlayingRef.current = true;
-      lastAutoPlayTimeRef.current = performance.now();
-    }, 2000);
+
+    // Don't resume auto-play - let user maintain manual control
+    // setTimeout(() => {
+    //   isAutoPlayingRef.current = true;
+    //   lastAutoPlayTimeRef.current = performance.now();
+    // }, 2000);
   };
 
   // ==================== STAGE CONFIGURATION ====================
@@ -114,14 +114,14 @@ export default function Home() {
     swapStart: 0.55, // Start Cast Shadows after descriptive text completes
     swapEnd: 0.551, // Instant transition - 0.1% crossfade into Cast Shadows
     animationStart: 0.551, // Cast Shadows animation begins immediately
-    animationEnd: 0.85, // Extended range for slower Cast Shadows animation
+    animationEnd: 0.9, // Extended range for even slower, smoother Cast Shadows animation
   };
 
   // Stage 3: Third Laptop Model Swap (Cast Shadows to Third Laptop)
   const LAPTOP_SWAP_CONFIG = {
-    swapStart: 0.85, // Begin laptop after slower Cast Shadows range
-    swapEnd: 0.851, // Instant transition - 0.1% crossfade into laptop
-    animationStart: 0.851, // Laptop animation begins immediately
+    swapStart: 0.9, // Begin laptop after extended Cast Shadows range
+    swapEnd: 0.901, // Instant transition - 0.1% crossfade into laptop
+    animationStart: 0.901, // Laptop animation begins immediately
     animationEnd: 1.0, // Laptop runs for remaining scroll range
   }; // Text Sequence Configuration - Complete flow
   const TEXT_SEQUENCE = {
@@ -130,15 +130,15 @@ export default function Home() {
 
     // Phase 2: "THE FUTURE OF..." + descriptive text (both on right side)
     secondHeroStart: 0.27, // Start "THE FUTURE OF..." on right
-    secondHeroEnd: 0.60, // Stay until Cast Shadows text appears
+    secondHeroEnd: 0.6, // Stay until Cast Shadows text appears
     descriptiveStart: 0.27, // Start descriptive text at same time
-    descriptiveEnd: 0.60, // Stay until Cast Shadows text appears
+    descriptiveEnd: 0.6, // Stay until Cast Shadows text appears
 
     // Phase 3: Cast Shadows transition
     castShadowsStart: 0.55, // Cast Shadows model appears
 
     // Phase 4: Operating principles (all appear together)
-    principlesStart: 0.60, // Start operating principles well after Cast Shadows transition starts
+    principlesStart: 0.6, // Start operating principles well after Cast Shadows transition starts
     principlesEnd: 0.89, // End as Cast Shadows fades
 
     // Phase 5: Laptop (no text)
@@ -179,12 +179,12 @@ export default function Home() {
   useLayoutEffect(() => {
     let ticking = false;
     let animationFrameId: number;
-    
+
     // Initialize refs
     scrollAccumulatorRef.current = 0;
     autoPlayTimeRef.current = 0; // Start immediately when content is visible
     lastAutoPlayTimeRef.current = performance.now();
-    isAutoPlayingRef.current = true;
+    isAutoPlayingRef.current = true; // Enable auto-play initially, will stop on first user interaction
 
     const updateAnimationProgress = () => {
       // Wait until initial load is complete before allowing animation
@@ -203,11 +203,15 @@ export default function Home() {
 
         // Start auto-scroll immediately when content is visible
         if (autoPlayTimeRef.current >= 0) {
-          const autoScrollProgress = (autoPlayTimeRef.current / 35) * maxScrollRange; // 35 seconds total animation (12s + 10s + 15s sequences)
+          const autoScrollProgress =
+            (autoPlayTimeRef.current / 35) * maxScrollRange; // 35 seconds total animation (12s + 10s + 15s sequences)
 
           // Use auto-play progress if it's ahead of manual scroll
           if (autoScrollProgress > scrollAccumulatorRef.current) {
-            scrollAccumulatorRef.current = Math.min(autoScrollProgress, maxScrollRange);
+            scrollAccumulatorRef.current = Math.min(
+              autoScrollProgress,
+              maxScrollRange
+            );
           }
         }
       }
@@ -221,13 +225,14 @@ export default function Home() {
 
       setAnimationProgress(easedProgress);
 
-      // Update current section based on animation progress
-      if (easedProgress < 0.55) {
-        setCurrentSection('overview'); // Initial scroll sequence
-      } else if (easedProgress < 0.92) {
-        setCurrentSection('mission'); // Cast shadows sequence
+      // Update current section based on raw progress (always update for correct section indicator)
+      if (rawProgress < 0.55) {
+        setCurrentSection("overview"); // Initial scroll sequence
+      } else if (rawProgress < 0.9) {
+        // Updated to match new Cast Shadows range
+        setCurrentSection("mission"); // Cast shadows sequence
       } else {
-        setCurrentSection('space'); // Laptop sequence
+        setCurrentSection("space"); // Laptop sequence
       }
 
       // Calculate fade progress for navigation and ring (Stage 1)
@@ -277,8 +282,8 @@ export default function Home() {
           1
         );
 
-        // Use linear progression with no easing effects
-        castAnimationProgress = linearProgress;
+        castAnimationProgress =
+          linearProgress * linearProgress * (3 - 2 * linearProgress);
       }
       setCastAnimationProgress(castAnimationProgress);
 
@@ -288,7 +293,7 @@ export default function Home() {
         rawProgress <= TEXT_SEQUENCE.firstHeroEnd + 0.05
       ) {
         const fadeProgress =
-          (rawProgress - (TEXT_SEQUENCE.firstHeroEnd - 0.05)) / 0.10;
+          (rawProgress - (TEXT_SEQUENCE.firstHeroEnd - 0.05)) / 0.1;
         // Apply smooth easing
         const smoothFade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
         setFirstHeroFadeOut(smoothFade);
@@ -310,12 +315,14 @@ export default function Home() {
           // Fade in with smooth easing
           const fadeProgress =
             (rawProgress - TEXT_SEQUENCE.secondHeroStart) / fadeInDuration;
-          const smoothFade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
+          const smoothFade =
+            fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
           setSecondHeroOpacity(smoothFade);
         } else if (rawProgress > fadeOutStart) {
           // Fade out with smooth easing - ensure complete fade by cast shadows start
           const fadeProgress = (rawProgress - fadeOutStart) / 0.12;
-          const smoothFade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
+          const smoothFade =
+            fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
           setSecondHeroOpacity(Math.max(0, 1 - smoothFade));
         } else {
           // Fully visible
@@ -337,12 +344,14 @@ export default function Home() {
           // Fade in with smooth easing
           const fadeProgress =
             (rawProgress - TEXT_SEQUENCE.descriptiveStart) / fadeInDuration;
-          const smoothFade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
+          const smoothFade =
+            fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
           setDescriptiveTextOpacity(smoothFade);
         } else if (rawProgress > fadeOutStart) {
           // Fade out with smooth easing - ensure complete fade by cast shadows start
           const fadeProgress = (rawProgress - fadeOutStart) / 0.12;
-          const smoothFade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
+          const smoothFade =
+            fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
           setDescriptiveTextOpacity(Math.max(0, 1 - smoothFade));
         } else {
           // Fully visible
@@ -399,7 +408,7 @@ export default function Home() {
       }
       setLaptopAnimationProgress(nextLaptopAnimationProgress);
     };
-    
+
     // Make updateAnimationProgress accessible via ref
     updateAnimationProgressRef.current = updateAnimationProgress;
 
@@ -421,29 +430,20 @@ export default function Home() {
       // Manual scroll takes over from auto-play
       isAutoPlayingRef.current = false;
 
-      // Allow forward and backward scrolling with higher sensitivity
-      scrollAccumulatorRef.current += e.deltaY * 1.5; // Increased sensitivity for better control
+      // Smoother scrolling with lower sensitivity and damping
+      const scrollDelta = e.deltaY * 0.8; // Reduced sensitivity for smoother control
+      scrollAccumulatorRef.current += scrollDelta;
       scrollAccumulatorRef.current = Math.max(
         0,
         Math.min(scrollAccumulatorRef.current, window.innerHeight * 3)
       );
 
-      // Reset auto-play timer to current position (accounting for 10s delay)
-      autoPlayTimeRef.current = (scrollAccumulatorRef.current / (window.innerHeight * 3)) * 45;
+      // Reset auto-play timer to current position
+      autoPlayTimeRef.current =
+        (scrollAccumulatorRef.current / (window.innerHeight * 3)) * 45;
 
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          updateAnimationProgress();
-          ticking = false;
-        });
-        ticking = true;
-      }
-
-      // Resume auto-play after 2 seconds of no scrolling
-      setTimeout(() => {
-        isAutoPlayingRef.current = true;
-        lastAutoPlayTimeRef.current = performance.now();
-      }, 2000);
+      // Always update animation progress for smooth scrolling
+      updateAnimationProgress();
     };
 
     // Handle touch events for mobile/trackpad
@@ -472,7 +472,8 @@ export default function Home() {
       // Manual touch takes over from auto-play
       isAutoPlayingRef.current = false;
 
-      scrollAccumulatorRef.current += deltaY * 3; // Higher sensitivity for touch
+      // Smoother touch scrolling with lower sensitivity
+      scrollAccumulatorRef.current += deltaY * 1.5; // Reduced sensitivity for smoother control
       scrollAccumulatorRef.current = Math.max(
         0,
         Math.min(scrollAccumulatorRef.current, window.innerHeight * 3)
@@ -481,20 +482,17 @@ export default function Home() {
       touchStartY = touchY;
 
       // Reset auto-play timer to current position
-      autoPlayTimeRef.current = (scrollAccumulatorRef.current / (window.innerHeight * 3)) * 45;
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          updateAnimationProgress();
-          ticking = false;
-        });
-        ticking = true;
-      }
+      autoPlayTimeRef.current =
+        (scrollAccumulatorRef.current / (window.innerHeight * 3)) * 45;
 
-      // Resume auto-play after 2 seconds of no interaction
-      setTimeout(() => {
-        isAutoPlayingRef.current = true;
-        lastAutoPlayTimeRef.current = performance.now();
-      }, 2000);
+      // Always update for smooth scrolling
+      updateAnimationProgress();
+
+      // Don't resume auto-play - let user maintain manual control
+      // setTimeout(() => {
+      //   isAutoPlayingRef.current = true;
+      //   lastAutoPlayTimeRef.current = performance.now();
+      // }, 2000);
     };
 
     // Handle keyboard controls
@@ -536,22 +534,18 @@ export default function Home() {
         );
 
         // Reset auto-play timer to current position
-        autoPlayTimeRef.current = (scrollAccumulatorRef.current / (window.innerHeight * 3)) * 45;
+        autoPlayTimeRef.current =
+          (scrollAccumulatorRef.current / (window.innerHeight * 3)) * 45;
       }
 
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          updateAnimationProgress();
-          ticking = false;
-        });
-        ticking = true;
-      }
+      // Always update for smooth scrolling
+      updateAnimationProgress();
 
-      // Resume auto-play after 2 seconds of no interaction
-      setTimeout(() => {
-        isAutoPlayingRef.current = true;
-        lastAutoPlayTimeRef.current = performance.now();
-      }, 2000);
+      // Don't resume auto-play - let user maintain manual control
+      // setTimeout(() => {
+      //   isAutoPlayingRef.current = true;
+      //   lastAutoPlayTimeRef.current = performance.now();
+      // }, 2000);
     };
 
     // Start the animation loop
