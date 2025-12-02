@@ -191,7 +191,6 @@ export default function Home() {
 
   // Scroll-to-progress animation system with auto-play
   useLayoutEffect(() => {
-    let ticking = false;
     let animationFrameId: number;
 
     // Initialize refs
