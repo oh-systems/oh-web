@@ -49,6 +49,9 @@ export default function Home() {
   const autoPlayTimeRef = useRef(-10);
   const lastAutoPlayTimeRef = useRef(0);
   const updateAnimationProgressRef = useRef<(() => void) | null>(null);
+  const autoPlayResumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastScrollTimeRef = useRef(0);
+  const targetScrollRef = useRef(0);
 
   // Handle sound toggle
   const handleSoundToggle = () => {
@@ -94,11 +97,22 @@ export default function Home() {
       updateAnimationProgressRef.current();
     }
 
-    // Don't resume auto-play - let user maintain manual control
-    // setTimeout(() => {
-    //   isAutoPlayingRef.current = true;
-    //   lastAutoPlayTimeRef.current = performance.now();
-    // }, 2000);
+    // Resume auto-play after 2 seconds
+    scheduleAutoPlayResume();
+  };
+
+  // Helper function to schedule auto-play resumption
+  const scheduleAutoPlayResume = () => {
+    // Clear any existing timeout
+    if (autoPlayResumeTimeoutRef.current) {
+      clearTimeout(autoPlayResumeTimeoutRef.current);
+    }
+    
+    // Schedule new timeout
+    autoPlayResumeTimeoutRef.current = setTimeout(() => {
+      isAutoPlayingRef.current = true;
+      lastAutoPlayTimeRef.current = performance.now();
+    }, 2000);
   };
 
   // ==================== STAGE CONFIGURATION ====================
@@ -182,6 +196,7 @@ export default function Home() {
 
     // Initialize refs
     scrollAccumulatorRef.current = 0;
+    targetScrollRef.current = 0;
     autoPlayTimeRef.current = 0; // Start immediately when content is visible
     lastAutoPlayTimeRef.current = performance.now();
     isAutoPlayingRef.current = true; // Enable auto-play initially, will stop on first user interaction
@@ -198,21 +213,21 @@ export default function Home() {
         const deltaTime = (now - lastAutoPlayTimeRef.current) / 1000; // Convert to seconds
         lastAutoPlayTimeRef.current = now;
 
-        // Auto-play speed with 10-second initial delay
+        // Auto-play speed - smoothly progress from current position
         autoPlayTimeRef.current += deltaTime;
 
         // Start auto-scroll immediately when content is visible
         if (autoPlayTimeRef.current >= 0) {
           const autoScrollProgress =
-            (autoPlayTimeRef.current / 35) * maxScrollRange; // 35 seconds total animation (12s + 10s + 15s sequences)
+            (autoPlayTimeRef.current / 35) * maxScrollRange; // 35 seconds total animation
 
-          // Use auto-play progress if it's ahead of manual scroll
-          if (autoScrollProgress > scrollAccumulatorRef.current) {
-            scrollAccumulatorRef.current = Math.min(
-              autoScrollProgress,
-              maxScrollRange
-            );
-          }
+          // Smoothly lerp towards auto-play progress instead of jumping
+          const lerpFactor = 0.05; // Very smooth transition
+          scrollAccumulatorRef.current += (autoScrollProgress - scrollAccumulatorRef.current) * lerpFactor;
+          scrollAccumulatorRef.current = Math.min(scrollAccumulatorRef.current, maxScrollRange);
+          
+          // Keep target in sync during auto-play
+          targetScrollRef.current = scrollAccumulatorRef.current;
         }
       }
 
@@ -430,20 +445,30 @@ export default function Home() {
       // Manual scroll takes over from auto-play
       isAutoPlayingRef.current = false;
 
-      // Smoother scrolling with lower sensitivity and damping
-      const scrollDelta = e.deltaY * 0.8; // Reduced sensitivity for smoother control
-      scrollAccumulatorRef.current += scrollDelta;
-      scrollAccumulatorRef.current = Math.max(
+      // Apply scroll speed limiting for smooth transitions
+      const maxScrollDelta = 30; // Maximum pixels per scroll event for smooth transitions
+      const scrollDelta = Math.max(-maxScrollDelta, Math.min(maxScrollDelta, e.deltaY * 0.5));
+      
+      // Update target scroll position
+      targetScrollRef.current += scrollDelta;
+      targetScrollRef.current = Math.max(
         0,
-        Math.min(scrollAccumulatorRef.current, window.innerHeight * 3)
+        Math.min(targetScrollRef.current, window.innerHeight * 3)
       );
+      
+      // Smoothly interpolate current position to target
+      const lerpFactor = 0.3; // Smooth interpolation factor
+      scrollAccumulatorRef.current += (targetScrollRef.current - scrollAccumulatorRef.current) * lerpFactor;
 
-      // Reset auto-play timer to current position
+      // Update auto-play timer to current position for smooth continuation
       autoPlayTimeRef.current =
         (scrollAccumulatorRef.current / (window.innerHeight * 3)) * 45;
 
       // Always update animation progress for smooth scrolling
       updateAnimationProgress();
+
+      // Resume auto-play after 2 seconds of no scrolling
+      scheduleAutoPlayResume();
     };
 
     // Handle touch events for mobile/trackpad
@@ -472,27 +497,32 @@ export default function Home() {
       // Manual touch takes over from auto-play
       isAutoPlayingRef.current = false;
 
-      // Smoother touch scrolling with lower sensitivity
-      scrollAccumulatorRef.current += deltaY * 1.5; // Reduced sensitivity for smoother control
-      scrollAccumulatorRef.current = Math.max(
+      // Apply scroll speed limiting for smooth transitions
+      const maxTouchDelta = 40; // Maximum pixels per touch move for smooth transitions
+      const limitedDelta = Math.max(-maxTouchDelta, Math.min(maxTouchDelta, deltaY * 1.0));
+      
+      // Update target scroll position
+      targetScrollRef.current += limitedDelta;
+      targetScrollRef.current = Math.max(
         0,
-        Math.min(scrollAccumulatorRef.current, window.innerHeight * 3)
+        Math.min(targetScrollRef.current, window.innerHeight * 3)
       );
+      
+      // Smoothly interpolate current position to target
+      const lerpFactor = 0.25;
+      scrollAccumulatorRef.current += (targetScrollRef.current - scrollAccumulatorRef.current) * lerpFactor;
 
       touchStartY = touchY;
 
-      // Reset auto-play timer to current position
+      // Update auto-play timer to current position for smooth continuation
       autoPlayTimeRef.current =
         (scrollAccumulatorRef.current / (window.innerHeight * 3)) * 45;
 
-      // Always update for smooth scrolling
+      // Always update animation progress for smooth scrolling
       updateAnimationProgress();
 
-      // Don't resume auto-play - let user maintain manual control
-      // setTimeout(() => {
-      //   isAutoPlayingRef.current = true;
-      //   lastAutoPlayTimeRef.current = performance.now();
-      // }, 2000);
+      // Resume auto-play after 2 seconds of no scrolling
+      scheduleAutoPlayResume();
     };
 
     // Handle keyboard controls
@@ -541,11 +571,8 @@ export default function Home() {
       // Always update for smooth scrolling
       updateAnimationProgress();
 
-      // Don't resume auto-play - let user maintain manual control
-      // setTimeout(() => {
-      //   isAutoPlayingRef.current = true;
-      //   lastAutoPlayTimeRef.current = performance.now();
-      // }, 2000);
+      // Resume auto-play after 2 seconds of no interaction
+      scheduleAutoPlayResume();
     };
 
     // Start the animation loop
