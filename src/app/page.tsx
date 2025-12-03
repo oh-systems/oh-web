@@ -136,7 +136,7 @@ export default function Home() {
     swapStart: 0.9, // Begin laptop after extended Cast Shadows range
     swapEnd: 0.901, // Instant transition - 0.1% crossfade into laptop
     animationStart: 0.901, // Laptop animation begins immediately
-    animationEnd: 1.9, // Extend to 50% extra scroll range for much slower, smoother animation
+    animationEnd: 1, // Extend to 50% extra scroll range for much slower, smoother animation
   }; // Text Sequence Configuration - Complete flow
   const TEXT_SEQUENCE = {
     // Phase 1: Original first hero text "OH exists to redefine..."
@@ -409,16 +409,15 @@ export default function Home() {
       // Calculate laptop animation progress across its full window
       let nextLaptopAnimationProgress = 0;
       if (rawProgress >= LAPTOP_SWAP_CONFIG.animationStart) {
-        const laptopStart = LAPTOP_SWAP_CONFIG.animationStart; // 57.1%
-        const laptopEnd = LAPTOP_SWAP_CONFIG.animationEnd; // 100%
+        const laptopStart = LAPTOP_SWAP_CONFIG.animationStart; // 90.1%
+        const laptopEnd = LAPTOP_SWAP_CONFIG.animationEnd; // 150%
         const linearProgress = Math.min(
           (rawProgress - laptopStart) / (laptopEnd - laptopStart),
           1
         );
 
-        // Apply smoothstep easing for smoother animation progression
-        nextLaptopAnimationProgress =
-          linearProgress * linearProgress * (3 - 2 * linearProgress);
+        // Use linear progress for consistent, smooth animation speed
+        nextLaptopAnimationProgress = linearProgress;
       }
       setLaptopAnimationProgress(nextLaptopAnimationProgress);
     };
@@ -442,11 +441,17 @@ export default function Home() {
       e.preventDefault(); // Prevent page scroll
 
       // Manual scroll takes over from auto-play
+      // Manual scroll takes over from auto-play
       isAutoPlayingRef.current = false;
 
-      // Apply scroll speed limiting for smooth transitions
-      const maxScrollDelta = 30; // Maximum pixels per scroll event for smooth transitions
-      const scrollDelta = Math.max(-maxScrollDelta, Math.min(maxScrollDelta, e.deltaY * 0.5));
+      // Check if we're in laptop animation range for extra dampening
+      const currentProgress = scrollAccumulatorRef.current / (window.innerHeight * 3);
+      const inLaptopRange = currentProgress >= 0.9;
+      
+      // Apply stricter scroll speed limiting in laptop range to prevent frame skipping
+      const maxScrollDelta = inLaptopRange ? 8 : 15; // Extra slow in laptop range
+      const scrollMultiplier = inLaptopRange ? 0.15 : 0.3; // Extra dampening in laptop range
+      const scrollDelta = Math.max(-maxScrollDelta, Math.min(maxScrollDelta, e.deltaY * scrollMultiplier));
       
       // Update target scroll position
       targetScrollRef.current += scrollDelta;
@@ -455,10 +460,9 @@ export default function Home() {
         Math.min(targetScrollRef.current, window.innerHeight * 3)
       );
       
-      // Smoothly interpolate current position to target
-      const lerpFactor = 0.3; // Smooth interpolation factor
+      // Smoothly interpolate current position to target with slower lerp in laptop range
+      const lerpFactor = inLaptopRange ? 0.1 : 0.2; // Extra smooth in laptop range
       scrollAccumulatorRef.current += (targetScrollRef.current - scrollAccumulatorRef.current) * lerpFactor;
-
       // Update auto-play timer to current position for smooth continuation
       autoPlayTimeRef.current =
         (scrollAccumulatorRef.current / (window.innerHeight * 3)) * 45;
@@ -488,17 +492,17 @@ export default function Home() {
       if ((e.target as Element)?.closest(".navigation-container")) {
         return;
       }
-
-      e.preventDefault();
-      const touchY = e.touches[0].clientY;
-      const deltaY = touchStartY - touchY;
-
       // Manual touch takes over from auto-play
       isAutoPlayingRef.current = false;
 
-      // Apply scroll speed limiting for smooth transitions
-      const maxTouchDelta = 40; // Maximum pixels per touch move for smooth transitions
-      const limitedDelta = Math.max(-maxTouchDelta, Math.min(maxTouchDelta, deltaY * 1.0));
+      // Check if we're in laptop animation range for extra dampening
+      const currentProgress = scrollAccumulatorRef.current / (window.innerHeight * 3);
+      const inLaptopRange = currentProgress >= 0.9;
+      
+      // Apply stricter scroll speed limiting in laptop range to prevent frame skipping
+      const maxTouchDelta = inLaptopRange ? 10 : 20; // Extra slow in laptop range
+      const touchMultiplier = inLaptopRange ? 0.25 : 0.5; // Extra dampening in laptop range
+      const limitedDelta = Math.max(-maxTouchDelta, Math.min(maxTouchDelta, deltaY * touchMultiplier));
       
       // Update target scroll position
       targetScrollRef.current += limitedDelta;
@@ -507,8 +511,8 @@ export default function Home() {
         Math.min(targetScrollRef.current, window.innerHeight * 3)
       );
       
-      // Smoothly interpolate current position to target
-      const lerpFactor = 0.25;
+      // Smoothly interpolate current position to target with slower lerp in laptop range
+      const lerpFactor = inLaptopRange ? 0.1 : 0.2; // Extra smooth in laptop range
       scrollAccumulatorRef.current += (targetScrollRef.current - scrollAccumulatorRef.current) * lerpFactor;
 
       touchStartY = touchY;
