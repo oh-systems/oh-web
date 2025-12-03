@@ -7,7 +7,6 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import Image from "next/image";
 import { getCastShadowsImageUrl } from "../lib/models-config";
 import { useScrollSpeedLimiter, useAdaptiveQuality } from "../hooks";
 
@@ -43,15 +42,19 @@ export default function CastShadowsSequence({
   const [isReady, setIsReady] = useState(false);
   const [loadingComplete, setLoadingComplete] = useState(false);
   const [isInView, setIsInView] = useState(false);
+  const [loadedFrames, setLoadedFrames] = useState<Set<number>>(new Set());
+  const [lastValidFrame, setLastValidFrame] = useState(0); // Track last successfully loaded frame
+  const [previousFrame, setPreviousFrame] = useState(0); // Track previous frame for crossfade
   const containerRef = useRef<HTMLDivElement>(null);
+  const imageCache = useRef<Map<number, HTMLImageElement>>(new Map());
 
   // Generate array of image paths for CAST SHADOWS using configuration
   const totalFrames = 1199;
-  
+
   const imagePaths = useMemo(() => {
     const paths: string[] = [];
     for (let i = 1; i <= totalFrames; i++) {
-      const frameNumber = i.toString().padStart(4, '0');
+      const frameNumber = i.toString().padStart(4, "0");
       paths.push(getCastShadowsImageUrl(`CAST SHADOWS${frameNumber}.avif`));
     }
     return paths;
@@ -83,17 +86,24 @@ export default function CastShadowsSequence({
 
     const imageObjects: HTMLImageElement[] = [];
     let loadedCount = 0;
+    const newLoadedFrames = new Set<number>();
 
-    imagePaths.forEach((path) => {
+    imagePaths.forEach((path, index) => {
       const img = document.createElement("img") as HTMLImageElement;
       img.onload = () => {
         loadedCount++;
+        newLoadedFrames.add(index);
+        imageCache.current.set(index, img); // Cache the loaded image
+        setLoadedFrames(new Set(newLoadedFrames));
         updateProgress(loadedCount);
       };
       img.onerror = () => {
-        loadedCount++; // Count as loaded even if failed
+        console.error(`Failed to load frame ${index}: ${path}`);
+        loadedCount++;
         updateProgress(loadedCount);
       };
+      // Force browser to cache the image
+      img.crossOrigin = "anonymous";
       img.src = path;
       imageObjects.push(img);
     });
@@ -115,7 +125,7 @@ export default function CastShadowsSequence({
           observer.disconnect();
         }
       },
-      { threshold: 0.1, rootMargin: '100px' } // Start loading when component is near viewport
+      { threshold: 0.1, rootMargin: "100px" } // Start loading when component is near viewport
     );
 
     if (containerRef.current) {
@@ -132,14 +142,14 @@ export default function CastShadowsSequence({
   const frameSpeedLimiter = useScrollSpeedLimiter({
     maxVelocity: 300, // Much lower for slower, smoother animations
     smoothingFactor: 0.15, // More smoothing for slower progression
-    enabled: isScrollDriven
+    enabled: isScrollDriven,
   });
 
   // Adaptive quality management
   const adaptiveQuality = useAdaptiveQuality({
     velocityThresholds: { medium: 200, low: 400, critical: 600 },
     qualityLevels: { full: 1.0, medium: 0.85, low: 0.7, critical: 0.5 },
-    enabled: isScrollDriven
+    enabled: isScrollDriven,
   });
 
   // Track previous frame for skip detection
@@ -149,28 +159,29 @@ export default function CastShadowsSequence({
   const calculateCurrentFrame = () => {
     if (isScrollDriven) {
       // Apply frame-based speed limiting
-      const { limitedFrame, velocity } = frameSpeedLimiter.processScrollProgress(
-        scrollProgress!,
-        totalFrames - 1
-      );
-      
+      const { limitedFrame, velocity } =
+        frameSpeedLimiter.processScrollProgress(
+          scrollProgress!,
+          totalFrames - 1
+        );
+
       // Check if we should skip this frame for performance
       if (adaptiveQuality.shouldSkipFrame(limitedFrame, velocity)) {
         // Return previous frame to skip this update
         return previousFrameRef.current;
       }
-      
+
       // Use linear progression with no easing effects
       const normalizedProgress = limitedFrame / (totalFrames - 1);
-      
+
       // Direct linear mapping for consistent animation speed
       const easedProgress = normalizedProgress;
-      
+
       const easedFrame = easedProgress * (totalFrames - 1);
       // Use floor instead of round for more predictable frame progression
       const frame = Math.floor(easedFrame);
       const finalFrame = Math.max(0, Math.min(frame, totalFrames - 1));
-      
+
       // Update previous frame reference
       previousFrameRef.current = finalFrame;
       return finalFrame;
@@ -243,9 +254,26 @@ export default function CastShadowsSequence({
   const currentImageSrc =
     imagePaths[Math.min(displayFrame, totalFrames - 1)] || imagePaths[0];
 
-  // Preload next frame for smoother playback
+  // Preload next few frames for smoother playback
   const nextFrame = Math.min(displayFrame + 1, totalFrames - 1);
+  const nextNextFrame = Math.min(displayFrame + 2, totalFrames - 1);
   const nextImageSrc = imagePaths[nextFrame];
+  const nextNextImageSrc = imagePaths[nextNextFrame];
+
+  // Only show frame if it's loaded, otherwise show last valid frame
+  const safeDisplayFrame = loadedFrames.has(displayFrame)
+    ? displayFrame
+    : lastValidFrame;
+  const safeImageSrc = imagePaths[safeDisplayFrame];
+  const previousImageSrc = imagePaths[previousFrame];
+
+  // Update last valid frame and previous frame when we have a loaded frame
+  useEffect(() => {
+    if (loadedFrames.has(displayFrame) && displayFrame !== lastValidFrame) {
+      setPreviousFrame(lastValidFrame);
+      setLastValidFrame(displayFrame);
+    }
+  }, [displayFrame, loadedFrames, lastValidFrame]);
 
   return (
     <div
@@ -258,23 +286,42 @@ export default function CastShadowsSequence({
         overflow: "hidden",
       }}
     >
-      {/* Main Image Display */}
+      {/* Main Image Display - Use two images for seamless crossfade */}
       <div
         className="relative w-full h-full"
+        style={{ backgroundColor: "#000" }} // Black background to prevent white flashes
       >
-        <Image
-          key={currentImageSrc}
-          src={currentImageSrc}
-          alt={`Cast Shadows frame ${displayFrame + 1}`}
+        {/* Previous frame - stays mounted */}
+        <img
+          src={previousImageSrc}
+          alt={`Cast Shadows frame ${previousFrame + 1}`}
           width={width}
           height={height}
-          priority={priority || displayFrame < 20}
-          loading={priority || displayFrame < 20 ? 'eager' : 'lazy'}
-          unoptimized
-          quality={100}
-          onError={() => {
-            console.warn(
-              `Failed to load Cast Shadows frame: ${currentImageSrc}`
+          style={{
+            objectFit: "cover",
+            width: "100%",
+            height: "100%",
+            imageRendering: "auto",
+            backfaceVisibility: "hidden",
+            transform: "translateZ(0)",
+            display: "block",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            opacity: previousFrame === safeDisplayFrame ? 1 : 0,
+            transition: "opacity 0.05s ease-out",
+            pointerEvents: "none",
+          }}
+        />
+        {/* Current frame - stays mounted */}
+        <img
+          src={safeImageSrc}
+          alt={`Cast Shadows frame ${safeDisplayFrame + 1}`}
+          width={width}
+          height={height}
+          onError={(e) => {
+            console.error(
+              `Failed to display Cast Shadows frame ${safeDisplayFrame}: ${safeImageSrc}`
             );
           }}
           style={{
@@ -283,31 +330,33 @@ export default function CastShadowsSequence({
             height: "100%",
             imageRendering: "auto",
             backfaceVisibility: "hidden",
-            transform: "translateZ(0)", // Hardware acceleration
+            transform: "translateZ(0)",
+            display: "block",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            opacity: 1,
+            pointerEvents: "none",
           }}
         />
-
-        {/* Preload next frame invisibly */}
-        {nextImageSrc && nextImageSrc !== currentImageSrc && (
-          <Image
-            src={nextImageSrc}
-            alt="preload"
-            width={width}
-            height={height}
-            loading="lazy"
-            unoptimized
-            quality={100}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              opacity: 0,
-              pointerEvents: "none",
-              zIndex: -1,
-            }}
-          />
-        )}
       </div>
+
+      {/* Preload next 2-5 frames invisibly for buffer */}
+        {[1, 2, 3, 4, 5].map((offset) => {
+          const preloadFrame = Math.min(displayFrame + offset, totalFrames - 1);
+          const preloadSrc = imagePaths[preloadFrame];
+          if (preloadSrc && !loadedFrames.has(preloadFrame)) {
+            return (
+              <link
+                key={`preload-offset-${offset}-frame-${preloadFrame}`}
+                rel="preload"
+                as="image"
+                href={preloadSrc}
+              />
+            );
+          }
+          return null;
+        })}
 
       {/* Bottom gradient overlay - black to transparent covering 20% */}
       <div
