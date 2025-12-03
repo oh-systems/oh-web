@@ -34,7 +34,7 @@ export default function CastShadowsSequence({
   duration = 40,
   fps = 30,
   onSequenceComplete,
-  priority = false,
+  priority: _ = false,
 }: CastShadowsSequenceProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentFrame, setCurrentFrame] = useState(0);
