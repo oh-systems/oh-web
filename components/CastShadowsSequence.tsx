@@ -8,7 +8,6 @@ import React, {
   useMemo,
 } from "react";
 import { getCastShadowsImageUrl } from "../lib/models-config";
-import { useScrollSpeedLimiter, useAdaptiveQuality } from "../hooks";
 
 interface CastShadowsSequenceProps {
   className?: string;
@@ -42,10 +41,7 @@ export default function CastShadowsSequence({
   const [isReady, setIsReady] = useState(false);
   const [loadingComplete, setLoadingComplete] = useState(false);
   const [isInView, setIsInView] = useState(false);
-  const [loadedFrames, setLoadedFrames] = useState<Set<number>>(new Set());
-  const [lastValidFrame, setLastValidFrame] = useState(0); // Track last successfully loaded frame
   const containerRef = useRef<HTMLDivElement>(null);
-  const imageCache = useRef<Map<number, HTMLImageElement>>(new Map());
 
   // Generate array of image paths for CAST SHADOWS using configuration
   const totalFrames = 1199;
@@ -85,15 +81,11 @@ export default function CastShadowsSequence({
 
     const imageObjects: HTMLImageElement[] = [];
     let loadedCount = 0;
-    const newLoadedFrames = new Set<number>();
 
     imagePaths.forEach((path, index) => {
       const img = document.createElement("img") as HTMLImageElement;
       img.onload = () => {
         loadedCount++;
-        newLoadedFrames.add(index);
-        imageCache.current.set(index, img); // Cache the loaded image
-        setLoadedFrames(new Set(newLoadedFrames));
         updateProgress(loadedCount);
       };
       img.onerror = () => {
@@ -212,25 +204,6 @@ export default function CastShadowsSequence({
   const currentImageSrc =
     imagePaths[Math.min(displayFrame, totalFrames - 1)] || imagePaths[0];
 
-  // Preload next few frames for smoother playback
-  const nextFrame = Math.min(displayFrame + 1, totalFrames - 1);
-  const nextNextFrame = Math.min(displayFrame + 2, totalFrames - 1);
-  const nextImageSrc = imagePaths[nextFrame];
-  const nextNextImageSrc = imagePaths[nextNextFrame];
-
-  // Only show frame if it's loaded, otherwise show last valid frame
-  const safeDisplayFrame = loadedFrames.has(displayFrame)
-    ? displayFrame
-    : lastValidFrame;
-  const safeImageSrc = imagePaths[safeDisplayFrame];
-
-  // Update last valid frame when we have a loaded frame
-  useEffect(() => {
-    if (loadedFrames.has(displayFrame)) {
-      setLastValidFrame(displayFrame);
-    }
-  }, [displayFrame, loadedFrames]);
-
   return (
     <div
       ref={containerRef}
@@ -248,15 +221,10 @@ export default function CastShadowsSequence({
         style={{ backgroundColor: "#000" }} // Black background to prevent white flashes
       >
         <img
-          src={safeImageSrc}
-          alt={`Cast Shadows frame ${safeDisplayFrame + 1}`}
+          src={currentImageSrc}
+          alt={`Cast Shadows frame ${displayFrame + 1}`}
           width={width}
           height={height}
-          onError={(e) => {
-            console.error(
-              `Failed to display Cast Shadows frame ${safeDisplayFrame}: ${safeImageSrc}`
-            );
-          }}
           style={{
             objectFit: "cover",
             width: "100%",
@@ -271,21 +239,21 @@ export default function CastShadowsSequence({
       </div>
 
       {/* Preload next 2-5 frames invisibly for buffer */}
-        {[1, 2, 3, 4, 5].map((offset) => {
-          const preloadFrame = Math.min(displayFrame + offset, totalFrames - 1);
-          const preloadSrc = imagePaths[preloadFrame];
-          if (preloadSrc && !loadedFrames.has(preloadFrame)) {
-            return (
-              <link
-                key={`preload-offset-${offset}-frame-${preloadFrame}`}
-                rel="preload"
-                as="image"
-                href={preloadSrc}
-              />
-            );
-          }
-          return null;
-        })}
+      {[1, 2, 3, 4, 5].map((offset) => {
+        const preloadFrame = Math.min(displayFrame + offset, totalFrames - 1);
+        const preloadSrc = imagePaths[preloadFrame];
+        if (preloadSrc) {
+          return (
+            <link
+              key={`preload-offset-${offset}-frame-${preloadFrame}`}
+              rel="preload"
+              as="image"
+              href={preloadSrc}
+            />
+          );
+        }
+        return null;
+      })}
 
       {/* Bottom gradient overlay - black to transparent covering 20% */}
       <div
