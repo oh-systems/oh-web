@@ -50,7 +50,6 @@ export default function Home() {
   const lastAutoPlayTimeRef = useRef(0);
   const updateAnimationProgressRef = useRef<(() => void) | null>(null);
   const autoPlayResumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastScrollTimeRef = useRef(0);
   const targetScrollRef = useRef(0);
 
   // Handle sound toggle
@@ -441,28 +440,24 @@ export default function Home() {
       e.preventDefault(); // Prevent page scroll
 
       // Manual scroll takes over from auto-play
-      // Manual scroll takes over from auto-play
       isAutoPlayingRef.current = false;
 
-      // Check if we're in laptop animation range for extra dampening
+      // Optimized scroll speed limiting - simpler calculation
       const currentProgress = scrollAccumulatorRef.current / (window.innerHeight * 3);
       const inLaptopRange = currentProgress >= 0.9;
       
-      // Apply stricter scroll speed limiting in laptop range to prevent frame skipping
-      const maxScrollDelta = inLaptopRange ? 8 : 15; // Extra slow in laptop range
-      const scrollMultiplier = inLaptopRange ? 0.15 : 0.3; // Extra dampening in laptop range
-      const scrollDelta = Math.max(-maxScrollDelta, Math.min(maxScrollDelta, e.deltaY * scrollMultiplier));
+      // Simplified dampening with better performance
+      const scrollDelta = Math.max(-10, Math.min(10, e.deltaY * (inLaptopRange ? 0.2 : 0.4)));
       
-      // Update target scroll position
-      targetScrollRef.current += scrollDelta;
+      // Direct update without extra interpolation for better responsiveness
       targetScrollRef.current = Math.max(
         0,
-        Math.min(targetScrollRef.current, window.innerHeight * 3)
+        Math.min(targetScrollRef.current + scrollDelta, window.innerHeight * 3)
       );
       
-      // Smoothly interpolate current position to target with slower lerp in laptop range
-      const lerpFactor = inLaptopRange ? 0.1 : 0.2; // Extra smooth in laptop range
-      scrollAccumulatorRef.current += (targetScrollRef.current - scrollAccumulatorRef.current) * lerpFactor;
+      // Faster lerp for more immediate feedback
+      scrollAccumulatorRef.current += (targetScrollRef.current - scrollAccumulatorRef.current) * 0.3;
+      
       // Update auto-play timer to current position for smooth continuation
       autoPlayTimeRef.current =
         (scrollAccumulatorRef.current / (window.innerHeight * 3)) * 45;
@@ -500,25 +495,18 @@ export default function Home() {
       // Manual touch takes over from auto-play
       isAutoPlayingRef.current = false;
 
-      // Check if we're in laptop animation range for extra dampening
+      // Optimized touch handling
       const currentProgress = scrollAccumulatorRef.current / (window.innerHeight * 3);
       const inLaptopRange = currentProgress >= 0.9;
       
-      // Apply stricter scroll speed limiting in laptop range to prevent frame skipping
-      const maxTouchDelta = inLaptopRange ? 10 : 20; // Extra slow in laptop range
-      const touchMultiplier = inLaptopRange ? 0.25 : 0.5; // Extra dampening in laptop range
-      const limitedDelta = Math.max(-maxTouchDelta, Math.min(maxTouchDelta, deltaY * touchMultiplier));
+      const limitedDelta = Math.max(-15, Math.min(15, deltaY * (inLaptopRange ? 0.3 : 0.6)));
       
-      // Update target scroll position
-      targetScrollRef.current += limitedDelta;
       targetScrollRef.current = Math.max(
         0,
-        Math.min(targetScrollRef.current, window.innerHeight * 3)
+        Math.min(targetScrollRef.current + limitedDelta, window.innerHeight * 3)
       );
       
-      // Smoothly interpolate current position to target with slower lerp in laptop range
-      const lerpFactor = inLaptopRange ? 0.1 : 0.2; // Extra smooth in laptop range
-      scrollAccumulatorRef.current += (targetScrollRef.current - scrollAccumulatorRef.current) * lerpFactor;
+      scrollAccumulatorRef.current += (targetScrollRef.current - scrollAccumulatorRef.current) * 0.3;
 
       touchStartY = touchY;
 

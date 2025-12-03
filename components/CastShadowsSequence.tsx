@@ -14,11 +14,11 @@ interface CastShadowsSequenceProps {
   width?: number;
   height?: number;
   autoPlay?: boolean;
-  startAnimation?: boolean; // New prop to control when animation starts
-  scrollProgress?: number; // 0 to 1 based on scroll position - when provided, overrides autoPlay
+  startAnimation?: boolean;
+  scrollProgress?: number;
   loop?: boolean;
-  duration?: number; // Duration in seconds instead of FPS
-  fps?: number; // Keep FPS as fallback
+  duration?: number;
+  fps?: number;
   onSequenceComplete?: () => void;
   priority?: boolean;
 }
@@ -30,20 +30,24 @@ export default function CastShadowsSequence({
   autoPlay = true,
   startAnimation = false,
   scrollProgress,
-  loop = true, // Default to true for auto-replay
+  loop = true,
   duration = 40,
   fps = 30,
   onSequenceComplete,
   priority = false,
 }: CastShadowsSequenceProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [loadingComplete, setLoadingComplete] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const imageCache = useRef<Map<number, HTMLImageElement>>(new Map());
+  const preloadQueue = useRef<Set<number>>(new Set());
+  const loadingFrames = useRef<Set<number>>(new Set());
+  const lastRenderedFrame = useRef<number>(-1);
 
-  // Generate array of image paths for CAST SHADOWS using configuration
   const totalFrames = 1199;
 
   const imagePaths = useMemo(() => {
@@ -55,7 +59,6 @@ export default function CastShadowsSequence({
     return paths;
   }, [totalFrames]);
 
-  // Calculate effective FPS based on duration
   const effectiveFPS = useMemo(() => {
     if (duration) {
       return totalFrames / duration;
@@ -63,60 +66,188 @@ export default function CastShadowsSequence({
     return fps;
   }, [totalFrames, duration, fps]);
 
-  const updateProgress = useCallback(
-    (loadedCount: number) => {
-      if (loadedCount === totalFrames) {
-        setIsReady(true);
-        setTimeout(() => {
-          setLoadingComplete(true);
-        }, 500);
-      }
-    },
-    [totalFrames]
-  );
+  const isScrollDriven = typeof scrollProgress === "number";
 
+  // Calculate current frame
+  const displayFrame = useMemo(() => {
+    if (isScrollDriven) {
+      const frame = Math.floor(scrollProgress! * (totalFrames - 1));
+      return Math.max(0, Math.min(frame, totalFrames - 1));
+    }
+    return currentFrame;
+  }, [isScrollDriven, scrollProgress, currentFrame, totalFrames]);
+
+  // Preload frame with optimization - returns promise for batching
+  const preloadFrame = useCallback((frameIndex: number) => {
+    if (imageCache.current.has(frameIndex) || loadingFrames.current.has(frameIndex)) {
+      return Promise.resolve();
+    }
+
+    loadingFrames.current.add(frameIndex);
+    
+    return new Promise<void>((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        imageCache.current.set(frameIndex, img);
+        loadingFrames.current.delete(frameIndex);
+        preloadQueue.current.delete(frameIndex);
+        
+        // Update ready state
+        if (imageCache.current.size >= Math.min(50, totalFrames)) {
+          setIsReady(true);
+          if (imageCache.current.size >= totalFrames * 0.3) {
+            setLoadingComplete(true);
+          }
+        }
+        resolve();
+      };
+      
+      img.onerror = () => {
+        loadingFrames.current.delete(frameIndex);
+        preloadQueue.current.delete(frameIndex);
+        resolve();
+      };
+      
+      img.src = imagePaths[frameIndex];
+    });
+  }, [imagePaths, totalFrames]);
+
+  // Aggressive preloading strategy - increased buffer and continuous background loading
   useEffect(() => {
-    // Only start loading images when component is in view
     if (!isInView) return;
 
-    const imageObjects: HTMLImageElement[] = [];
-    let loadedCount = 0;
+    const framesToPreload = 80; // Double the preload buffer
+    const preloadBatch: number[] = [];
 
-    imagePaths.forEach((path, index) => {
-      const img = document.createElement("img") as HTMLImageElement;
-      img.onload = () => {
-        loadedCount++;
-        updateProgress(loadedCount);
-      };
-      img.onerror = () => {
-        console.error(`Failed to load frame ${index}: ${path}`);
-        loadedCount++;
-        updateProgress(loadedCount);
-      };
-      // Force browser to cache the image
-      img.crossOrigin = "anonymous";
-      img.src = path;
-      imageObjects.push(img);
+    // Priority: current frame and immediate neighbors (higher priority range)
+    for (let i = -20; i <= 20; i++) {
+      const frame = displayFrame + i;
+      if (frame >= 0 && frame < totalFrames) {
+        preloadBatch.push(frame);
+      }
+    }
+
+    // Then preload further ahead
+    for (let i = 21; i <= framesToPreload; i++) {
+      const frame = displayFrame + i;
+      if (frame >= 0 && frame < totalFrames) {
+        preloadBatch.push(frame);
+      }
+    }
+
+    // Also preload behind for smooth reverse scrolling
+    for (let i = -21; i >= -40; i--) {
+      const frame = displayFrame + i;
+      if (frame >= 0 && frame < totalFrames) {
+        preloadBatch.push(frame);
+      }
+    }
+
+    // Immediate preload for nearby frames, deferred for distant ones
+    preloadBatch.forEach((frame, index) => {
+      const isNearby = Math.abs(frame - displayFrame) <= 20;
+      if (isNearby) {
+        // Immediate preload for nearby frames
+        preloadFrame(frame);
+      } else {
+        // Deferred preload for distant frames
+        if (window.requestIdleCallback) {
+          window.requestIdleCallback(() => preloadFrame(frame), { timeout: 50 });
+        } else {
+          setTimeout(() => preloadFrame(frame), index);
+        }
+      }
     });
+  }, [displayFrame, isInView, totalFrames, preloadFrame]);
 
-    return () => {
-      imageObjects.forEach((img) => {
-        img.onload = null;
-        img.onerror = null;
-      });
-    };
-  }, [imagePaths, updateProgress, isInView]);
+  // Render frame to canvas - with fallback for missing frames
+  const renderFrame = useCallback((frameIndex: number) => {
+    if (lastRenderedFrame.current === frameIndex) return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-  // Intersection observer for lazy loading
+    const ctx = canvas.getContext('2d', { 
+      alpha: false,
+      desynchronized: true
+    });
+    if (!ctx) return;
+
+    let img = imageCache.current.get(frameIndex);
+    
+    // Fallback: if current frame not loaded, try previous frames
+    if (!img || !img.complete) {
+      for (let i = 1; i <= 5; i++) {
+        const fallbackFrame = frameIndex - i;
+        if (fallbackFrame >= 0) {
+          const fallbackImg = imageCache.current.get(fallbackFrame);
+          if (fallbackImg && fallbackImg.complete) {
+            img = fallbackImg;
+            break;
+          }
+        }
+      }
+    }
+    
+    if (img && img.complete) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Cover mode - fill entire canvas
+      const scale = Math.max(width / img.width, height / img.height);
+      const x = (width - img.width * scale) / 2;
+      const y = (height - img.height * scale) / 2;
+      
+      ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+      lastRenderedFrame.current = frameIndex;
+    }
+  }, [width, height]);
+
+  // Render current frame with RAF
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      renderFrame(displayFrame);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [displayFrame, renderFrame]);
+
+  // Intersection observer - start aggressive background preloading
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsInView(true);
-          observer.disconnect();
+          
+          // Immediate preload of first 200 frames for smooth start
+          const immediatePreload = async () => {
+            const promises = [];
+            for (let i = 0; i < Math.min(200, totalFrames); i++) {
+              promises.push(preloadFrame(i));
+              // Batch in groups of 10 to avoid overwhelming the browser
+              if (promises.length >= 10) {
+                await Promise.all(promises);
+                promises.length = 0;
+              }
+            }
+            if (promises.length > 0) {
+              await Promise.all(promises);
+            }
+            
+            // Then continue loading rest in background
+            for (let i = 200; i < totalFrames; i++) {
+              if (window.requestIdleCallback) {
+                window.requestIdleCallback(() => preloadFrame(i), { timeout: 1000 });
+              } else {
+                setTimeout(() => preloadFrame(i), i - 200);
+              }
+            }
+          };
+          
+          immediatePreload();
         }
       },
-      { threshold: 0.1, rootMargin: "100px" } // Start loading when component is near viewport
+      { threshold: 0.01, rootMargin: "300px" } // Increased margin for earlier loading
     );
 
     if (containerRef.current) {
@@ -124,23 +255,9 @@ export default function CastShadowsSequence({
     }
 
     return () => observer.disconnect();
-  }, []);
+  }, [totalFrames, preloadFrame]);
 
-  // Animation logic - use scroll progress if provided, otherwise use auto-play
-  const isScrollDriven = typeof scrollProgress === "number";
-
-  // Calculate current frame based on mode - simplified for performance
-  const calculateCurrentFrame = () => {
-    if (isScrollDriven) {
-      // Direct linear mapping for smooth, consistent animation
-      const frame = Math.floor(scrollProgress! * (totalFrames - 1));
-      return Math.max(0, Math.min(frame, totalFrames - 1));
-    }
-    return currentFrame; // Auto-play mode
-  };
-
-  const displayFrame = calculateCurrentFrame();
-
+  // Auto-play logic
   useEffect(() => {
     if (!isReady || !loadingComplete || !startAnimation || isScrollDriven)
       return;
@@ -169,7 +286,7 @@ export default function CastShadowsSequence({
           } else {
             setIsPlaying(false);
             if (onSequenceComplete) {
-              onSequenceComplete();
+              setTimeout(() => onSequenceComplete(), 0);
             }
             return prevFrame;
           }
@@ -201,61 +318,36 @@ export default function CastShadowsSequence({
     };
   }, [isPlaying, animate]);
 
-  const currentImageSrc =
-    imagePaths[Math.min(displayFrame, totalFrames - 1)] || imagePaths[0];
-
   return (
     <div
       ref={containerRef}
       className={`cast-shadows-sequence ${className}`}
       style={{
         width: "100%",
-        height: "100%", // Always use 100% to fill parent container
+        height: "100%",
         position: "relative",
         overflow: "hidden",
+        backgroundColor: "#000",
       }}
     >
-      {/* Main Image Display - Single image with stable key for smooth rendering */}
-      <div
-        className="relative w-full h-full"
-        style={{ backgroundColor: "#000" }} // Black background to prevent white flashes
-      >
-        <img
-          src={currentImageSrc}
-          alt={`Cast Shadows frame ${displayFrame + 1}`}
-          width={width}
-          height={height}
-          style={{
-            objectFit: "cover",
-            width: "100%",
-            height: "100%",
-            imageRendering: "auto",
-            backfaceVisibility: "hidden",
-            transform: "translateZ(0)",
-            display: "block",
-            willChange: "auto",
-          }}
-        />
-      </div>
+      {/* Canvas for optimized rendering */}
+      <canvas
+        ref={canvasRef}
+        width={width}
+        height={height}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          imageRendering: 'auto',
+          willChange: 'contents',
+          backfaceVisibility: 'hidden',
+          transform: 'translateZ(0)',
+          display: 'block',
+        }}
+      />
 
-      {/* Preload next 2-5 frames invisibly for buffer */}
-      {[1, 2, 3, 4, 5].map((offset) => {
-        const preloadFrame = Math.min(displayFrame + offset, totalFrames - 1);
-        const preloadSrc = imagePaths[preloadFrame];
-        if (preloadSrc) {
-          return (
-            <link
-              key={`preload-offset-${offset}-frame-${preloadFrame}`}
-              rel="preload"
-              as="image"
-              href={preloadSrc}
-            />
-          );
-        }
-        return null;
-      })}
-
-      {/* Bottom gradient overlay - black to transparent covering 20% */}
+      {/* Bottom gradient overlay */}
       <div
         style={{
           position: "absolute",

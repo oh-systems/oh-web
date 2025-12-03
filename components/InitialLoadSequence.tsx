@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import Image from 'next/image';
 import { getInitialLoadImageUrl } from '../lib/models-config';
 
 interface InitialLoadSequenceProps {
@@ -9,10 +8,10 @@ interface InitialLoadSequenceProps {
   width?: number;
   height?: number;
   autoPlay?: boolean;
-  startAnimation?: boolean; // New prop to control when animation starts
+  startAnimation?: boolean;
   loop?: boolean;
-  duration?: number; // Duration in seconds instead of FPS
-  fps?: number; // Keep FPS as fallback
+  duration?: number;
+  fps?: number;
   onSequenceComplete?: () => void;
   priority?: boolean;
 }
@@ -29,12 +28,15 @@ export default function InitialLoadSequence({
   onSequenceComplete,
   priority = false
 }: InitialLoadSequenceProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [loadingComplete, setLoadingComplete] = useState(false);
-  const [isInView, setIsInView] = useState(true); // Always load immediately for initial load screen
   const containerRef = useRef<HTMLDivElement>(null);
+  const imageCache = useRef<Map<number, HTMLImageElement>>(new Map());
+  const loadingFrames = useRef<Set<number>>(new Set());
+  const lastRenderedFrame = useRef<number>(-1);
 
   // Generate array of image paths
   const imagePaths = useMemo(() => {
@@ -48,7 +50,6 @@ export default function InitialLoadSequence({
 
   const totalFrames = imagePaths.length;
 
-  // Calculate effective FPS based on duration
   const effectiveFPS = useMemo(() => {
     if (duration) {
       return totalFrames / duration;
@@ -56,112 +57,133 @@ export default function InitialLoadSequence({
     return fps;
   }, [totalFrames, duration, fps]);
 
-  // Native image preloading
-  const [nativeImagesLoaded, setNativeImagesLoaded] = useState(false);
-  const [nativeProgress, setNativeProgress] = useState(0);
-  
-  const updateProgress = useCallback((loadedCount: number) => {
-    const progress = (loadedCount / totalFrames) * 100;
-    setNativeProgress(progress);
-    
-    if (loadedCount === totalFrames) {
-      setIsReady(true);
-      setTimeout(() => {
-        setNativeImagesLoaded(true);
-        setLoadingComplete(true);
-      }, 500);
+  // Preload frame
+  const preloadFrame = useCallback((frameIndex: number) => {
+    if (imageCache.current.has(frameIndex) || loadingFrames.current.has(frameIndex)) {
+      return;
     }
-  }, [totalFrames]);
-  
-  useEffect(() => {
-    // Always load immediately for initial loading screen
-    const imageObjects: HTMLImageElement[] = [];
-    let loadedCount = 0;
-    
-    imagePaths.forEach((path) => {
-      const img = document.createElement('img') as HTMLImageElement;
-      img.onload = () => {
-        loadedCount++;
-        updateProgress(loadedCount);
-      };
-      img.onerror = () => {
-        loadedCount++;
-        updateProgress(loadedCount);
-      };
-      img.src = path;
-      imageObjects.push(img);
-    });
-    
-    return () => {
-      imageObjects.forEach(img => {
-        img.onload = null;
-        img.onerror = null;
-      });
-    };
-  }, [imagePaths, updateProgress]);
-  
-  const isLoading = !nativeImagesLoaded || !loadingComplete;
 
-  // Start animation when all conditions are met
+    loadingFrames.current.add(frameIndex);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    img.onload = () => {
+      imageCache.current.set(frameIndex, img);
+      loadingFrames.current.delete(frameIndex);
+      
+      if (imageCache.current.size >= Math.min(30, totalFrames)) {
+        setIsReady(true);
+        if (imageCache.current.size >= totalFrames) {
+          setLoadingComplete(true);
+        }
+      }
+    };
+    
+    img.onerror = () => {
+      loadingFrames.current.delete(frameIndex);
+    };
+    
+    img.src = imagePaths[frameIndex];
+  }, [imagePaths, totalFrames]);
+
+  // Preload all frames
   useEffect(() => {
-    if (isReady && startAnimation && autoPlay && !isPlaying && nativeImagesLoaded && loadingComplete) {
+    for (let i = 0; i < totalFrames; i++) {
+      preloadFrame(i);
+    }
+  }, [totalFrames, preloadFrame]);
+
+  // Render frame to canvas
+  const renderFrame = useCallback((frameIndex: number) => {
+    if (lastRenderedFrame.current === frameIndex) return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d', { 
+      alpha: false,
+      desynchronized: true
+    });
+    if (!ctx) return;
+
+    const img = imageCache.current.get(frameIndex);
+    if (img && img.complete) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      const scale = Math.min(width / img.width, height / img.height);
+      const x = (width - img.width * scale) / 2;
+      const y = (height - img.height * scale) / 2;
+      
+      ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+      lastRenderedFrame.current = frameIndex;
+    }
+  }, [width, height]);
+
+  // Start animation when ready
+  useEffect(() => {
+    if (isReady && startAnimation && autoPlay && !isPlaying && loadingComplete) {
       setTimeout(() => {
         setIsPlaying(true);
       }, 100);
     }
-  }, [isReady, startAnimation, autoPlay, isPlaying, nativeImagesLoaded, loadingComplete]);
+  }, [isReady, startAnimation, autoPlay, isPlaying, loadingComplete]);
 
   // Animation loop
-  useEffect(() => {
-    if (!isPlaying || !isReady || !nativeImagesLoaded || !loadingComplete) {
-      return;
+  const animationFrameRef = useRef<number | null>(null);
+  const lastUpdateTimeRef = useRef<number>(0);
+
+  const animate = useCallback(() => {
+    if (!isPlaying) return;
+
+    const now = performance.now();
+    const deltaTime = now - lastUpdateTimeRef.current;
+    const frameInterval = 1000 / effectiveFPS;
+
+    if (deltaTime >= frameInterval) {
+      setCurrentFrame((prevFrame) => {
+        const nextFrame = prevFrame + 1;
+        if (nextFrame >= totalFrames) {
+          setIsPlaying(false);
+          // Defer callback to avoid setState during render
+          if (onSequenceComplete) {
+            setTimeout(() => onSequenceComplete(), 0);
+          }
+          return prevFrame;
+        }
+        return nextFrame;
+      });
+
+      lastUpdateTimeRef.current = now - (deltaTime % frameInterval);
     }
 
-    let frameIndex = 0;
-    const targetFrameTime = 1000 / effectiveFPS;
-    const startTime = Date.now();
+    animationFrameRef.current = requestAnimationFrame(animate);
+  }, [isPlaying, effectiveFPS, totalFrames, onSequenceComplete]);
 
-    const animate = () => {
-      const currentTime = Date.now();
-      const elapsed = currentTime - startTime;
-      const expectedFrame = Math.floor(elapsed / targetFrameTime);
-      
-      if (expectedFrame > frameIndex && frameIndex < totalFrames - 1) {
-        frameIndex = Math.min(expectedFrame, totalFrames - 1);
-        setCurrentFrame(frameIndex);
+  useEffect(() => {
+    if (isPlaying) {
+      lastUpdateTimeRef.current = performance.now();
+      animationFrameRef.current = requestAnimationFrame(animate);
+    } else {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
-      
-      if (frameIndex >= totalFrames - 1) {
-        setIsPlaying(false);
-        if (onSequenceComplete) {
-          onSequenceComplete();
-        }
-        return;
-      }
-      
-      if (isPlaying) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    const animationId = requestAnimationFrame(animate);
+    }
 
     return () => {
-      if (animationId) {
-        cancelAnimationFrame(animationId);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isPlaying, isReady, nativeImagesLoaded, loadingComplete, effectiveFPS, totalFrames, onSequenceComplete]);
+  }, [isPlaying, animate]);
 
-  const play = useCallback(() => setIsPlaying(true), []);
-  const pause = useCallback(() => setIsPlaying(false), []);
-
-  if (isLoading) {
-    // Just wait invisibly until ready
-    return <div style={{ width, height, backgroundColor: 'transparent' }} />;
-  }
-
-  const currentImagePath = imagePaths[currentFrame];
+  // Render current frame
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      renderFrame(currentFrame);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [currentFrame, renderFrame]);
 
   return (
     <div 
@@ -176,28 +198,23 @@ export default function InitialLoadSequence({
         backgroundColor: 'transparent'
       }}
     >
-      <Image
-        src={currentImagePath}
-        alt={`Frame ${currentFrame + 1}`}
+      <canvas
+        ref={canvasRef}
         width={width}
         height={height}
-        priority={currentFrame < 10}
-        quality={100}
-        unoptimized={true}
         style={{ 
           display: 'block',
           width: '100%',
           height: '100%',
           objectFit: 'contain',
           imageRendering: 'auto',
-          willChange: 'auto',
+          willChange: 'contents',
           backfaceVisibility: 'hidden',
           transform: 'translateZ(0)',
-          opacity: 1
         }}
       />
       
-      {/* Bottom gradient overlay - black to transparent covering 20% */}
+      {/* Bottom gradient overlay */}
       <div
         style={{
           position: 'absolute',

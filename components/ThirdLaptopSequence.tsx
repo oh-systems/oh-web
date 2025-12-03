@@ -7,7 +7,6 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import Image from "next/image";
 import { getThirdLaptopImageUrl } from '../lib/models-config';
 
 interface ThirdLaptopSequenceProps {
@@ -15,11 +14,11 @@ interface ThirdLaptopSequenceProps {
   width?: number;
   height?: number;
   autoPlay?: boolean;
-  startAnimation?: boolean; // New prop to control when animation starts
-  scrollProgress?: number; // 0 to 1 based on scroll position - when provided, overrides autoPlay
+  startAnimation?: boolean;
+  scrollProgress?: number;
   loop?: boolean;
-  duration?: number; // Duration in seconds instead of FPS
-  fps?: number; // Keep FPS as fallback
+  duration?: number;
+  fps?: number;
   onSequenceComplete?: () => void;
   priority?: boolean;
 }
@@ -31,20 +30,24 @@ export default function ThirdLaptopSequence({
   autoPlay = true,
   startAnimation = false,
   scrollProgress,
-  loop = true, // Default to true for auto-replay
-  duration = 10, // Explicit duration to stay in sync when auto-playing
+  loop = true,
+  duration = 10,
   fps = 30,
   onSequenceComplete,
   priority = false,
 }: ThirdLaptopSequenceProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [loadingComplete, setLoadingComplete] = useState(false);
   const [isInView, setIsInView] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const imageCache = useRef<Map<number, HTMLImageElement>>(new Map());
+  const preloadQueue = useRef<Set<number>>(new Set());
+  const loadingFrames = useRef<Set<number>>(new Set());
+  const lastRenderedFrame = useRef<number>(-1);
 
-  // Generate array of image paths for THIRD LAPTOP
   const imagePaths = useMemo(() => {
     const paths: string[] = [];
     for (let i = 1; i <= 450; i++) {
@@ -56,7 +59,6 @@ export default function ThirdLaptopSequence({
 
   const totalFrames = imagePaths.length;
 
-  // Calculate effective FPS based on duration
   const effectiveFPS = useMemo(() => {
     if (duration) {
       return totalFrames / duration;
@@ -64,57 +66,131 @@ export default function ThirdLaptopSequence({
     return fps;
   }, [totalFrames, duration, fps]);
 
-  const updateProgress = useCallback(
-    (loadedCount: number) => {
-      if (loadedCount === totalFrames) {
-        setIsReady(true);
-        setTimeout(() => {
-          setLoadingComplete(true);
-        }, 500);
-      }
-    },
-    [totalFrames]
-  );
+  const isScrollDriven = typeof scrollProgress === "number";
 
+  // Calculate current frame
+  const displayFrame = useMemo(() => {
+    if (isScrollDriven) {
+      const frame = Math.floor(scrollProgress! * (totalFrames - 1));
+      return Math.max(0, Math.min(frame, totalFrames - 1));
+    }
+    return currentFrame;
+  }, [isScrollDriven, scrollProgress, currentFrame, totalFrames]);
+
+  // Preload frame with optimization
+  const preloadFrame = useCallback((frameIndex: number) => {
+    if (imageCache.current.has(frameIndex) || loadingFrames.current.has(frameIndex)) {
+      return;
+    }
+
+    loadingFrames.current.add(frameIndex);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    img.onload = () => {
+      imageCache.current.set(frameIndex, img);
+      loadingFrames.current.delete(frameIndex);
+      preloadQueue.current.delete(frameIndex);
+      
+      if (imageCache.current.size >= Math.min(30, totalFrames)) {
+        setIsReady(true);
+        if (imageCache.current.size >= totalFrames * 0.5) {
+          setLoadingComplete(true);
+        }
+      }
+    };
+    
+    img.onerror = () => {
+      loadingFrames.current.delete(frameIndex);
+      preloadQueue.current.delete(frameIndex);
+    };
+    
+    img.src = imagePaths[frameIndex];
+  }, [imagePaths, totalFrames]);
+
+  // Aggressive preloading strategy
   useEffect(() => {
-    // Only start loading images when component is in view
     if (!isInView) return;
 
-    const imageObjects: HTMLImageElement[] = [];
-    let loadedCount = 0;
+    const framesToPreload = 30;
+    const preloadBatch: number[] = [];
 
-    imagePaths.forEach((path) => {
-      const img = document.createElement("img") as HTMLImageElement;
-      img.onload = () => {
-        loadedCount++;
-        updateProgress(loadedCount);
-      };
-      img.onerror = () => {
-        loadedCount++; // Count as loaded even if failed
-        updateProgress(loadedCount);
-      };
-      img.src = path;
-      imageObjects.push(img);
-    });
+    // Priority: current frame and immediate neighbors
+    for (let i = -10; i <= 10; i++) {
+      const frame = displayFrame + i;
+      if (frame >= 0 && frame < totalFrames) {
+        preloadBatch.push(frame);
+      }
+    }
 
-    return () => {
-      imageObjects.forEach((img) => {
-        img.onload = null;
-        img.onerror = null;
+    // Then preload further ahead
+    for (let i = 11; i <= framesToPreload; i++) {
+      const frame = displayFrame + i;
+      if (frame >= 0 && frame < totalFrames) {
+        preloadBatch.push(frame);
+      }
+    }
+
+    const preloadInBatch = () => {
+      preloadBatch.forEach(frame => {
+        if (window.requestIdleCallback) {
+          window.requestIdleCallback(() => preloadFrame(frame), { timeout: 100 });
+        } else {
+          setTimeout(() => preloadFrame(frame), 0);
+        }
       });
     };
-  }, [imagePaths, updateProgress, isInView]);
 
-  // Intersection observer for lazy loading
+    preloadInBatch();
+  }, [displayFrame, isInView, totalFrames, preloadFrame]);
+
+  // Render frame to canvas
+  const renderFrame = useCallback((frameIndex: number) => {
+    if (lastRenderedFrame.current === frameIndex) return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d', { 
+      alpha: false,
+      desynchronized: true
+    });
+    if (!ctx) return;
+
+    const img = imageCache.current.get(frameIndex);
+    if (img && img.complete) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Contain mode - fit within canvas
+      const scale = Math.min(width / img.width, height / img.height);
+      const x = (width - img.width * scale) / 2;
+      const y = (height - img.height * scale) / 2;
+      
+      ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+      lastRenderedFrame.current = frameIndex;
+    }
+  }, [width, height]);
+
+  // Render current frame with RAF
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      renderFrame(displayFrame);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [displayFrame, renderFrame]);
+
+  // Intersection observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsInView(true);
-          observer.disconnect();
+          for (let i = 0; i < Math.min(60, totalFrames); i++) {
+            preloadFrame(i);
+          }
         }
       },
-      { threshold: 0.1, rootMargin: '100px' }
+      { threshold: 0.01, rootMargin: '200px' }
     );
 
     if (containerRef.current) {
@@ -122,27 +198,9 @@ export default function ThirdLaptopSequence({
     }
 
     return () => observer.disconnect();
-  }, []);
+  }, [totalFrames, preloadFrame]);
 
-  // Animation logic - use scroll progress if provided, otherwise use auto-play
-  const isScrollDriven = typeof scrollProgress === "number";
-
-  // Calculate current frame based on mode with better smoothing
-  const calculateCurrentFrame = () => {
-    if (isScrollDriven) {
-      // Use linear progression for consistent animation speed
-      const easedScrollProgress = scrollProgress!;
-      const easedFrame = easedScrollProgress * (totalFrames - 1);
-      
-      // Use the eased frame calculation with Math.round for smoother transitions
-      const frame = Math.round(easedFrame);
-      return Math.max(0, Math.min(frame, totalFrames - 1));
-    }
-    return currentFrame; // Auto-play mode
-  };
-
-  const displayFrame = calculateCurrentFrame();
-
+  // Auto-play logic
   useEffect(() => {
     if (!isReady || !loadingComplete || !startAnimation || isScrollDriven)
       return;
@@ -171,7 +229,7 @@ export default function ThirdLaptopSequence({
           } else {
             setIsPlaying(false);
             if (onSequenceComplete) {
-              onSequenceComplete();
+              setTimeout(() => onSequenceComplete(), 0);
             }
             return prevFrame;
           }
@@ -203,19 +261,11 @@ export default function ThirdLaptopSequence({
     };
   }, [isPlaying, animate]);
 
-  const currentImageSrc =
-    imagePaths[Math.min(displayFrame, totalFrames - 1)] || imagePaths[0];
-  
-  // Preload next frame for smoother playback
-  const nextFrame = Math.min(displayFrame + 1, totalFrames - 1);
-  const nextImageSrc = imagePaths[nextFrame];
-
   return (
     <div
       ref={containerRef}
       className={`third-laptop-sequence ${className}`}
       style={{
-        // Respect the width/height props (pixels) but stay responsive with max values
         width: width ? `${width}px` : "100%",
         height: height ? `${height}px` : "100%",
         maxWidth: "100vw",
@@ -228,56 +278,23 @@ export default function ThirdLaptopSequence({
         margin: "0 auto",
       }}
     >
-      {/* Main Image Display */}
-      <div
-        className="relative w-full h-full"
-      >
-        <Image
-          key={currentImageSrc}
-          src={currentImageSrc}
-          alt={`Third laptop frame ${displayFrame + 1}`}
-          width={width}
-          height={height}
-          priority={priority || displayFrame < 20}
-          loading={priority || displayFrame < 20 ? 'eager' : 'lazy'}
-          unoptimized
-          quality={100}
-          onError={() => {
-            console.warn(`Failed to load Third Laptop frame: ${currentImageSrc}`);
-          }}
-          style={{
-            objectFit: "contain",
-            width: "100%",
-            height: "100%",
-            imageRendering: "auto",
-            backfaceVisibility: "hidden",
-            transform: "translateZ(0)" // Hardware acceleration
-          }}
-        />
-        
-        {/* Preload next frame invisibly */}
-        {nextImageSrc && nextImageSrc !== currentImageSrc && (
-          <Image
-            src={nextImageSrc}
-            alt="preload"
-            width={width}
-            height={height}
-            loading="lazy"
-            unoptimized
-            quality={100}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              opacity: 0,
-              pointerEvents: "none",
-              zIndex: -1
-            }}
-          />
-        )}
-      </div>
+      {/* Canvas for optimized rendering */}
+      <canvas
+        ref={canvasRef}
+        width={width}
+        height={height}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain',
+          imageRendering: 'auto',
+          willChange: 'contents',
+          backfaceVisibility: 'hidden',
+          transform: 'translateZ(0)',
+        }}
+      />
 
-      {/* Bottom gradient overlay - black to transparent covering 20% */}
+      {/* Bottom gradient overlay */}
       <div
         style={{
           position: "absolute",

@@ -7,7 +7,6 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
-import Image from "next/image";
 import { getInitialScrollImageUrl } from '../lib/models-config';
 
 interface InitialScrollSequenceProps {
@@ -25,9 +24,13 @@ export default function InitialScrollSequence({
   scrollProgress = 0,
   priority = false,
 }: InitialScrollSequenceProps) {
-  const [loadingComplete, setLoadingComplete] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isInView, setIsInView] = useState(false);
+  const imageCache = useRef<Map<number, HTMLImageElement>>(new Map());
+  const preloadQueue = useRef<Set<number>>(new Set());
+  const loadingFrames = useRef<Set<number>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastRenderedFrame = useRef<number>(-1);
 
   // Generate array of image paths for Initial Scroll (0-indexed, 601 frames total)
   const imagePaths = useMemo(() => {
@@ -43,49 +46,108 @@ export default function InitialScrollSequence({
 
   const totalFrames = imagePaths.length;
 
-  const updateProgress = useCallback(
-    (loadedCount: number) => {
-      if (loadedCount === totalFrames) {
-        setTimeout(() => {
-          setLoadingComplete(true);
-        }, 25); // Ultra-fast loading for immediate responsiveness
-      }
-    },
-    [totalFrames]
-  );
+  // Calculate current frame based on scroll progress
+  const currentFrame = useMemo(() => {
+    const frame = Math.floor(scrollProgress * (totalFrames - 1));
+    return Math.max(0, Math.min(frame, totalFrames - 1));
+  }, [scrollProgress, totalFrames]);
 
+  // Preload frame with optimization
+  const preloadFrame = useCallback((frameIndex: number) => {
+    if (imageCache.current.has(frameIndex) || loadingFrames.current.has(frameIndex)) {
+      return;
+    }
+
+    loadingFrames.current.add(frameIndex);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    img.onload = () => {
+      imageCache.current.set(frameIndex, img);
+      loadingFrames.current.delete(frameIndex);
+      preloadQueue.current.delete(frameIndex);
+    };
+    
+    img.onerror = () => {
+      loadingFrames.current.delete(frameIndex);
+      preloadQueue.current.delete(frameIndex);
+    };
+    
+    img.src = imagePaths[frameIndex];
+  }, [imagePaths]);
+
+  // Aggressive preloading strategy - preload frames in both directions
   useEffect(() => {
-    // Only start loading images when component is in view
     if (!isInView) return;
 
-    let isMounted = true;
-    const imageObjects: HTMLImageElement[] = [];
-    let loadedCount = 0;
+    const framesToPreload = 30; // Preload 30 frames ahead and behind
+    const preloadBatch: number[] = [];
 
-    imagePaths.forEach((path) => {
-      const img = new window.Image();
-      img.onload = () => {
-        if (!isMounted) return;
-        loadedCount += 1;
-        updateProgress(loadedCount);
-      };
-      img.onerror = () => {
-        if (!isMounted) return;
-        loadedCount += 1;
-        updateProgress(loadedCount);
-      };
-      img.src = path;
-      imageObjects.push(img);
-    });
+    // Priority: current frame and immediate neighbors
+    for (let i = -5; i <= 5; i++) {
+      const frame = currentFrame + i;
+      if (frame >= 0 && frame < totalFrames) {
+        preloadBatch.push(frame);
+      }
+    }
 
-    return () => {
-      isMounted = false;
-      imageObjects.forEach((img) => {
-        img.onload = null;
-        img.onerror = null;
+    // Then preload further ahead
+    for (let i = 6; i <= framesToPreload; i++) {
+      const frame = currentFrame + i;
+      if (frame >= 0 && frame < totalFrames) {
+        preloadBatch.push(frame);
+      }
+    }
+
+    // Preload using requestIdleCallback when available
+    const preloadInBatch = () => {
+      preloadBatch.forEach(frame => {
+        if (window.requestIdleCallback) {
+          window.requestIdleCallback(() => preloadFrame(frame), { timeout: 100 });
+        } else {
+          setTimeout(() => preloadFrame(frame), 0);
+        }
       });
     };
-  }, [imagePaths, updateProgress, isInView]);
+
+    preloadInBatch();
+  }, [currentFrame, isInView, totalFrames, preloadFrame]);
+
+  // Render frame to canvas
+  const renderFrame = useCallback((frameIndex: number) => {
+    if (lastRenderedFrame.current === frameIndex) return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d', { 
+      alpha: false,
+      desynchronized: true // Better performance for animations
+    });
+    if (!ctx) return;
+
+    const img = imageCache.current.get(frameIndex);
+    if (img && img.complete) {
+      // Clear canvas and draw new frame
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Calculate aspect-fit dimensions
+      const scale = Math.min(width / img.width, height / img.height);
+      const x = (width - img.width * scale) / 2;
+      const y = (height - img.height * scale) / 2;
+      
+      ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+      lastRenderedFrame.current = frameIndex;
+    }
+  }, [width, height]);
+
+  // Render current frame with RAF for smooth updates
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      renderFrame(currentFrame);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [currentFrame, renderFrame]);
 
   // Intersection observer for lazy loading
   useEffect(() => {
@@ -93,10 +155,13 @@ export default function InitialScrollSequence({
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsInView(true);
-          observer.disconnect();
+          // Start preloading immediately
+          for (let i = 0; i < Math.min(50, totalFrames); i++) {
+            preloadFrame(i);
+          }
         }
       },
-      { threshold: 0.1, rootMargin: '50px' }
+      { threshold: 0.01, rootMargin: '200px' }
     );
 
     if (containerRef.current) {
@@ -104,45 +169,7 @@ export default function InitialScrollSequence({
     }
 
     return () => observer.disconnect();
-  }, []);
-
-  // Animation logic - use scroll progress (always scroll-driven for this component)
-  const isScrollDriven = typeof scrollProgress === "number";
-
-  // Calculate current frame based on scroll progress with better smoothing
-  const calculateCurrentFrame = () => {
-    if (isScrollDriven) {
-      // Use linear progression for consistent animation speed
-      const easedScrollProgress = scrollProgress;
-      const easedFrame = easedScrollProgress * (totalFrames - 1);
-      
-      // Use the eased frame calculation with Math.round for smoother transitions
-      const frame = Math.round(easedFrame);
-      return Math.max(0, Math.min(frame, totalFrames - 1));
-    }
-    return 0; // Fallback to first frame
-  };
-
-  const displayFrame = calculateCurrentFrame();
-
-  const [failedFrames, setFailedFrames] = useState<Set<number>>(new Set());
-
-  const getCurrentImageSrc = () => {
-    let frame = Math.min(displayFrame, totalFrames - 1);
-    
-    // If the current frame failed to load, try the previous frame
-    while (frame > 0 && failedFrames.has(frame)) {
-      frame--;
-    }
-    
-    return imagePaths[frame] || imagePaths[0];
-  };
-
-  const currentImageSrc = getCurrentImageSrc();
-  
-  // Preload next frame for smoother playback
-  const nextFrame = Math.min(displayFrame + 1, totalFrames - 1);
-  const nextImageSrc = imagePaths[nextFrame];
+  }, [totalFrames, preloadFrame]);
 
   return (
     <div
@@ -155,55 +182,21 @@ export default function InitialScrollSequence({
         overflow: "hidden",
       }}
     >
-      {/* Main Image Display */}
-      <div
-        className="relative w-full h-full"
-      >
-        <Image
-          key={currentImageSrc}
-          src={currentImageSrc}
-          alt={`Initial scroll frame ${displayFrame}`}
-          width={width}
-          height={height}
-          priority={priority || displayFrame < 20}
-          loading={priority || displayFrame < 20 ? 'eager' : 'lazy'}
-          unoptimized
-          quality={100}
-          onError={() => {
-            console.warn(`Failed to load Initial Scroll frame: ${currentImageSrc}`);
-            setFailedFrames(prev => new Set(prev).add(displayFrame));
-          }}
-          style={{
-            objectFit: "contain",
-            width: "100%",
-            height: "100%",
-            imageRendering: "auto",
-            backfaceVisibility: "hidden",
-            transform: "translateZ(0)" // Hardware acceleration
-          }}
-        />
-        
-        {/* Preload next frame invisibly */}
-        {nextImageSrc && nextImageSrc !== currentImageSrc && (
-          <Image
-            src={nextImageSrc}
-            alt="preload"
-            width={width}
-            height={height}
-            loading="lazy"
-            unoptimized
-            quality={100}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              opacity: 0,
-              pointerEvents: "none",
-              zIndex: -1
-            }}
-          />
-        )}
-      </div>
+      {/* Canvas for optimized rendering */}
+      <canvas
+        ref={canvasRef}
+        width={width}
+        height={height}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain',
+          imageRendering: 'auto',
+          willChange: 'contents',
+          backfaceVisibility: 'hidden',
+          transform: 'translateZ(0)', // Hardware acceleration
+        }}
+      />
 
       {/* Bottom gradient overlay - black to transparent covering 20% */}
       <div
