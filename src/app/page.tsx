@@ -136,7 +136,7 @@ export default function Home() {
     swapStart: 0.9, // Begin laptop after extended Cast Shadows range
     swapEnd: 0.901, // Instant transition - 0.1% crossfade into laptop
     animationStart: 0.901, // Laptop animation begins immediately
-    animationEnd: 1.0, // Laptop runs for remaining scroll range
+    animationEnd: 1.9, // Extend to 50% extra scroll range for much slower, smoother animation
   }; // Text Sequence Configuration - Complete flow
   const TEXT_SEQUENCE = {
     // Phase 1: Original first hero text "OH exists to redefine..."
