@@ -492,6 +492,11 @@ export default function Home() {
       if ((e.target as Element)?.closest(".navigation-container")) {
         return;
       }
+
+      e.preventDefault();
+      const touchY = e.touches[0].clientY;
+      const deltaY = touchStartY - touchY;
+
       // Manual touch takes over from auto-play
       isAutoPlayingRef.current = false;
 
