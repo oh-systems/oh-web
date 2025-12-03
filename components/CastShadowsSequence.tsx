@@ -44,7 +44,6 @@ export default function CastShadowsSequence({
   const [isInView, setIsInView] = useState(false);
   const [loadedFrames, setLoadedFrames] = useState<Set<number>>(new Set());
   const [lastValidFrame, setLastValidFrame] = useState(0); // Track last successfully loaded frame
-  const [previousFrame, setPreviousFrame] = useState(0); // Track previous frame for crossfade
   const containerRef = useRef<HTMLDivElement>(null);
   const imageCache = useRef<Map<number, HTMLImageElement>>(new Map());
 
@@ -138,53 +137,12 @@ export default function CastShadowsSequence({
   // Animation logic - use scroll progress if provided, otherwise use auto-play
   const isScrollDriven = typeof scrollProgress === "number";
 
-  // Initialize scroll speed limiter for frame-based limiting - slower settings
-  const frameSpeedLimiter = useScrollSpeedLimiter({
-    maxVelocity: 300, // Much lower for slower, smoother animations
-    smoothingFactor: 0.15, // More smoothing for slower progression
-    enabled: isScrollDriven,
-  });
-
-  // Adaptive quality management
-  const adaptiveQuality = useAdaptiveQuality({
-    velocityThresholds: { medium: 200, low: 400, critical: 600 },
-    qualityLevels: { full: 1.0, medium: 0.85, low: 0.7, critical: 0.5 },
-    enabled: isScrollDriven,
-  });
-
-  // Track previous frame for skip detection
-  const previousFrameRef = useRef<number>(0);
-
-  // Calculate current frame based on mode
+  // Calculate current frame based on mode - simplified for performance
   const calculateCurrentFrame = () => {
     if (isScrollDriven) {
-      // Apply frame-based speed limiting
-      const { limitedFrame, velocity } =
-        frameSpeedLimiter.processScrollProgress(
-          scrollProgress!,
-          totalFrames - 1
-        );
-
-      // Check if we should skip this frame for performance
-      if (adaptiveQuality.shouldSkipFrame(limitedFrame, velocity)) {
-        // Return previous frame to skip this update
-        return previousFrameRef.current;
-      }
-
-      // Use linear progression with no easing effects
-      const normalizedProgress = limitedFrame / (totalFrames - 1);
-
-      // Direct linear mapping for consistent animation speed
-      const easedProgress = normalizedProgress;
-
-      const easedFrame = easedProgress * (totalFrames - 1);
-      // Use floor instead of round for more predictable frame progression
-      const frame = Math.floor(easedFrame);
-      const finalFrame = Math.max(0, Math.min(frame, totalFrames - 1));
-
-      // Update previous frame reference
-      previousFrameRef.current = finalFrame;
-      return finalFrame;
+      // Direct linear mapping for smooth, consistent animation
+      const frame = Math.floor(scrollProgress! * (totalFrames - 1));
+      return Math.max(0, Math.min(frame, totalFrames - 1));
     }
     return currentFrame; // Auto-play mode
   };
@@ -265,15 +223,13 @@ export default function CastShadowsSequence({
     ? displayFrame
     : lastValidFrame;
   const safeImageSrc = imagePaths[safeDisplayFrame];
-  const previousImageSrc = imagePaths[previousFrame];
 
-  // Update last valid frame and previous frame when we have a loaded frame
+  // Update last valid frame when we have a loaded frame
   useEffect(() => {
-    if (loadedFrames.has(displayFrame) && displayFrame !== lastValidFrame) {
-      setPreviousFrame(lastValidFrame);
+    if (loadedFrames.has(displayFrame)) {
       setLastValidFrame(displayFrame);
     }
-  }, [displayFrame, loadedFrames, lastValidFrame]);
+  }, [displayFrame, loadedFrames]);
 
   return (
     <div
@@ -286,34 +242,11 @@ export default function CastShadowsSequence({
         overflow: "hidden",
       }}
     >
-      {/* Main Image Display - Use two images for seamless crossfade */}
+      {/* Main Image Display - Single image with stable key for smooth rendering */}
       <div
         className="relative w-full h-full"
         style={{ backgroundColor: "#000" }} // Black background to prevent white flashes
       >
-        {/* Previous frame - stays mounted */}
-        <img
-          src={previousImageSrc}
-          alt={`Cast Shadows frame ${previousFrame + 1}`}
-          width={width}
-          height={height}
-          style={{
-            objectFit: "cover",
-            width: "100%",
-            height: "100%",
-            imageRendering: "auto",
-            backfaceVisibility: "hidden",
-            transform: "translateZ(0)",
-            display: "block",
-            position: "absolute",
-            top: 0,
-            left: 0,
-            opacity: previousFrame === safeDisplayFrame ? 1 : 0,
-            transition: "opacity 0.05s ease-out",
-            pointerEvents: "none",
-          }}
-        />
-        {/* Current frame - stays mounted */}
         <img
           src={safeImageSrc}
           alt={`Cast Shadows frame ${safeDisplayFrame + 1}`}
@@ -332,11 +265,7 @@ export default function CastShadowsSequence({
             backfaceVisibility: "hidden",
             transform: "translateZ(0)",
             display: "block",
-            position: "absolute",
-            top: 0,
-            left: 0,
-            opacity: 1,
-            pointerEvents: "none",
+            willChange: "auto",
           }}
         />
       </div>
