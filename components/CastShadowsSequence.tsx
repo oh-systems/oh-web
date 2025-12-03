@@ -47,7 +47,7 @@ export default function CastShadowsSequence({
   const lastRenderedFrame = useRef<number>(-1);
 
   const totalFrames = 1199;
-  const maxCacheSize = 100;
+  const maxCacheSize = 150; // Larger cache for production stability
 
   const imagePaths = useMemo(() => {
     const paths: string[] = [];
@@ -76,7 +76,7 @@ export default function CastShadowsSequence({
     return currentFrame;
   }, [isScrollDriven, scrollProgress, currentFrame, totalFrames]);
 
-  // Simple preload function
+  // Production-ready preload function with better error handling
   const preloadFrame = useCallback((frameIndex: number) => {
     if (imageCache.current.has(frameIndex) || loadingFrames.current.has(frameIndex)) {
       return Promise.resolve();
@@ -88,18 +88,27 @@ export default function CastShadowsSequence({
       const img = new Image();
       img.crossOrigin = 'anonymous';
       
+      const startTime = performance.now();
+      
       img.onload = () => {
+        const loadTime = performance.now() - startTime;
         imageCache.current.set(frameIndex, img);
         loadingFrames.current.delete(frameIndex);
         
-        // Simple ready state
-        if (imageCache.current.size >= 50) {
+        // Log slow loads in production for debugging
+        if (loadTime > 2000 && process.env.NODE_ENV === 'production') {
+          console.warn(`Slow frame load in production: Frame ${frameIndex} took ${loadTime.toFixed(0)}ms`);
+        }
+        
+        // Lower threshold for production readiness
+        if (imageCache.current.size >= 30) {
           setIsReady(true);
         }
         resolve();
       };
       
       img.onerror = () => {
+        console.error(`Failed to load frame ${frameIndex} in production`);
         loadingFrames.current.delete(frameIndex);
         resolve();
       };
@@ -108,46 +117,63 @@ export default function CastShadowsSequence({
     });
   }, [imagePaths]);
 
-  // Simple cache cleanup
+  // Production-optimized cache cleanup
   const cleanupCache = useCallback(() => {
-    if (imageCache.current.size > maxCacheSize) {
+    // Only cleanup if significantly over limit
+    if (imageCache.current.size > maxCacheSize + 20) {
       const framesToRemove = [];
       
       for (const [frameIndex] of imageCache.current) {
         const distance = Math.abs(frameIndex - displayFrame);
-        if (distance > 50) {
-          framesToRemove.push(frameIndex);
+        if (distance > 75) { // Keep more frames in production
+          framesToRemove.push({ frame: frameIndex, distance });
         }
       }
       
-      // Remove half the distant frames
-      const removeCount = Math.min(framesToRemove.length, 25);
+      // Sort by distance and remove furthest first
+      framesToRemove.sort((a, b) => b.distance - a.distance);
+      
+      // Remove fewer frames at once to maintain buffer
+      const removeCount = Math.min(framesToRemove.length, 15);
       for (let i = 0; i < removeCount; i++) {
-        imageCache.current.delete(framesToRemove[i]);
+        imageCache.current.delete(framesToRemove[i].frame);
       }
     }
   }, [displayFrame, maxCacheSize]);
 
-  // Simple preloading - just load frames around current position
+  // Production-optimized preloading with larger buffer
   useEffect(() => {
     if (!isInView) return;
 
-    // Load frames around current position
-    const range = 25; // ±25 frames
-    for (let i = -range; i <= range; i++) {
+    // Larger range for production stability
+    const range = 40; // ±40 frames for smoother production experience
+    
+    // Load critical frames immediately (closer to current frame)
+    const criticalRange = 15;
+    for (let i = -criticalRange; i <= criticalRange; i++) {
       const frame = displayFrame + i;
-      if (frame >= 0 && frame < totalFrames) {
+      if (frame >= 0 && frame < totalFrames && !imageCache.current.has(frame)) {
         preloadFrame(frame);
       }
     }
+    
+    // Load extended range with slight delay for non-blocking
+    setTimeout(() => {
+      for (let i = -range; i <= range; i++) {
+        const frame = displayFrame + i;
+        if (frame >= 0 && frame < totalFrames && !imageCache.current.has(frame) && Math.abs(i) > criticalRange) {
+          preloadFrame(frame);
+        }
+      }
+    }, 10);
 
-    // Simple cleanup every 20 frames
-    if (displayFrame % 20 === 0) {
+    // Less frequent cleanup to maintain larger buffer
+    if (displayFrame % 30 === 0) {
       cleanupCache();
     }
   }, [displayFrame, isInView, totalFrames, preloadFrame, cleanupCache]);
 
-  // Simple render function
+  // Production-ready render function with fallbacks
   const renderFrame = useCallback((frameIndex: number) => {
     if (lastRenderedFrame.current === frameIndex) return;
     
@@ -157,7 +183,32 @@ export default function CastShadowsSequence({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const img = imageCache.current.get(frameIndex);
+    let img = imageCache.current.get(frameIndex);
+    
+    // Fallback system for production - prevents getting stuck
+    if (!img || !img.complete) {
+      // Try nearby frames first (±3 frames)
+      for (const offset of [1, -1, 2, -2, 3, -3]) {
+        const fallbackIndex = frameIndex + offset;
+        if (fallbackIndex >= 0 && fallbackIndex < totalFrames) {
+          const fallbackImg = imageCache.current.get(fallbackIndex);
+          if (fallbackImg && fallbackImg.complete) {
+            img = fallbackImg;
+            break;
+          }
+        }
+      }
+      
+      // If still no frame, use any available frame to keep animation moving
+      if (!img || !img.complete) {
+        for (const [_, cachedImg] of imageCache.current) {
+          if (cachedImg && cachedImg.complete) {
+            img = cachedImg;
+            break;
+          }
+        }
+      }
+    }
     
     if (img && img.complete) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -169,7 +220,7 @@ export default function CastShadowsSequence({
       ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
       lastRenderedFrame.current = frameIndex;
     }
-  }, [width, height]);
+  }, [width, height, totalFrames]);
 
   // Simple render effect
   useEffect(() => {
@@ -183,14 +234,35 @@ export default function CastShadowsSequence({
         if (entry.isIntersecting) {
           setIsInView(true);
           
-          // Simple initial preload
+          // Production-optimized initial preload
           const preloadInitial = async () => {
+            // Load first 150 frames for better production experience
+            const initialBatch = Math.min(150, totalFrames);
             const promises = [];
-            for (let i = 0; i < 100; i++) {
+            
+            // Load in batches to prevent overwhelming network
+            for (let i = 0; i < initialBatch; i++) {
               promises.push(preloadFrame(i));
+              
+              // Process in batches of 20
+              if (promises.length >= 20) {
+                await Promise.all(promises);
+                promises.length = 0;
+                // Small delay between batches for production stability
+                await new Promise(resolve => setTimeout(resolve, 10));
+              }
             }
-            await Promise.all(promises);
+            
+            if (promises.length > 0) {
+              await Promise.all(promises);
+            }
+            
             setIsReady(true);
+            
+            // Continue loading remaining frames in background
+            for (let i = initialBatch; i < totalFrames; i++) {
+              setTimeout(() => preloadFrame(i), (i - initialBatch) * 25);
+            }
           };
           
           preloadInitial();
