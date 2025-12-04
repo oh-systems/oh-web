@@ -851,8 +851,8 @@ export default function Home() {
                 }}
               >
                 <ThirdLaptopSequence
-                  width={Math.round(viewportDimensions.width * 0.8)}
-                  height={Math.round(viewportDimensions.height * 0.8)}
+                  width={viewportDimensions.width}
+                  height={viewportDimensions.height}
                   scrollProgress={laptopAnimationProgress}
                   priority={laptopSwapProgress > 0.1} // Only prioritize when starting to show
                 />

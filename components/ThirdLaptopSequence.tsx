@@ -169,16 +169,52 @@ export default function ThirdLaptopSequence({
       if (img && img.complete) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Contain mode - fit within canvas
-        const scale = Math.min(width / img.width, height / img.height);
-        const x = (width - img.width * scale) / 2;
-        const y = (height - img.height * scale) / 2;
+        // Make laptop smaller (70% of original size)
+        const baseScale = Math.min(width / img.width, height / img.height);
+        const scale = baseScale * 0.7;
+        
+        // Calculate scaled dimensions
+        const scaledWidth = img.width * scale;
+        const scaledHeight = img.height * scale;
+        
+        // Horizontal centering
+        const x = (width - scaledWidth) / 2;
+        
+        // Vertical positioning based on animation progress
+        const progress = isScrollDriven && typeof scrollProgress === 'number' ? scrollProgress : frameIndex / (totalFrames - 1);
+        
+        // Smooth easing for vertical movement (ease-in-out)
+        const easeProgress = progress < 0.5 
+          ? 2 * progress * progress 
+          : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+        
+        // Position: bottom -> center -> top
+        // At progress 0: start much higher up from bottom of screen
+        // At progress 0.5: center aligned (y = (canvas.height - scaledHeight) / 2)  
+        // At progress 1: top aligned (y = 0)
+        const bottomY = height * 0.3; // Start laptop at 30% down the screen (much higher initial position)
+        const centerY = (height - scaledHeight) / 2 - 50; // Move center position up by 50px
+        const topY = height * 0.005; 
+        
+        let y;
+        if (easeProgress <= 0.3) {
+          // Move from bottom to center (first 30% of animation)
+          const localProgress = easeProgress / 0.3; // 0 to 1
+          y = bottomY + (centerY - bottomY) * localProgress;
+        } else if (easeProgress <= 0.9) {
+          // Stay in center (30% to 90% of animation - stays in middle much longer)
+          y = centerY;
+        } else {
+          // Move from center to top (last 10% of animation)
+          const localProgress = (easeProgress - 0.9) / 0.1; // 0 to 1
+          y = centerY + (topY - centerY) * localProgress;
+        }
 
-        ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+        ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
         lastRenderedFrame.current = frameIndex;
       }
     },
-    [width, height]
+    [width, height, scrollProgress, isScrollDriven, totalFrames]
   );
 
   // Render current frame with RAF and 30fps throttling
