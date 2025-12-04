@@ -31,7 +31,7 @@ export default function ThirdLaptopSequence({
   startAnimation = false,
   scrollProgress,
   loop = true,
-  duration = 26,
+  duration = 40,
   fps = 30,
   onSequenceComplete,
   priority = false,
@@ -50,7 +50,7 @@ export default function ThirdLaptopSequence({
 
   const imagePaths = useMemo(() => {
     const paths: string[] = [];
-    for (let i = 1; i <= 1181; i++) {
+    for (let i = 1; i <= 1200; i++) {
       paths.push(getThirdLaptopImageUrl(i));
     }
     return paths;

@@ -127,7 +127,7 @@ export default function Home() {
       lastAutoPlayTimeRef.current = performance.now();
       // Sync auto-play time to current scroll position to prevent catch-up
       const maxScrollRange = window.innerHeight * 4.5;
-      autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScrollRange) * 80;
+      autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScrollRange) * 120;
     }, 16); // Single frame delay (60fps) to avoid conflicts but maintain smoothness
   };
 
@@ -141,18 +141,18 @@ export default function Home() {
 
   // Stage 2: Model Swap (Initial Scroll to Cast Shadows) - black buffer transition
   const MODEL_SWAP_CONFIG = {
-    swapStart: 0.25, // Start transition after initial scroll ends (20s/80s = 25%)
-    swapEnd: 0.275, // Black buffer period (25% to 27.5%)
-    animationStart: 0.28, // Cast Shadows animation begins after black buffer
-    animationEnd: 0.78, // Cast Shadows ends at 78% (40s duration: 22.4s-62.4s)
+    swapStart: 0.167, // Start transition after initial scroll ends (20s/120s = 16.7%)
+    swapEnd: 0.183, // Black buffer period (16.7% to 18.3%)
+    animationStart: 0.2, // Cast Shadows animation begins after black buffer (24s)
+    animationEnd: 0.533, // Cast Shadows ends at 53.3% (40s duration: 24s-64s)
   };
 
   // Stage 3: Third Laptop Model Swap (Cast Shadows to Third Laptop) - black buffer transition
   const LAPTOP_SWAP_CONFIG = {
-    swapStart: 0.78, // Begin transition when Cast Shadows ends
-    swapEnd: 0.8, // Black buffer period (78% to 80%)
-    animationStart: 0.81, // Laptop animation begins after black buffer  
-    animationEnd: 1.0, // Laptop animation completes at 100%
+    swapStart: 0.533, // Begin transition when Cast Shadows ends
+    swapEnd: 0.55, // Black buffer period (53.3% to 55%)
+    animationStart: 0.567, // Laptop animation begins after black buffer (68s)  
+    animationEnd: 0.9, // Laptop animation completes at 90% (108s, giving 40s duration)
   }; // Text Sequence Configuration - Complete flow
   const TEXT_SEQUENCE = {
     // Phase 1: Original first hero text "OH exists to redefine..."
@@ -262,7 +262,7 @@ export default function Home() {
         // Start auto-scroll immediately when content is visible
         if (autoPlayTimeRef.current >= 0) {
           const autoScrollProgress =
-            (autoPlayTimeRef.current / 80) * maxScrollRange; // 80 seconds total to reach 220% (laptop animation completion)
+            (autoPlayTimeRef.current / 120) * maxScrollRange; // 120 seconds total to accommodate 40s laptop sequence
 
           // Direct progression at normal speed to avoid catch-up behavior
           scrollAccumulatorRef.current = autoScrollProgress;
@@ -575,7 +575,7 @@ export default function Home() {
 
       // Update auto-play timer to current position for smooth continuation
       autoPlayTimeRef.current =
-        (scrollAccumulatorRef.current / (window.innerHeight * 4.5)) * 45;
+        (scrollAccumulatorRef.current / (window.innerHeight * 4.5)) * 120;
 
       // Always update animation progress for smooth scrolling
       updateAnimationProgress();
