@@ -15,6 +15,10 @@ interface InitialScrollSequenceProps {
   height?: number;
   scrollProgress?: number; // 0 to 1 based on scroll position
   priority?: boolean;
+  autoPlay?: boolean;
+  startAnimation?: boolean;
+  duration?: number; // Duration in seconds (default: 20)
+  fps?: number; // Target FPS (default: 30)
 }
 
 export default function InitialScrollSequence({
@@ -23,6 +27,10 @@ export default function InitialScrollSequence({
   height = 600,
   scrollProgress = 0,
   priority = false,
+  autoPlay = false,
+  startAnimation = false,
+  duration = 20,
+  fps = 30,
 }: InitialScrollSequenceProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isInView, setIsInView] = useState(false);
@@ -31,6 +39,12 @@ export default function InitialScrollSequence({
   const loadingFrames = useRef<Set<number>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
   const lastRenderedFrame = useRef<number>(-1);
+  
+  // Time-based animation state
+  const [currentTimeFrame, setCurrentTimeFrame] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const animationFrameRef = useRef<number | null>(null);
+  const lastUpdateTimeRef = useRef<number>(0);
 
   // Generate array of image paths for Initial Scroll (1-indexed, 600 frames total)
   const imagePaths = useMemo(() => {
@@ -43,11 +57,24 @@ export default function InitialScrollSequence({
 
   const totalFrames = imagePaths.length;
 
-  // Calculate current frame based on scroll progress
+  const effectiveFPS = useMemo(() => {
+    if (duration) {
+      return totalFrames / duration;
+    }
+    return fps;
+  }, [totalFrames, duration, fps]);
+
+  const isScrollDriven = typeof scrollProgress === "number" && !autoPlay;
+
+  // Calculate current frame based on scroll progress or time
   const currentFrame = useMemo(() => {
-    const frame = Math.floor(scrollProgress * (totalFrames - 1));
-    return Math.max(0, Math.min(frame, totalFrames - 1));
-  }, [scrollProgress, totalFrames]);
+    if (isScrollDriven) {
+      const frame = Math.floor(scrollProgress * (totalFrames - 1));
+      return Math.max(0, Math.min(frame, totalFrames - 1));
+    } else {
+      return Math.max(0, Math.min(currentTimeFrame, totalFrames - 1));
+    }
+  }, [scrollProgress, totalFrames, isScrollDriven, currentTimeFrame]);
 
   // Preload frame with production optimizations
   const preloadFrame = useCallback(
@@ -163,6 +190,58 @@ export default function InitialScrollSequence({
     },
     [width, height]
   );
+
+  // Time-based animation loop
+  const animate = useCallback(() => {
+    if (!isPlaying) return;
+
+    const now = performance.now();
+    const deltaTime = now - lastUpdateTimeRef.current;
+    const frameInterval = 1000 / effectiveFPS;
+
+    if (deltaTime >= frameInterval) {
+      setCurrentTimeFrame((prevFrame) => {
+        const nextFrame = prevFrame + 1;
+        if (nextFrame >= totalFrames) {
+          setIsPlaying(false);
+          return totalFrames - 1;
+        }
+        return nextFrame;
+      });
+
+      lastUpdateTimeRef.current = now - (deltaTime % frameInterval);
+    }
+
+    animationFrameRef.current = requestAnimationFrame(animate);
+  }, [isPlaying, effectiveFPS, totalFrames]);
+
+  // Start/stop animation based on props
+  useEffect(() => {
+    if (autoPlay && startAnimation && !isScrollDriven) {
+      setIsPlaying(true);
+    } else {
+      setIsPlaying(false);
+    }
+  }, [autoPlay, startAnimation, isScrollDriven]);
+
+  // Animation loop management
+  useEffect(() => {
+    if (isPlaying) {
+      lastUpdateTimeRef.current = performance.now();
+      animationFrameRef.current = requestAnimationFrame(animate);
+    } else {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    }
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [isPlaying, animate]);
 
   // Render current frame with RAF for smooth updates - optimized for production
   useEffect(() => {

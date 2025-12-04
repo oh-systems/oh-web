@@ -19,6 +19,7 @@ import { useAppContext } from "./AppContent";
 export default function Home() {
   const [animationProgress, setAnimationProgress] = useState(0);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [scrollContentReady, setScrollContentReady] = useState(false);
   const [navigationFadeProgress, setNavigationFadeProgress] = useState(0);
   const [activeCard, setActiveCard] = useState<string | null>(null);
   const [castSwapProgress, setCastSwapProgress] = useState(0);
@@ -204,20 +205,48 @@ export default function Home() {
     }
   }, [contentVisible, initialLoadComplete]);
 
+  // Handle 2-second delay before showing scroll content
+  useEffect(() => {
+    if (initialLoadComplete && !scrollContentReady) {
+      const timer = setTimeout(() => {
+        setScrollContentReady(true);
+        // Reset auto-play timeline so Initial Scroll starts from frame 0
+        autoPlayTimeRef.current = 0;
+        scrollAccumulatorRef.current = 0;
+        targetScrollRef.current = 0;
+        lastAutoPlayTimeRef.current = performance.now();
+        isAutoPlayingRef.current = true; // Ensure auto-play is enabled
+        setScrollContentReady(true);
+        // Reset auto-play timeline so Initial Scroll starts from frame 0
+        autoPlayTimeRef.current = 0;
+        scrollAccumulatorRef.current = 0;
+        targetScrollRef.current = 0;
+        lastAutoPlayTimeRef.current = performance.now();
+        isAutoPlayingRef.current = true; // Ensure auto-play is enabled
+      }, 2000); // 2-second delay
+
+      return () => clearTimeout(timer);
+    }
+  }, [initialLoadComplete, scrollContentReady]);
+
   // Scroll-to-progress animation system with auto-play
   useLayoutEffect(() => {
+    if (!scrollContentReady) return; // Only start animation when content is ready
+    
     let animationFrameId: number;
 
-    // Initialize refs
-    scrollAccumulatorRef.current = 0;
-    targetScrollRef.current = 0;
-    autoPlayTimeRef.current = 0; // Start immediately when content is visible
-    lastAutoPlayTimeRef.current = performance.now();
-    isAutoPlayingRef.current = true; // Enable auto-play initially, will stop on first user interaction
+    // Initialize refs only when starting
+    if (autoPlayTimeRef.current === undefined || autoPlayTimeRef.current === null) {
+      scrollAccumulatorRef.current = 0;
+      targetScrollRef.current = 0;
+      autoPlayTimeRef.current = 0;
+      lastAutoPlayTimeRef.current = performance.now();
+      isAutoPlayingRef.current = true;
+    }
 
     const updateAnimationProgress = () => {
-      // Wait until initial load is complete before allowing animation
-      if (!initialLoadComplete) return;
+      // Wait until scroll content is ready before allowing animation
+      if (!scrollContentReady) return;
 
       const maxScrollRange = window.innerHeight * 4.5; // 4.5 viewport heights to accommodate extended Cast Shadows (162.2%) and laptop animations
 
@@ -679,6 +708,7 @@ export default function Home() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [
+    scrollContentReady,
     initialLoadComplete,
     STAGE_1_CONFIG.fadeStartProgress,
     STAGE_1_CONFIG.fadeDuration,
@@ -788,25 +818,22 @@ export default function Home() {
           </div>
         )}
 
-        {/* Scroll-driven Animation Content - only visible after initial load */}
-        {initialLoadComplete && (
+        {/* Scroll-driven Animation Content - only visible after initial load + 2s delay */}
+        {scrollContentReady && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-full h-full flex items-center justify-center">
               {/* Initial Scroll sequence - no artificial fading, images handle their own transitions */}
               <div
                 style={{
-                  display: castSwapProgress > 0.5 ? "none" : "block", // Simply show/hide instead of fading
+                  display: rawProgress < MODEL_SWAP_CONFIG.swapStart ? "block" : "none", // Show only during initial scroll period
                   position: "absolute",
-                  pointerEvents: castSwapProgress > 0.5 ? "none" : "auto",
+                  pointerEvents: rawProgress < MODEL_SWAP_CONFIG.swapStart ? "auto" : "none",
                 }}
               >
                 <InitialScrollSequence
                   width={1000}
                   height={800}
-                  scrollProgress={Math.min(
-                    animationProgress / MODEL_SWAP_CONFIG.swapStart,
-                    1
-                  )} // Map 0-40% scroll to 0-100% sequence
+                  scrollProgress={Math.min(rawProgress / MODEL_SWAP_CONFIG.swapStart, 1)} // Map 0-25% raw progress to 0-100% sequence
                   priority={true}
                 />
               </div>
