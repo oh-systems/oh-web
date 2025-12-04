@@ -32,14 +32,11 @@ export default function InitialScrollSequence({
   const containerRef = useRef<HTMLDivElement>(null);
   const lastRenderedFrame = useRef<number>(-1);
 
-  // Generate array of image paths for Initial Scroll (0-indexed, 601 frames total)
+  // Generate array of image paths for Initial Scroll (1-indexed, 600 frames total)
   const imagePaths = useMemo(() => {
     const paths: string[] = [];
-    for (let i = 0; i <= 600; i++) {
-      const frameNumber = i.toString().padStart(4, "0");
-      paths.push(
-        getInitialScrollImageUrl(`INITIAL SCROLL${frameNumber}.avif`)
-      );
+    for (let i = 1; i <= 600; i++) {
+      paths.push(getInitialScrollImageUrl(i));
     }
     return paths;
   }, []);

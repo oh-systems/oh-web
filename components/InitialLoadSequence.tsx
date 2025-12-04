@@ -42,8 +42,7 @@ export default function InitialLoadSequence({
   const imagePaths = useMemo(() => {
     const paths: string[] = [];
     for (let i = 1; i <= 300; i++) {
-      const frameNumber = i.toString().padStart(4, '0');
-      paths.push(getInitialLoadImageUrl(`INITIAL${frameNumber}.avif`));
+      paths.push(getInitialLoadImageUrl(i));
     }
     return paths;
   }, []);

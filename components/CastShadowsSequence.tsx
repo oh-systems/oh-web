@@ -46,14 +46,12 @@ export default function CastShadowsSequence({
   const loadingFrames = useRef<Set<number>>(new Set());
   const lastRenderedFrame = useRef<number>(-1);
 
-  const totalFrames = 1199;
-  const maxCacheSize = 150; // Larger cache for production stability
+  const totalFrames = 1200;
 
   const imagePaths = useMemo(() => {
     const paths: string[] = [];
     for (let i = 1; i <= totalFrames; i++) {
-      const frameNumber = i.toString().padStart(4, "0");
-      paths.push(getCastShadowsImageUrl(`CAST SHADOWS${frameNumber}.avif`));
+      paths.push(getCastShadowsImageUrl(i));
     }
     return paths;
   }, [totalFrames]);
@@ -67,7 +65,7 @@ export default function CastShadowsSequence({
 
   const isScrollDriven = typeof scrollProgress === "number";
 
-  // Calculate current frame
+  // Calculate current frame - match laptop sequence approach exactly
   const displayFrame = useMemo(() => {
     if (isScrollDriven) {
       const frame = Math.floor(scrollProgress! * (totalFrames - 1));
@@ -77,154 +75,133 @@ export default function CastShadowsSequence({
   }, [isScrollDriven, scrollProgress, currentFrame, totalFrames]);
 
   // Production-ready preload function with better error handling
-  const preloadFrame = useCallback((frameIndex: number) => {
-    if (imageCache.current.has(frameIndex) || loadingFrames.current.has(frameIndex)) {
-      return Promise.resolve();
-    }
-
-    loadingFrames.current.add(frameIndex);
-    
-    return new Promise<void>((resolve) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      
-      const startTime = performance.now();
-      
-      img.onload = () => {
-        const loadTime = performance.now() - startTime;
-        imageCache.current.set(frameIndex, img);
-        loadingFrames.current.delete(frameIndex);
-        
-        // Log slow loads in production for debugging
-        if (loadTime > 2000 && process.env.NODE_ENV === 'production') {
-          console.warn(`Slow frame load in production: Frame ${frameIndex} took ${loadTime.toFixed(0)}ms`);
-        }
-        
-        // Lower threshold for production readiness
-        if (imageCache.current.size >= 30) {
-          setIsReady(true);
-        }
-        resolve();
-      };
-      
-      img.onerror = () => {
-        console.error(`Failed to load frame ${frameIndex} in production`);
-        loadingFrames.current.delete(frameIndex);
-        resolve();
-      };
-      
-      img.src = imagePaths[frameIndex];
-    });
-  }, [imagePaths]);
-
-  // Production-optimized cache cleanup
-  const cleanupCache = useCallback(() => {
-    // Only cleanup if significantly over limit
-    if (imageCache.current.size > maxCacheSize + 20) {
-      const framesToRemove = [];
-      
-      for (const [frameIndex] of imageCache.current) {
-        const distance = Math.abs(frameIndex - displayFrame);
-        if (distance > 75) { // Keep more frames in production
-          framesToRemove.push({ frame: frameIndex, distance });
-        }
+  const preloadFrame = useCallback(
+    (frameIndex: number) => {
+      if (
+        imageCache.current.has(frameIndex) ||
+        loadingFrames.current.has(frameIndex)
+      ) {
+        return Promise.resolve();
       }
-      
-      // Sort by distance and remove furthest first
-      framesToRemove.sort((a, b) => b.distance - a.distance);
-      
-      // Remove fewer frames at once to maintain buffer
-      const removeCount = Math.min(framesToRemove.length, 15);
-      for (let i = 0; i < removeCount; i++) {
-        imageCache.current.delete(framesToRemove[i].frame);
-      }
-    }
-  }, [displayFrame, maxCacheSize]);
 
-  // Production-optimized preloading with larger buffer
+      loadingFrames.current.add(frameIndex);
+
+      return new Promise<void>((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+
+        const startTime = performance.now();
+
+        img.onload = () => {
+          const loadTime = performance.now() - startTime;
+          imageCache.current.set(frameIndex, img);
+          loadingFrames.current.delete(frameIndex);
+
+          // Log slow loads in production for debugging
+          if (loadTime > 2000 && process.env.NODE_ENV === "production") {
+            console.warn(
+              `Slow frame load in production: Frame ${frameIndex} took ${loadTime.toFixed(
+                0
+              )}ms`
+            );
+          }
+
+          // Lower threshold for production readiness
+          if (imageCache.current.size >= 30) {
+            setIsReady(true);
+          }
+          resolve();
+        };
+
+        img.onerror = () => {
+          console.error(`Failed to load frame ${frameIndex} in production`);
+          loadingFrames.current.delete(frameIndex);
+          resolve();
+        };
+
+        img.src = imagePaths[frameIndex];
+      });
+    },
+    [imagePaths]
+  );
+
+  // Aggressive preloading strategy - match laptop approach
   useEffect(() => {
     if (!isInView) return;
 
-    // Larger range for production stability
-    const range = 40; // ±40 frames for smoother production experience
-    
-    // Load critical frames immediately (closer to current frame)
-    const criticalRange = 15;
-    for (let i = -criticalRange; i <= criticalRange; i++) {
+    const framesToPreload = 30;
+    const preloadBatch: number[] = [];
+
+    // Priority: current frame and immediate neighbors
+    for (let i = -10; i <= 10; i++) {
       const frame = displayFrame + i;
-      if (frame >= 0 && frame < totalFrames && !imageCache.current.has(frame)) {
-        preloadFrame(frame);
+      if (frame >= 0 && frame < totalFrames) {
+        preloadBatch.push(frame);
       }
     }
-    
-    // Load extended range with slight delay for non-blocking
-    setTimeout(() => {
-      for (let i = -range; i <= range; i++) {
-        const frame = displayFrame + i;
-        if (frame >= 0 && frame < totalFrames && !imageCache.current.has(frame) && Math.abs(i) > criticalRange) {
-          preloadFrame(frame);
+
+    // Then preload further ahead
+    for (let i = 11; i <= framesToPreload; i++) {
+      const frame = displayFrame + i;
+      if (frame >= 0 && frame < totalFrames) {
+        preloadBatch.push(frame);
+      }
+    }
+
+    const preloadInBatch = () => {
+      preloadBatch.forEach((frame) => {
+        if (window.requestIdleCallback) {
+          window.requestIdleCallback(() => preloadFrame(frame), {
+            timeout: 100,
+          });
+        } else {
+          setTimeout(() => preloadFrame(frame), 0);
         }
+      });
+    };
+
+    preloadInBatch();
+  }, [displayFrame, isInView, totalFrames, preloadFrame]);
+
+  // Render frame to canvas - match laptop approach exactly
+  const renderFrame = useCallback(
+    (frameIndex: number) => {
+      if (lastRenderedFrame.current === frameIndex) return;
+
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const ctx = canvas.getContext("2d", {
+        alpha: false,
+        desynchronized: true,
+      });
+      if (!ctx) return;
+
+      const img = imageCache.current.get(frameIndex);
+      if (img && img.complete) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Fill entire canvas - stretch to full width and height
+        ctx.drawImage(img, 0, 0, width, height);
+        lastRenderedFrame.current = frameIndex;
       }
-    }, 10);
+    },
+    [width, height]
+  );
 
-    // Less frequent cleanup to maintain larger buffer
-    if (displayFrame % 30 === 0) {
-      cleanupCache();
-    }
-  }, [displayFrame, isInView, totalFrames, preloadFrame, cleanupCache]);
-
-  // Production-ready render function with fallbacks
-  const renderFrame = useCallback((frameIndex: number) => {
-    if (lastRenderedFrame.current === frameIndex) return;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let img = imageCache.current.get(frameIndex);
-    
-    // Fallback system for production - prevents getting stuck
-    if (!img || !img.complete) {
-      // Try nearby frames first (±3 frames)
-      for (const offset of [1, -1, 2, -2, 3, -3]) {
-        const fallbackIndex = frameIndex + offset;
-        if (fallbackIndex >= 0 && fallbackIndex < totalFrames) {
-          const fallbackImg = imageCache.current.get(fallbackIndex);
-          if (fallbackImg && fallbackImg.complete) {
-            img = fallbackImg;
-            break;
-          }
-        }
-      }
-      
-      // If still no frame, use any available frame to keep animation moving
-      if (!img || !img.complete) {
-        for (const [_, cachedImg] of imageCache.current) {
-          if (cachedImg && cachedImg.complete) {
-            img = cachedImg;
-            break;
-          }
-        }
-      }
-    }
-    
-    if (img && img.complete) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      const scale = Math.max(width / img.width, height / img.height);
-      const x = (width - img.width * scale) / 2;
-      const y = (height - img.height * scale) / 2;
-      
-      ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-      lastRenderedFrame.current = frameIndex;
-    }
-  }, [width, height, totalFrames]);
-
-  // Simple render effect
+  // Render current frame with RAF and 30fps throttling - match laptop approach
+  const lastRenderTime = useRef<number>(0);
   useEffect(() => {
-    renderFrame(displayFrame);
+    const frame = requestAnimationFrame((currentTime) => {
+      const deltaTime = currentTime - lastRenderTime.current;
+      const frameInterval = 1000 / 30; // 30fps
+
+      if (deltaTime >= frameInterval || lastRenderTime.current === 0) {
+        renderFrame(displayFrame);
+        lastRenderTime.current = currentTime;
+      }
+    });
+    return () => cancelAnimationFrame(frame);
   }, [displayFrame, renderFrame]);
 
   // Simple intersection observer
@@ -233,38 +210,38 @@ export default function CastShadowsSequence({
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsInView(true);
-          
+
           // Production-optimized initial preload
           const preloadInitial = async () => {
             // Load first 150 frames for better production experience
             const initialBatch = Math.min(150, totalFrames);
             const promises = [];
-            
+
             // Load in batches to prevent overwhelming network
             for (let i = 0; i < initialBatch; i++) {
               promises.push(preloadFrame(i));
-              
+
               // Process in batches of 20
               if (promises.length >= 20) {
                 await Promise.all(promises);
                 promises.length = 0;
                 // Small delay between batches for production stability
-                await new Promise(resolve => setTimeout(resolve, 10));
+                await new Promise((resolve) => setTimeout(resolve, 10));
               }
             }
-            
+
             if (promises.length > 0) {
               await Promise.all(promises);
             }
-            
+
             setIsReady(true);
-            
+
             // Continue loading remaining frames in background
             for (let i = initialBatch; i < totalFrames; i++) {
               setTimeout(() => preloadFrame(i), (i - initialBatch) * 25);
             }
           };
-          
+
           preloadInitial();
         }
       },
@@ -357,15 +334,18 @@ export default function CastShadowsSequence({
         width={width}
         height={height}
         style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          display: 'block',
+          width: "100%",
+          height: "100%",
+          objectFit: "fill",
+          imageRendering: "auto",
+          willChange: "contents",
+          backfaceVisibility: "hidden",
+          transform: "translateZ(0)",
         }}
       />
 
       {/* Bottom gradient overlay */}
-      <div
+      {/* <div
         style={{
           position: "absolute",
           bottom: 0,
@@ -377,7 +357,7 @@ export default function CastShadowsSequence({
           pointerEvents: "none",
           zIndex: 1,
         }}
-      />
+      /> */}
     </div>
   );
 }

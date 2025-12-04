@@ -31,7 +31,7 @@ export default function ThirdLaptopSequence({
   startAnimation = false,
   scrollProgress,
   loop = true,
-  duration = 10,
+  duration = 26,
   fps = 30,
   onSequenceComplete,
   priority = false,
@@ -50,9 +50,8 @@ export default function ThirdLaptopSequence({
 
   const imagePaths = useMemo(() => {
     const paths: string[] = [];
-    for (let i = 1; i <= 450; i++) {
-      const frameNumber = i.toString().padStart(4, "0");
-      paths.push(getThirdLaptopImageUrl(`Laptop${frameNumber}.avif`));
+    for (let i = 1; i <= 1181; i++) {
+      paths.push(getThirdLaptopImageUrl(i));
     }
     return paths;
   }, []);
@@ -171,10 +170,17 @@ export default function ThirdLaptopSequence({
     }
   }, [width, height]);
 
-  // Render current frame with RAF
+  // Render current frame with RAF and 30fps throttling
+  const lastRenderTime = useRef<number>(0);
   useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      renderFrame(displayFrame);
+    const frame = requestAnimationFrame((currentTime) => {
+      const deltaTime = currentTime - lastRenderTime.current;
+      const frameInterval = 1000 / 30; // 30fps
+      
+      if (deltaTime >= frameInterval || lastRenderTime.current === 0) {
+        renderFrame(displayFrame);
+        lastRenderTime.current = currentTime;
+      }
     });
     return () => cancelAnimationFrame(frame);
   }, [displayFrame, renderFrame]);

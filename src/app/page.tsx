@@ -48,6 +48,8 @@ export default function Home() {
   const isAutoPlayingRef = useRef(true);
   const autoPlayTimeRef = useRef(-10);
   const lastAutoPlayTimeRef = useRef(0);
+  const laptopAnimationProgressRef = useRef(0);
+  const castAnimationProgressRef = useRef(0);
   const updateAnimationProgressRef = useRef<(() => void) | null>(null);
   const autoPlayResumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const targetScrollRef = useRef(0);
@@ -71,8 +73,8 @@ export default function Home() {
     // Stop auto-play and directly control scroll position
     isAutoPlayingRef.current = false;
 
-    // Set scroll accumulator based on section (0 to window.innerHeight * 3)
-    const maxScroll = window.innerHeight * 3;
+    // Set scroll accumulator based on section (0 to window.innerHeight * 4.5 to accommodate laptop animation)
+    const maxScroll = window.innerHeight * 4.5;
 
     if (section === "overview") {
       scrollAccumulatorRef.current = maxScroll * 0.2; // 20% through (within 0-55% overview range)
@@ -107,11 +109,11 @@ export default function Home() {
       clearTimeout(autoPlayResumeTimeoutRef.current);
     }
     
-    // Schedule new timeout
+    // Schedule new timeout with longer delay for smoother UX
     autoPlayResumeTimeoutRef.current = setTimeout(() => {
       isAutoPlayingRef.current = true;
       lastAutoPlayTimeRef.current = performance.now();
-    }, 2000);
+    }, 3000);
   };
 
   // ==================== STAGE CONFIGURATION ====================
@@ -135,7 +137,7 @@ export default function Home() {
     swapStart: 0.9, // Begin laptop after extended Cast Shadows range
     swapEnd: 0.901, // Instant transition - 0.1% crossfade into laptop
     animationStart: 0.901, // Laptop animation begins immediately
-    animationEnd: 1, // Extend to 50% extra scroll range for much slower, smoother animation
+    animationEnd: 1.5, // Extend to 50% extra scroll range for much slower, smoother animation
   }; // Text Sequence Configuration - Complete flow
   const TEXT_SEQUENCE = {
     // Phase 1: Original first hero text "OH exists to redefine..."
@@ -203,7 +205,7 @@ export default function Home() {
       // Wait until initial load is complete before allowing animation
       if (!initialLoadComplete) return;
 
-      const maxScrollRange = window.innerHeight * 3; // 3 viewport heights for full animation
+      const maxScrollRange = window.innerHeight * 4.5; // 4.5 viewport heights to accommodate laptop animation extending to 1.5
 
       // Auto-play progression when not scrolling
       if (isAutoPlayingRef.current) {
@@ -217,12 +219,12 @@ export default function Home() {
         // Start auto-scroll immediately when content is visible
         if (autoPlayTimeRef.current >= 0) {
           const autoScrollProgress =
-            (autoPlayTimeRef.current / 35) * maxScrollRange; // 35 seconds total animation
+            (autoPlayTimeRef.current / 45) * maxScrollRange; // 45 seconds total animation to accommodate extended range
 
           // Smoothly lerp towards auto-play progress instead of jumping
           const lerpFactor = 0.05; // Very smooth transition
           scrollAccumulatorRef.current += (autoScrollProgress - scrollAccumulatorRef.current) * lerpFactor;
-          scrollAccumulatorRef.current = Math.min(scrollAccumulatorRef.current, maxScrollRange);
+          scrollAccumulatorRef.current = Math.min(scrollAccumulatorRef.current, maxScrollRange * 1.5);
           
           // Keep target in sync during auto-play
           targetScrollRef.current = scrollAccumulatorRef.current;
@@ -232,7 +234,7 @@ export default function Home() {
       const rawProgress = scrollAccumulatorRef.current / maxScrollRange;
 
       // Apply smooth easing for more natural animation feel
-      const clampedProgress = Math.min(rawProgress, 1.0);
+      const clampedProgress = Math.min(rawProgress, 1.5); // Allow progress up to 1.5 for laptop animation
       const easedProgress =
         clampedProgress * clampedProgress * (3 - 2 * clampedProgress); // smoothstep
 
@@ -284,21 +286,22 @@ export default function Home() {
         setCastSwapProgress(0);
       }
 
-      // Calculate Cast Shadows animation progress (for frame progression)
-      let castAnimationProgress = 0;
+      // Calculate Cast Shadows animation progress - match laptop approach exactly
+      let nextCastAnimationProgress = 0;
       if (rawProgress >= MODEL_SWAP_CONFIG.animationStart) {
-        // Cast Shadows is fully visible - calculate progress through its animation window
-        const castStart = MODEL_SWAP_CONFIG.animationStart; // 40.1%
-        const castEnd = MODEL_SWAP_CONFIG.animationEnd; // 65%
-        const linearProgress = Math.min(
-          (rawProgress - castStart) / (castEnd - castStart),
-          1
-        );
+        const castStart = MODEL_SWAP_CONFIG.animationStart; // 55.1%
+        const castEnd = MODEL_SWAP_CONFIG.animationEnd; // 90%
+        const linearProgress = (rawProgress - castStart) / (castEnd - castStart);
 
-        castAnimationProgress =
-          linearProgress * linearProgress * (3 - 2 * linearProgress);
+        // Use linear progress for consistent, smooth animation speed - no clamping to allow full range
+        nextCastAnimationProgress = Math.max(0, linearProgress);
       }
-      setCastAnimationProgress(castAnimationProgress);
+      
+      // Only update state if the value actually changed to prevent render loops
+      if (Math.abs(nextCastAnimationProgress - castAnimationProgressRef.current) > 0.001) {
+        castAnimationProgressRef.current = nextCastAnimationProgress;
+        setCastAnimationProgress(nextCastAnimationProgress);
+      }
 
       // Calculate first hero text fade out progress - slow and smooth
       if (
@@ -410,22 +413,29 @@ export default function Home() {
       if (rawProgress >= LAPTOP_SWAP_CONFIG.animationStart) {
         const laptopStart = LAPTOP_SWAP_CONFIG.animationStart; // 90.1%
         const laptopEnd = LAPTOP_SWAP_CONFIG.animationEnd; // 150%
-        const linearProgress = Math.min(
-          (rawProgress - laptopStart) / (laptopEnd - laptopStart),
-          1
-        );
+        const linearProgress = (rawProgress - laptopStart) / (laptopEnd - laptopStart);
 
-        // Use linear progress for consistent, smooth animation speed
-        nextLaptopAnimationProgress = linearProgress;
+        // Use linear progress for consistent, smooth animation speed - no clamping to allow full range
+        nextLaptopAnimationProgress = Math.max(0, linearProgress);
       }
-      setLaptopAnimationProgress(nextLaptopAnimationProgress);
+      
+      // Only update state if the value actually changed to prevent render loops
+      if (Math.abs(nextLaptopAnimationProgress - laptopAnimationProgressRef.current) > 0.001) {
+        laptopAnimationProgressRef.current = nextLaptopAnimationProgress;
+        setLaptopAnimationProgress(nextLaptopAnimationProgress);
+      }
     };
 
     // Make updateAnimationProgress accessible via ref
     updateAnimationProgressRef.current = updateAnimationProgress;
 
-    const startAnimationLoop = () => {
-      updateAnimationProgress();
+    let lastFrameTime = 0;
+    const startAnimationLoop = (currentTime: number = 0) => {
+      // Throttle to 60fps to prevent excessive updates
+      if (currentTime - lastFrameTime >= 16.67) { // ~60fps
+        updateAnimationProgress();
+        lastFrameTime = currentTime;
+      }
       animationFrameId = requestAnimationFrame(startAnimationLoop);
     };
 
@@ -442,30 +452,69 @@ export default function Home() {
       // Manual scroll takes over from auto-play
       isAutoPlayingRef.current = false;
 
-      // Optimized scroll speed limiting - simpler calculation
-      const currentProgress = scrollAccumulatorRef.current / (window.innerHeight * 3);
+      // Optimized scroll speed limiting with adaptive sensitivity
+      const currentProgress = scrollAccumulatorRef.current / (window.innerHeight * 4.5);
+      const inCastShadowsRange = currentProgress >= 0.55 && currentProgress < 0.9;
       const inLaptopRange = currentProgress >= 0.9;
       
-      // Simplified dampening with better performance
-      const scrollDelta = Math.max(-10, Math.min(10, e.deltaY * (inLaptopRange ? 0.2 : 0.4)));
+      // Adaptive scroll sensitivity based on current section
+      let scrollMultiplier = 0.6; // Default for initial sections
+      if (inCastShadowsRange) {
+        scrollMultiplier = 0.08; // Much slower in cast shadows - 1200 frames need very fine control
+      } else if (inLaptopRange) {
+        scrollMultiplier = 0.15; // Very slow in laptop section due to many frames
+      }
       
-      // Direct update without extra interpolation for better responsiveness
+      const scrollDelta = Math.max(-12, Math.min(12, e.deltaY * scrollMultiplier));
+      
+      // Direct update without extra interpolation for better performance - allow scrolling beyond base range for laptop animation
       targetScrollRef.current = Math.max(
         0,
-        Math.min(targetScrollRef.current + scrollDelta, window.innerHeight * 3)
+        Math.min(targetScrollRef.current + scrollDelta, window.innerHeight * 4.5 * 1.5)
       );
       
-      // Faster lerp for more immediate feedback
-      scrollAccumulatorRef.current += (targetScrollRef.current - scrollAccumulatorRef.current) * 0.3;
+      // Adaptive lerp for smoother feedback based on scroll speed and section
+      const scrollSpeed = Math.abs(targetScrollRef.current - scrollAccumulatorRef.current);
+      let lerpFactor = 0.2; // Base lerp factor
+      
+      if (inCastShadowsRange) {
+        // Cast Shadows needs smooth movement without lag-induced oscillation
+        if (scrollSpeed < 3) {
+          lerpFactor = 0.7; // Very responsive for tiny movements
+        } else if (scrollSpeed < 10) {
+          lerpFactor = 0.5; // Good response for small movements
+        } else if (scrollSpeed < 30) {
+          lerpFactor = 0.25; // Balanced for medium movements
+        } else {
+          lerpFactor = 0.18; // Still responsive enough to prevent oscillation
+        }
+      } else if (inLaptopRange && scrollSpeed < 20) {
+        lerpFactor = 0.35; // More responsive in laptop section for small movements
+      } else if (scrollSpeed > 100) {
+        lerpFactor = 0.12; // Slower for big jumps to prevent jarring
+      } else if (scrollSpeed < 10) {
+        lerpFactor = 0.4; // Very responsive for fine movements
+      }
+      
+      // Apply deadzone to prevent oscillation in Cast Shadows
+      const scrollDiff = targetScrollRef.current - scrollAccumulatorRef.current;
+      const deadzone = inCastShadowsRange ? 0.5 : 0.1; // Larger deadzone for Cast Shadows
+      
+      if (Math.abs(scrollDiff) > deadzone) {
+        scrollAccumulatorRef.current += scrollDiff * lerpFactor;
+      } else {
+        // Snap to target when very close to prevent micro-oscillations
+        scrollAccumulatorRef.current = targetScrollRef.current;
+      }
       
       // Update auto-play timer to current position for smooth continuation
       autoPlayTimeRef.current =
-        (scrollAccumulatorRef.current / (window.innerHeight * 3)) * 45;
+        (scrollAccumulatorRef.current / (window.innerHeight * 4.5)) * 45;
 
       // Always update animation progress for smooth scrolling
       updateAnimationProgress();
 
-      // Resume auto-play after 2 seconds of no scrolling
+      // Resume auto-play after 3 seconds of no scrolling (longer for smoother UX)
       scheduleAutoPlayResume();
     };
 
@@ -742,8 +791,8 @@ export default function Home() {
                 <CastShadowsSequence
                   width={viewportDimensions.width}
                   height={viewportDimensions.height}
-                  scrollProgress={castAnimationProgress} // Use the new progress that maps 55-95% range to 0-100% frames
-                  priority={castSwapProgress > 0.1} // Only prioritize when starting to show
+                  scrollProgress={castAnimationProgress}
+                  priority={castSwapProgress > 0.1}
                 />
               </div>
 
