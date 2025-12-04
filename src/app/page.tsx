@@ -142,15 +142,15 @@ export default function Home() {
     swapStart: 0.633, // Start Cast Shadows 3 seconds after initial scroll (55% + 3s/36.36s = 63.3%)
     swapEnd: 0.634, // Instant transition - 0.1% crossfade into Cast Shadows
     animationStart: 0.634, // Cast Shadows animation begins immediately
-    animationEnd: 1.457, // Extended to 145.7% for 30-second Cast Shadows duration (53s/36.36s)
+    animationEnd: 1.732, // Extended to 173.2% for 40-second Cast Shadows duration (63s/36.36s)
   };
 
   // Stage 3: Third Laptop Model Swap (Cast Shadows to Third Laptop) - 3 second delay
   const LAPTOP_SWAP_CONFIG = {
-    swapStart: 1.540, // Begin laptop 3 seconds after Cast Shadows (53s + 3s = 56s / 36.36s = 154%)
-    swapEnd: 1.541, // Instant transition - 0.1% crossfade into laptop
-    animationStart: 1.541, // Laptop animation begins immediately
-    animationEnd: 2.0, // Extend for smooth laptop animation
+    swapStart: 1.815, // Begin laptop 3 seconds after Cast Shadows (63s + 3s = 66s / 36.36s = 181.5%)
+    swapEnd: 1.816, // Instant transition - 0.1% crossfade into laptop
+    animationStart: 1.816, // Laptop animation begins immediately
+    animationEnd: 2.2, // Extend for smooth laptop animation
   }; // Text Sequence Configuration - Complete flow
   const TEXT_SEQUENCE = {
     // Phase 1: Original first hero text "OH exists to redefine..."
@@ -833,7 +833,7 @@ export default function Home() {
                   height={viewportDimensions.height}
                   scrollProgress={castAnimationProgress}
                   priority={castSwapProgress > 0.1}
-                  fps={40}
+                  fps={30}
                 />
               </div>
 
