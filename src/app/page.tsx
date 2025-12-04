@@ -255,8 +255,9 @@ export default function Home() {
 
       const maxScrollRange = window.innerHeight * 4.5; // 4.5 viewport heights to accommodate extended Cast Shadows (162.2%) and laptop animations
 
-      // Auto-play progression when not scrolling
-      if (isAutoPlayingRef.current) {
+      // Auto-play progression when not scrolling - stop at footer section
+      const currentProgress = scrollAccumulatorRef.current / maxScrollRange;
+      if (isAutoPlayingRef.current && currentProgress < 0.75) { // Stop auto-play when reaching footer
         const now = performance.now();
         const deltaTime = (now - lastAutoPlayTimeRef.current) / 1000; // Convert to seconds
         lastAutoPlayTimeRef.current = now;
@@ -271,14 +272,18 @@ export default function Home() {
 
           // Direct progression at normal speed to avoid catch-up behavior
           scrollAccumulatorRef.current = autoScrollProgress;
+          // Limit to footer start (75% of maxScrollRange)
           scrollAccumulatorRef.current = Math.min(
             scrollAccumulatorRef.current,
-            maxScrollRange * 2.3
+            maxScrollRange * 0.75
           );
 
           // Keep target in sync during auto-play
           targetScrollRef.current = scrollAccumulatorRef.current;
         }
+      } else if (currentProgress >= 0.75) {
+        // Stop auto-play completely when in footer
+        isAutoPlayingRef.current = false;
       }
 
       const rawProgress = scrollAccumulatorRef.current / maxScrollRange;
@@ -292,11 +297,11 @@ export default function Home() {
       setAnimationProgress(easedProgress);
 
       // Update current section based on raw progress (always update for correct section indicator)
-      if (rawProgress < 0.55) {
+      if (rawProgress < 0.3) {
         setCurrentSection("overview"); // Initial scroll sequence
-      } else if (rawProgress < 0.8) {
+      } else if (rawProgress < 0.5) {
         setCurrentSection("mission"); // Cast shadows sequence
-      } else if (rawProgress < 0.82) {
+      } else if (rawProgress < 0.75) {
         setCurrentSection("space"); // Laptop sequence
       } else {
         setCurrentSection("information"); // Footer section
@@ -518,15 +523,18 @@ export default function Home() {
       const currentProgress =
         scrollAccumulatorRef.current / (window.innerHeight * 4.5);
       const inCastShadowsRange =
-        currentProgress >= 0.55 && currentProgress < 0.9;
-      const inLaptopRange = currentProgress >= 0.9;
+        currentProgress >= 0.3 && currentProgress < 0.5;
+      const inLaptopRange = currentProgress >= 0.5 && currentProgress < 0.75;
+      const inFooterRange = currentProgress >= 0.75;
 
-      // Adaptive scroll sensitivity based on current section - ultra-reduced for maximum precision
-      let scrollMultiplier = 0.15; // Further reduced from 0.3 for ultra-controlled scrolling
+      // Adaptive scroll sensitivity - increased for faster transitions
+      let scrollMultiplier = 0.3; // Increased for faster scrolling between sections
       if (inCastShadowsRange) {
-        scrollMultiplier = 0.02; // Further reduced from 0.04 for frame-by-frame precision
+        scrollMultiplier = 0.08; // Increased from 0.02 for faster cast shadows
       } else if (inLaptopRange) {
-        scrollMultiplier = 0.06; // Further reduced from 0.12 for ultra-precise laptop movement
+        scrollMultiplier = 0.15; // Increased from 0.06 for faster laptop transitions
+      } else if (inFooterRange) {
+        scrollMultiplier = 0.4; // Fast scrolling in footer for quick transitions
       }
 
       const scrollDelta = Math.max(
@@ -534,12 +542,12 @@ export default function Home() {
         Math.min(3, e.deltaY * scrollMultiplier)
       );
 
-      // Direct update without extra interpolation for better performance - allow scrolling beyond base range for extended Cast Shadows animation
+      // Direct update without extra interpolation - limit to 100% progress
       targetScrollRef.current = Math.max(
         0,
         Math.min(
           targetScrollRef.current + scrollDelta,
-          window.innerHeight * 4.5 * 2.3
+          window.innerHeight * 4.5 // Removed * 2.3 to prevent over-scrolling
         )
       );
 
@@ -619,16 +627,24 @@ export default function Home() {
       // Optimized touch handling
       const currentProgress =
         scrollAccumulatorRef.current / (window.innerHeight * 4.5);
-      const inLaptopRange = currentProgress >= 0.9;
+      const inLaptopRange = currentProgress >= 0.5 && currentProgress < 0.75;
+      const inFooterRange = currentProgress >= 0.75;
+
+      let touchMultiplier = 0.25; // Increased base speed
+      if (inLaptopRange) {
+        touchMultiplier = 0.18; // Faster laptop touch scrolling
+      } else if (inFooterRange) {
+        touchMultiplier = 0.3; // Even faster footer touch scrolling
+      }
 
       const limitedDelta = Math.max(
         -4,
-        Math.min(4, deltaY * (inLaptopRange ? 0.12 : 0.18))
+        Math.min(4, deltaY * touchMultiplier)
       );
 
       targetScrollRef.current = Math.max(
         0,
-        Math.min(targetScrollRef.current + limitedDelta, window.innerHeight * 4.5 * 2.3)
+        Math.min(targetScrollRef.current + limitedDelta, window.innerHeight * 4.5)
       );
 
       scrollAccumulatorRef.current +=
@@ -666,7 +682,7 @@ export default function Home() {
           autoPlayTimeRef.current = -10; // Reset to start of delay period
           break;
         case "End":
-          scrollAccumulatorRef.current = window.innerHeight * 4.5 * 2.3; // Jump to end
+          scrollAccumulatorRef.current = window.innerHeight * 4.5; // Jump to end (100%)
           autoPlayTimeRef.current = 45; // Full progression time
           break;
         default:
@@ -682,7 +698,7 @@ export default function Home() {
         scrollAccumulatorRef.current += delta;
         scrollAccumulatorRef.current = Math.max(
           0,
-          Math.min(scrollAccumulatorRef.current, window.innerHeight * 4.5 * 2.3)
+          Math.min(scrollAccumulatorRef.current, window.innerHeight * 4.5)
         );
 
         // Reset auto-play timer to current position
@@ -1032,11 +1048,15 @@ export default function Home() {
         {/* Footer - appears when in information section */}
         {currentSection === "information" && (
           <Footer 
-            scrollProgress={(rawProgress - 0.82) / 0.18} 
+            scrollProgress={(rawProgress - 0.75) / 0.25} 
             onRingCenterComplete={() => {
               // Lock scroll once ring reaches center
               if (containerRef.current) {
                 containerRef.current.style.overflow = 'hidden';
+                containerRef.current.style.touchAction = 'none';
+                // Prevent further scroll accumulation
+                const maxScrollRange = window.innerHeight * 4.5;
+                scrollAccumulatorRef.current = maxScrollRange * 1.0;
               }
             }}
           />

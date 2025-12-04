@@ -20,14 +20,15 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
   
   // Trigger callback when ring should be in center (not returning to corner and text is visible)
   useEffect(() => {
-    if (!shouldReturnToCorner && textOpacity === 1 && onRingCenterComplete) {
+    if (!shouldReturnToCorner && scrollProgress >= 0.8 && onRingCenterComplete) {
+      // Trigger when we're well into the footer section and ring animation should be complete
       const timer = setTimeout(() => {
         onRingCenterComplete();
-      }, 3000); // Wait for ring animation to complete (3s transition)
+      }, 2000); // Reduced timing for quicker lock
       
       return () => clearTimeout(timer);
     }
-  }, [shouldReturnToCorner, textOpacity, onRingCenterComplete]);
+  }, [shouldReturnToCorner, scrollProgress, onRingCenterComplete]);
 
   useEffect(() => {
     // Hide permanent ring when footer mounts
