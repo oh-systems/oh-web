@@ -515,17 +515,17 @@ export default function Home() {
         currentProgress >= 0.55 && currentProgress < 0.9;
       const inLaptopRange = currentProgress >= 0.9;
 
-      // Adaptive scroll sensitivity based on current section
-      let scrollMultiplier = 0.6; // Default for initial sections
+      // Adaptive scroll sensitivity based on current section - ultra-reduced for maximum precision
+      let scrollMultiplier = 0.15; // Further reduced from 0.3 for ultra-controlled scrolling
       if (inCastShadowsRange) {
-        scrollMultiplier = 0.08; // Much slower in cast shadows - 1200 frames need very fine control
+        scrollMultiplier = 0.02; // Further reduced from 0.04 for frame-by-frame precision
       } else if (inLaptopRange) {
-        scrollMultiplier = 0.25; // Increased from 0.15 for smoother laptop movement
+        scrollMultiplier = 0.06; // Further reduced from 0.12 for ultra-precise laptop movement
       }
 
       const scrollDelta = Math.max(
-        -12,
-        Math.min(12, e.deltaY * scrollMultiplier)
+        -3,
+        Math.min(3, e.deltaY * scrollMultiplier)
       );
 
       // Direct update without extra interpolation for better performance - allow scrolling beyond base range for extended Cast Shadows animation
@@ -616,8 +616,8 @@ export default function Home() {
       const inLaptopRange = currentProgress >= 0.9;
 
       const limitedDelta = Math.max(
-        -15,
-        Math.min(15, deltaY * (inLaptopRange ? 0.45 : 0.6))
+        -4,
+        Math.min(4, deltaY * (inLaptopRange ? 0.12 : 0.18))
       );
 
       targetScrollRef.current = Math.max(
