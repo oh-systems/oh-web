@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "type-check": "tsc --noEmit",
-    "format": "prettier -w ."
+    "format": "prettier -w .",
+    "upload-images": "node scripts/upload-to-vercel.js"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.4",
