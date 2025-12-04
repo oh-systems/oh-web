@@ -101,7 +101,7 @@ export default function Home() {
 
     // Update auto-play time to current position
     autoPlayTimeRef.current =
-      (scrollAccumulatorRef.current / maxScroll) * 40.36;
+      (scrollAccumulatorRef.current / maxScroll) * 36.36;
 
     // Force animation update (this will recalculate section but should match what we just set)
     if (updateAnimationProgressRef.current) {
@@ -134,19 +134,19 @@ export default function Home() {
     slideDistance: 20, // Pixels to slide upward during fade animation
   };
 
-  // Stage 2: Model Swap (Initial Scroll to Cast Shadows) - With 2s delay
+  // Stage 2: Model Swap (Initial Scroll to Cast Shadows) - 3 second delay
   const MODEL_SWAP_CONFIG = {
-    swapStart: 0.545, // Start Cast Shadows after 2s delay (22s / 40.36s)
-    swapEnd: 0.546, // Instant transition - 0.1% crossfade into Cast Shadows
-    animationStart: 0.546, // Cast Shadows animation begins immediately
-    animationEnd: 0.817, // End at 33s (33 / 40.36s) for 2s delay before laptop
+    swapStart: 0.633, // Start Cast Shadows 3 seconds after initial scroll (55% + 3s/36.36s = 63.3%)
+    swapEnd: 0.634, // Instant transition - 0.1% crossfade into Cast Shadows
+    animationStart: 0.634, // Cast Shadows animation begins immediately
+    animationEnd: 0.9, // Extended range for even slower, smoother Cast Shadows animation
   };
 
-  // Stage 3: Third Laptop Model Swap (Cast Shadows to Third Laptop) - With 2s delay
+  // Stage 3: Third Laptop Model Swap (Cast Shadows to Third Laptop)
   const LAPTOP_SWAP_CONFIG = {
-    swapStart: 0.867, // Begin laptop after 2s delay (35s / 40.36s)
-    swapEnd: 0.868, // Instant transition - 0.1% crossfade into laptop
-    animationStart: 0.868, // Laptop animation begins immediately
+    swapStart: 0.9, // Begin laptop after extended Cast Shadows range
+    swapEnd: 0.901, // Instant transition - 0.1% crossfade into laptop
+    animationStart: 0.901, // Laptop animation begins immediately
     animationEnd: 1.5, // Extend to 50% extra scroll range for much slower, smoother animation
   }; // Text Sequence Configuration - Complete flow
   const TEXT_SEQUENCE = {
@@ -159,15 +159,15 @@ export default function Home() {
     descriptiveStart: 0.27, // Start descriptive text at same time
     descriptiveEnd: 0.6, // Stay until Cast Shadows text appears
 
-    // Phase 3: Cast Shadows transition (after 2s delay)
-    castShadowsStart: 0.545, // Cast Shadows model appears after delay
+    // Phase 3: Cast Shadows transition
+    castShadowsStart: 0.55, // Cast Shadows model appears
 
     // Phase 4: Operating principles (all appear together)
-    principlesStart: 0.595, // Start operating principles well after Cast Shadows transition starts
-    principlesEnd: 0.817, // End as Cast Shadows fades (before 2nd delay)
+    principlesStart: 0.6, // Start operating principles well after Cast Shadows transition starts
+    principlesEnd: 0.89, // End as Cast Shadows fades
 
-    // Phase 5: Laptop (no text, after 2s delay)
-    laptopStart: 0.867, // Laptop appears with no text after delay
+    // Phase 5: Laptop (no text)
+    laptopStart: 0.92, // Laptop appears with no text
   };
   // =============================================================
 
@@ -229,7 +229,7 @@ export default function Home() {
         // Start auto-scroll immediately when content is visible
         if (autoPlayTimeRef.current >= 0) {
           const autoScrollProgress =
-            (autoPlayTimeRef.current / 40.36) * maxScrollRange; // 40.36 seconds total with 2s delays between animations
+            (autoPlayTimeRef.current / 36.36) * maxScrollRange; // 36.36 seconds total animation (20s initial scroll at 55%)
 
           // Smoothly lerp towards auto-play progress instead of jumping
           const lerpFactor = 0.05; // Very smooth transition
