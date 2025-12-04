@@ -29,6 +29,7 @@ export default function Home() {
   const [laptopSwapProgress, setLaptopSwapProgress] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [laptopAnimationProgress, setLaptopAnimationProgress] = useState(0);
+  const [rawProgress, setRawProgress] = useState(0);
   const [descriptiveTextOpacity, setDescriptiveTextOpacity] = useState(0);
   const [secondHeroOpacity, setSecondHeroOpacity] = useState(0);
   const [castTextProgress, setCastTextProgress] = useState(0);
@@ -137,19 +138,19 @@ export default function Home() {
     slideDistance: 20, // Pixels to slide upward during fade animation
   };
 
-  // Stage 2: Model Swap (Initial Scroll to Cast Shadows) - 3 second delay
+  // Stage 2: Model Swap (Initial Scroll to Cast Shadows) - black buffer transition
   const MODEL_SWAP_CONFIG = {
-    swapStart: 0.633, // Start Cast Shadows 3 seconds after initial scroll (55% + 3s/36.36s = 63.3%)
-    swapEnd: 0.634, // Instant transition - 0.1% crossfade into Cast Shadows
-    animationStart: 0.634, // Cast Shadows animation begins immediately
-    animationEnd: 1.732, // Extended to 173.2% for 40-second Cast Shadows duration (63s/36.36s)
+    swapStart: 0.55, // Start transition immediately after initial scroll ends
+    swapEnd: 0.633, // Black buffer period (55% to 63.3%)
+    animationStart: 0.634, // Cast Shadows animation begins after black buffer
+    animationEnd: 1.732, // Extended to 173.2% for 40-second Cast Shadows duration (63s/80s)
   };
 
-  // Stage 3: Third Laptop Model Swap (Cast Shadows to Third Laptop) - 3 second delay
+  // Stage 3: Third Laptop Model Swap (Cast Shadows to Third Laptop) - black buffer transition
   const LAPTOP_SWAP_CONFIG = {
-    swapStart: 1.815, // Begin laptop 3 seconds after Cast Shadows (63s + 3s = 66s / 36.36s = 181.5%)
-    swapEnd: 1.816, // Instant transition - 0.1% crossfade into laptop
-    animationStart: 1.816, // Laptop animation begins immediately
+    swapStart: 1.732, // Begin transition when Cast Shadows ends
+    swapEnd: 1.815, // Black buffer period (173.2% to 181.5%)
+    animationStart: 1.816, // Laptop animation begins after black buffer
     animationEnd: 2.2, // Extend for smooth laptop animation
   }; // Text Sequence Configuration - Complete flow
   const TEXT_SEQUENCE = {
@@ -247,6 +248,7 @@ export default function Home() {
       }
 
       const rawProgress = scrollAccumulatorRef.current / maxScrollRange;
+      setRawProgress(rawProgress);
 
       // Apply smooth easing for more natural animation feel
       const clampedProgress = Math.min(rawProgress, 1.5); // Allow progress up to 1.5 for laptop animation
@@ -489,7 +491,7 @@ export default function Home() {
       if (inCastShadowsRange) {
         scrollMultiplier = 0.08; // Much slower in cast shadows - 1200 frames need very fine control
       } else if (inLaptopRange) {
-        scrollMultiplier = 0.15; // Very slow in laptop section due to many frames
+        scrollMultiplier = 0.25; // Increased from 0.15 for smoother laptop movement
       }
 
       const scrollDelta = Math.max(
@@ -586,7 +588,7 @@ export default function Home() {
 
       const limitedDelta = Math.max(
         -15,
-        Math.min(15, deltaY * (inLaptopRange ? 0.3 : 0.6))
+        Math.min(15, deltaY * (inLaptopRange ? 0.45 : 0.6))
       );
 
       targetScrollRef.current = Math.max(
@@ -809,6 +811,19 @@ export default function Home() {
                 />
               </div>
 
+              {/* Black buffer overlay between Initial Scroll and Cast Shadows */}
+              <div
+                style={{
+                  display: (rawProgress >= MODEL_SWAP_CONFIG.swapStart && rawProgress <= MODEL_SWAP_CONFIG.swapEnd) ? "block" : "none",
+                  position: "absolute",
+                  inset: 0,
+                  width: "100vw",
+                  height: "100vh",
+                  backgroundColor: "black",
+                  zIndex: 100,
+                }}
+              />
+
               {/* Cast Shadows sequence - no artificial fading, images handle their own transitions */}
               <div
                 style={{
@@ -836,6 +851,19 @@ export default function Home() {
                   fps={30}
                 />
               </div>
+
+              {/* Black buffer overlay between Cast Shadows and Third Laptop */}
+              <div
+                style={{
+                  display: (rawProgress >= LAPTOP_SWAP_CONFIG.swapStart && rawProgress <= LAPTOP_SWAP_CONFIG.swapEnd) ? "block" : "none",
+                  position: "absolute",
+                  inset: 0,
+                  width: "100vw",
+                  height: "100vh",
+                  backgroundColor: "black",
+                  zIndex: 100,
+                }}
+              />
 
               {/* Third Laptop sequence - no artificial fading, images handle their own transitions */}
               <div
