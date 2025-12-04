@@ -257,7 +257,7 @@ export default function Home() {
 
       // Auto-play progression when not scrolling - stop at footer section
       const currentProgress = scrollAccumulatorRef.current / maxScrollRange;
-      if (isAutoPlayingRef.current && currentProgress < 0.75) { // Stop auto-play when reaching footer
+      if (isAutoPlayingRef.current && currentProgress < 0.8) { // Stop auto-play when reaching footer
         const now = performance.now();
         const deltaTime = (now - lastAutoPlayTimeRef.current) / 1000; // Convert to seconds
         lastAutoPlayTimeRef.current = now;
@@ -272,16 +272,16 @@ export default function Home() {
 
           // Direct progression at normal speed to avoid catch-up behavior
           scrollAccumulatorRef.current = autoScrollProgress;
-          // Limit to footer start (75% of maxScrollRange)
+          // Limit to footer start (80% of maxScrollRange)
           scrollAccumulatorRef.current = Math.min(
             scrollAccumulatorRef.current,
-            maxScrollRange * 0.75
+            maxScrollRange * 0.8
           );
 
           // Keep target in sync during auto-play
           targetScrollRef.current = scrollAccumulatorRef.current;
         }
-      } else if (currentProgress >= 0.75) {
+      } else if (currentProgress >= 0.8) {
         // Stop auto-play completely when in footer
         isAutoPlayingRef.current = false;
       }
@@ -297,11 +297,11 @@ export default function Home() {
       setAnimationProgress(easedProgress);
 
       // Update current section based on raw progress (always update for correct section indicator)
-      if (rawProgress < 0.3) {
+      if (rawProgress < 0.25) {
         setCurrentSection("overview"); // Initial scroll sequence
-      } else if (rawProgress < 0.5) {
+      } else if (rawProgress < 0.45) {
         setCurrentSection("mission"); // Cast shadows sequence
-      } else if (rawProgress < 0.75) {
+      } else if (rawProgress < 0.8) {
         setCurrentSection("space"); // Laptop sequence
       } else {
         setCurrentSection("information"); // Footer section
@@ -523,9 +523,9 @@ export default function Home() {
       const currentProgress =
         scrollAccumulatorRef.current / (window.innerHeight * 4.5);
       const inCastShadowsRange =
-        currentProgress >= 0.3 && currentProgress < 0.5;
-      const inLaptopRange = currentProgress >= 0.5 && currentProgress < 0.75;
-      const inFooterRange = currentProgress >= 0.75;
+        currentProgress >= 0.25 && currentProgress < 0.45;
+      const inLaptopRange = currentProgress >= 0.45 && currentProgress < 0.8;
+      const inFooterRange = currentProgress >= 0.8;
 
       // Adaptive scroll sensitivity - increased for faster transitions
       let scrollMultiplier = 0.3; // Increased for faster scrolling between sections
@@ -627,8 +627,8 @@ export default function Home() {
       // Optimized touch handling
       const currentProgress =
         scrollAccumulatorRef.current / (window.innerHeight * 4.5);
-      const inLaptopRange = currentProgress >= 0.5 && currentProgress < 0.75;
-      const inFooterRange = currentProgress >= 0.75;
+      const inLaptopRange = currentProgress >= 0.45 && currentProgress < 0.8;
+      const inFooterRange = currentProgress >= 0.8;
 
       let touchMultiplier = 0.25; // Increased base speed
       if (inLaptopRange) {
@@ -1048,7 +1048,7 @@ export default function Home() {
         {/* Footer - appears when in information section */}
         {currentSection === "information" && (
           <Footer 
-            scrollProgress={(rawProgress - 0.75) / 0.25} 
+            scrollProgress={(rawProgress - 0.8) / 0.2} 
             onRingCenterComplete={() => {
               // Lock scroll once ring reaches center
               if (containerRef.current) {
