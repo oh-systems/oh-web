@@ -140,34 +140,34 @@ export default function Home() {
 
   // Stage 2: Model Swap (Initial Scroll to Cast Shadows) - black buffer transition
   const MODEL_SWAP_CONFIG = {
-    swapStart: 0.55, // Start transition immediately after initial scroll ends
-    swapEnd: 0.633, // Black buffer period (55% to 63.3%)
-    animationStart: 0.634, // Cast Shadows animation begins after black buffer
-    animationEnd: 1.732, // Extended to 173.2% for 40-second Cast Shadows duration (63s/80s)
+    swapStart: 0.25, // Start transition after initial scroll ends (20s/80s = 25%)
+    swapEnd: 0.275, // Black buffer period (25% to 27.5%)
+    animationStart: 0.28, // Cast Shadows animation begins after black buffer
+    animationEnd: 0.78, // Cast Shadows ends at 78% (40s duration: 22.4s-62.4s)
   };
 
   // Stage 3: Third Laptop Model Swap (Cast Shadows to Third Laptop) - black buffer transition
   const LAPTOP_SWAP_CONFIG = {
-    swapStart: 1.732, // Begin transition when Cast Shadows ends
-    swapEnd: 1.815, // Black buffer period (173.2% to 181.5%)
-    animationStart: 1.816, // Laptop animation begins after black buffer
-    animationEnd: 2.2, // Extend for smooth laptop animation
+    swapStart: 0.78, // Begin transition when Cast Shadows ends
+    swapEnd: 0.8, // Black buffer period (78% to 80%)
+    animationStart: 0.81, // Laptop animation begins after black buffer  
+    animationEnd: 1.0, // Laptop animation completes at 100%
   }; // Text Sequence Configuration - Complete flow
   const TEXT_SEQUENCE = {
     // Phase 1: Original first hero text "OH exists to redefine..."
-    firstHeroEnd: 0.25, // First hero text completes and fades
+    firstHeroEnd: 0.15, // First hero text completes and fades
 
     // Phase 2: "THE FUTURE OF..." + descriptive text (both on right side)
-    secondHeroStart: 0.27, // Start "THE FUTURE OF..." on right
-    secondHeroEnd: 0.6, // Stay until Cast Shadows text appears
-    descriptiveStart: 0.27, // Start descriptive text at same time
-    descriptiveEnd: 0.6, // Stay until Cast Shadows text appears
+    secondHeroStart: 0.17, // Start "THE FUTURE OF..." on right
+    secondHeroEnd: 0.3, // Stay until Cast Shadows text appears
+    descriptiveStart: 0.17, // Start descriptive text at same time
+    descriptiveEnd: 0.3, // Stay until Cast Shadows text appears
 
     // Phase 3: Cast Shadows transition
-    castShadowsStart: 0.55, // Cast Shadows model appears
+    castShadowsStart: 0.25, // Cast Shadows model appears
 
     // Phase 4: Operating principles (all appear together)
-    principlesStart: 0.6, // Start operating principles well after Cast Shadows transition starts
+    principlesStart: 0.32, // Start operating principles after Cast Shadows transition
     principlesEnd: 0.89, // End as Cast Shadows fades
 
     // Phase 5: Laptop (no text)
