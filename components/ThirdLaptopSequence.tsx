@@ -7,7 +7,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { getThirdLaptopImageUrl } from '../lib/models-config';
+import { getThirdLaptopImageUrl } from "../lib/models-config";
 
 interface ThirdLaptopSequenceProps {
   className?: string;
@@ -77,35 +77,41 @@ export default function ThirdLaptopSequence({
   }, [isScrollDriven, scrollProgress, currentFrame, totalFrames]);
 
   // Preload frame with optimization
-  const preloadFrame = useCallback((frameIndex: number) => {
-    if (imageCache.current.has(frameIndex) || loadingFrames.current.has(frameIndex)) {
-      return;
-    }
-
-    loadingFrames.current.add(frameIndex);
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    
-    img.onload = () => {
-      imageCache.current.set(frameIndex, img);
-      loadingFrames.current.delete(frameIndex);
-      preloadQueue.current.delete(frameIndex);
-      
-      if (imageCache.current.size >= Math.min(30, totalFrames)) {
-        setIsReady(true);
-        if (imageCache.current.size >= totalFrames * 0.5) {
-          setLoadingComplete(true);
-        }
+  const preloadFrame = useCallback(
+    (frameIndex: number) => {
+      if (
+        imageCache.current.has(frameIndex) ||
+        loadingFrames.current.has(frameIndex)
+      ) {
+        return;
       }
-    };
-    
-    img.onerror = () => {
-      loadingFrames.current.delete(frameIndex);
-      preloadQueue.current.delete(frameIndex);
-    };
-    
-    img.src = imagePaths[frameIndex];
-  }, [imagePaths, totalFrames]);
+
+      loadingFrames.current.add(frameIndex);
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+
+      img.onload = () => {
+        imageCache.current.set(frameIndex, img);
+        loadingFrames.current.delete(frameIndex);
+        preloadQueue.current.delete(frameIndex);
+
+        if (imageCache.current.size >= Math.min(30, totalFrames)) {
+          setIsReady(true);
+          if (imageCache.current.size >= totalFrames * 0.5) {
+            setLoadingComplete(true);
+          }
+        }
+      };
+
+      img.onerror = () => {
+        loadingFrames.current.delete(frameIndex);
+        preloadQueue.current.delete(frameIndex);
+      };
+
+      img.src = imagePaths[frameIndex];
+    },
+    [imagePaths, totalFrames]
+  );
 
   // Aggressive preloading strategy
   useEffect(() => {
@@ -131,9 +137,11 @@ export default function ThirdLaptopSequence({
     }
 
     const preloadInBatch = () => {
-      preloadBatch.forEach(frame => {
+      preloadBatch.forEach((frame) => {
         if (window.requestIdleCallback) {
-          window.requestIdleCallback(() => preloadFrame(frame), { timeout: 100 });
+          window.requestIdleCallback(() => preloadFrame(frame), {
+            timeout: 100,
+          });
         } else {
           setTimeout(() => preloadFrame(frame), 0);
         }
@@ -144,31 +152,34 @@ export default function ThirdLaptopSequence({
   }, [displayFrame, isInView, totalFrames, preloadFrame]);
 
   // Render frame to canvas
-  const renderFrame = useCallback((frameIndex: number) => {
-    if (lastRenderedFrame.current === frameIndex) return;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const renderFrame = useCallback(
+    (frameIndex: number) => {
+      if (lastRenderedFrame.current === frameIndex) return;
 
-    const ctx = canvas.getContext('2d', { 
-      alpha: false,
-      desynchronized: true
-    });
-    if (!ctx) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    const img = imageCache.current.get(frameIndex);
-    if (img && img.complete) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Contain mode - fit within canvas
-      const scale = Math.min(width / img.width, height / img.height);
-      const x = (width - img.width * scale) / 2;
-      const y = (height - img.height * scale) / 2;
-      
-      ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-      lastRenderedFrame.current = frameIndex;
-    }
-  }, [width, height]);
+      const ctx = canvas.getContext("2d", {
+        alpha: false,
+        desynchronized: true,
+      });
+      if (!ctx) return;
+
+      const img = imageCache.current.get(frameIndex);
+      if (img && img.complete) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Contain mode - fit within canvas
+        const scale = Math.min(width / img.width, height / img.height);
+        const x = (width - img.width * scale) / 2;
+        const y = (height - img.height * scale) / 2;
+
+        ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+        lastRenderedFrame.current = frameIndex;
+      }
+    },
+    [width, height]
+  );
 
   // Render current frame with RAF and 30fps throttling
   const lastRenderTime = useRef<number>(0);
@@ -176,7 +187,7 @@ export default function ThirdLaptopSequence({
     const frame = requestAnimationFrame((currentTime) => {
       const deltaTime = currentTime - lastRenderTime.current;
       const frameInterval = 1000 / 30; // 30fps
-      
+
       if (deltaTime >= frameInterval || lastRenderTime.current === 0) {
         renderFrame(displayFrame);
         lastRenderTime.current = currentTime;
@@ -196,7 +207,7 @@ export default function ThirdLaptopSequence({
           }
         }
       },
-      { threshold: 0.01, rootMargin: '200px' }
+      { threshold: 0.01, rootMargin: "200px" }
     );
 
     if (containerRef.current) {
@@ -290,28 +301,13 @@ export default function ThirdLaptopSequence({
         width={width}
         height={height}
         style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'contain',
-          imageRendering: 'auto',
-          willChange: 'contents',
-          backfaceVisibility: 'hidden',
-          transform: 'translateZ(0)',
-        }}
-      />
-
-      {/* Bottom gradient overlay */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: "20%",
-          background:
-            "linear-gradient(to top, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%)",
-          pointerEvents: "none",
-          zIndex: 1,
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          imageRendering: "auto",
+          willChange: "contents",
+          backfaceVisibility: "hidden",
+          transform: "translateZ(0)",
         }}
       />
     </div>
