@@ -73,36 +73,40 @@ export default function InitialScrollSequence({
     img.src = imagePaths[frameIndex];
   }, [imagePaths]);
 
-  // Aggressive preloading strategy - preload frames in both directions
+  // Optimized preloading strategy - prioritize immediate frames
   useEffect(() => {
     if (!isInView) return;
 
-    const framesToPreload = 30; // Preload 30 frames ahead and behind
+    const framesToPreload = 15; // Reduced preload window for better performance
     const preloadBatch: number[] = [];
 
-    // Priority: current frame and immediate neighbors
-    for (let i = -5; i <= 5; i++) {
+    // Priority: current frame and immediate neighbors (critical for smooth scrolling)
+    for (let i = -2; i <= 8; i++) { // Focus more on frames ahead
       const frame = currentFrame + i;
       if (frame >= 0 && frame < totalFrames) {
         preloadBatch.push(frame);
       }
     }
 
-    // Then preload further ahead
-    for (let i = 6; i <= framesToPreload; i++) {
+    // Then preload further ahead with lower priority
+    for (let i = 9; i <= framesToPreload; i++) {
       const frame = currentFrame + i;
       if (frame >= 0 && frame < totalFrames) {
         preloadBatch.push(frame);
       }
     }
 
-    // Preload using requestIdleCallback when available
+    // Preload using requestIdleCallback with shorter timeout for better responsiveness
     const preloadInBatch = () => {
-      preloadBatch.forEach(frame => {
+      preloadBatch.forEach((frame, index) => {
         if (window.requestIdleCallback) {
-          window.requestIdleCallback(() => preloadFrame(frame), { timeout: 100 });
+          // Prioritize immediate frames with shorter timeout
+          const timeout = index < 5 ? 16 : 50; // 16ms for critical frames, 50ms for others
+          window.requestIdleCallback(() => preloadFrame(frame), { timeout });
         } else {
-          setTimeout(() => preloadFrame(frame), 0);
+          // Use different delays for priority
+          const delay = index < 5 ? 0 : 16;
+          setTimeout(() => preloadFrame(frame), delay);
         }
       });
     };
@@ -152,8 +156,8 @@ export default function InitialScrollSequence({
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsInView(true);
-          // Start preloading immediately
-          for (let i = 0; i < Math.min(50, totalFrames); i++) {
+          // Start preloading with just the first few frames for immediate responsiveness
+          for (let i = 0; i < Math.min(10, totalFrames); i++) {
             preloadFrame(i);
           }
         }
