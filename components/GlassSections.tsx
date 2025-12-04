@@ -62,13 +62,13 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
     };
   }, [isDragging, dragOffset]);
 
-  // Generate displacement map for glass effect
+  // Generate displacement map exactly like the provided example
   const generateDisplacementMap = () => {
     const width = 382;
     const height = 382;
     const radius = 42;
-    const border = Math.min(width, height) * 0.035; // 3.5% border
-
+    const border = Math.min(width, height) * 0.07; // 7% border like the example
+    
     const svg = `
       <svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -81,35 +81,28 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
             <stop offset="100%" stop-color="blue"/>
           </linearGradient>
         </defs>
-        <rect x="0" y="0" width="${width}" height="${height}" fill="black"/>
-        <rect x="0" y="0" width="${width}" height="${height}" rx="${radius}" fill="url(#red)"/>
-        <rect x="0" y="0" width="${width}" height="${height}" rx="${radius}" fill="url(#blue)" style="mix-blend-mode: difference"/>
-        <rect x="${border}" y="${border}" width="${
-      width - border * 2
-    }" height="${
-      height - border * 2
-    }" rx="${radius}" fill="hsl(0 0% 50% / 0.88)" style="filter:blur(15px)"/>
+        <!-- backdrop -->
+        <rect x="0" y="0" width="${width}" height="${height}" fill="black"></rect>
+        <!-- red linear -->
+        <rect x="0" y="0" width="${width}" height="${height}" rx="${radius}" fill="url(#red)" />
+        <!-- blue linear -->
+        <rect x="0" y="0" width="${width}" height="${height}" rx="${radius}" fill="url(#blue)" style="mix-blend-mode: difference" />
+        <!-- block out distortion -->
+        <rect x="${border}" y="${border}" width="${width - border * 2}" height="${height - border * 2}" rx="${radius}" fill="hsl(0 0% 50% / 1.0)" style="filter:blur(25px)" />
       </svg>
     `;
-
+    
     const encoded = encodeURIComponent(svg);
     return `data:image/svg+xml,${encoded}`;
   };
 
   return (
     <>
-      {/* Advanced SVG displacement filter */}
+      {/* Exact SVG filter from the provided example */}
       <svg style={{ position: "absolute", width: 0, height: 0 }}>
         <defs>
-          <filter
-            id="glassDisplacement"
-            colorInterpolationFilters="sRGB"
-            x="-20%"
-            y="-20%"
-            width="140%"
-            height="140%"
-          >
-            {/* Displacement map source */}
+          <filter id="filter" colorInterpolationFilters="sRGB">
+            {/* the input displacement image */}
             <feImage
               x="0"
               y="0"
@@ -118,14 +111,15 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
               href={generateDisplacementMap()}
               result="map"
             />
-
+            
             {/* RED channel with strongest displacement */}
             <feDisplacementMap
               in="SourceGraphic"
               in2="map"
+              id="redchannel"
               xChannelSelector="R"
               yChannelSelector="G"
-              scale="-160"
+              scale="-180"
               result="dispRed"
             />
             <feColorMatrix
@@ -137,11 +131,12 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
                       0 0 0 1 0"
               result="red"
             />
-
+            
             {/* GREEN channel (reference / least displaced) */}
             <feDisplacementMap
               in="SourceGraphic"
               in2="map"
+              id="greenchannel"
               xChannelSelector="R"
               yChannelSelector="G"
               scale="-170"
@@ -156,14 +151,15 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
                       0 0 0 1 0"
               result="green"
             />
-
+            
             {/* BLUE channel with medium displacement */}
             <feDisplacementMap
               in="SourceGraphic"
               in2="map"
+              id="bluechannel"
               xChannelSelector="R"
               yChannelSelector="G"
-              scale="-140"
+              scale="-160"
               result="dispBlue"
             />
             <feColorMatrix
@@ -175,13 +171,13 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
                       0 0 0 1 0"
               result="blue"
             />
-
+            
             {/* Blend channels back together */}
             <feBlend in="red" in2="green" mode="screen" result="rg" />
             <feBlend in="rg" in2="blue" mode="screen" result="output" />
-
-            {/* Final output blur for smoothing */}
-            <feGaussianBlur in="output" stdDeviation="1.2" />
+            
+            {/* output blend */}
+            <feGaussianBlur in="output" stdDeviation="0.7" />
           </filter>
         </defs>
       </svg>
@@ -198,13 +194,10 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
 
           // Enhanced glass effect based on provided CSS
           background: "rgba(255, 255, 255, 0.04)",
-          border: "2px solid transparent",
-          boxShadow:
-            "0 0 0 2px rgba(255, 255, 255, 0.6), 0 16px 32px rgba(0, 0, 0, 0.12)",
-          backdropFilter:
-            "url(#glassDisplacement) blur(8px) brightness(1.05) saturate(1.3)",
-          WebkitBackdropFilter:
-            "url(#glassDisplacement) blur(8px) brightness(1.05) saturate(1.3)",
+          border: "none",
+          boxShadow: "0 16px 32px rgba(0, 0, 0, 0.12)",
+          backdropFilter: "blur(2px) url(#filter) brightness(1.1) saturate(1.5)",
+          WebkitBackdropFilter: "blur(2x) url(#filter) brightness(1.1) saturate(1.5)",
 
           display: "flex",
           flexDirection: "column",
@@ -213,7 +206,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
           padding: "24px",
           cursor: isDragging ? "grabbing" : "grab",
           userSelect: "none",
-          zIndex: 1000,
+          zIndex: 10000,
           transition: isDragging ? "none" : "all 0.2s ease",
         }}
         onMouseDown={handleMouseDown}
@@ -235,6 +228,8 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
             padding: "5px",
             borderRadius: "50%",
             transition: "color 0.2s ease",
+            zIndex: 20000,
+            pointerEvents: "auto",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.color = "white";
