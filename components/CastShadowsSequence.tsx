@@ -97,29 +97,27 @@ export default function CastShadowsSequence({
           imageCache.current.set(frameIndex, img);
           loadingFrames.current.delete(frameIndex);
 
-          // Log slow loads in production for debugging
-          if (loadTime > 2000 && process.env.NODE_ENV === "production") {
-            console.warn(
-              `Slow frame load in production: Frame ${frameIndex} took ${loadTime.toFixed(
-                0
-              )}ms`
-            );
+          // Debug logging for production
+          if (process.env.NODE_ENV === "production" && frameIndex <= 5) {
+            console.log(`✅ Frame ${frameIndex} loaded successfully in ${loadTime.toFixed(0)}ms from ${imagePaths[frameIndex]}`);
           }
 
           // Lower threshold for production readiness
-          if (imageCache.current.size >= 30) {
+          if (imageCache.current.size >= 10) { // Reduced for faster startup
             setIsReady(true);
           }
           resolve();
         };
 
-        img.onerror = () => {
-          console.error(`Failed to load frame ${frameIndex} in production`);
-          loadingFrames.current.delete(frameIndex);
-          resolve();
-        };
-
-        img.src = imagePaths[frameIndex];
+      img.onerror = (error) => {
+        console.error(`Failed to load frame ${frameIndex}:`, {
+          url: imagePaths[frameIndex],
+          error: error,
+          isProduction: process.env.NODE_ENV === 'production'
+        });
+        loadingFrames.current.delete(frameIndex);
+        resolve();
+      };        img.src = imagePaths[frameIndex];
       });
     },
     [imagePaths]
