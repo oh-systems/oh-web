@@ -12,6 +12,7 @@ import {
   ThirdLaptopSequence,
   CastShadowsText,
   CardDemo,
+  Footer,
 } from "../../components";
 import { GlassSections } from "../../components/GlassSections";
 import { useAppContext } from "./AppContent";
@@ -24,7 +25,7 @@ export default function Home() {
   const [activeCard, setActiveCard] = useState<string | null>(null);
   const [castSwapProgress, setCastSwapProgress] = useState(0);
   const [currentSection, setCurrentSection] = useState<
-    "overview" | "mission" | "space"
+    "overview" | "mission" | "space" | "information"
   >("overview");
   const [castAnimationProgress, setCastAnimationProgress] = useState(0);
   const [laptopSwapProgress, setLaptopSwapProgress] = useState(0);
@@ -80,7 +81,7 @@ export default function Home() {
   };
 
   // Handle section navigation clicks
-  const handleSectionClick = (section: "overview" | "mission" | "space") => {
+  const handleSectionClick = (section: "overview" | "mission" | "space" | "information") => {
     // Stop auto-play and directly control scroll position
     isAutoPlayingRef.current = false;
 
@@ -92,13 +93,17 @@ export default function Home() {
       setCurrentSection("overview");
       setAnimationProgress(0.2);
     } else if (section === "mission") {
-      scrollAccumulatorRef.current = maxScroll * 0.7; // 70% through (within 55-90% mission range)
+      scrollAccumulatorRef.current = maxScroll * 0.7; // 70% through (within 55-80% mission range)
       setCurrentSection("mission");
       setAnimationProgress(0.7);
     } else if (section === "space") {
-      scrollAccumulatorRef.current = maxScroll * 0.95; // 95% through (within 90-100% space range)
+      scrollAccumulatorRef.current = maxScroll * 0.85; // 85% through (within 80-95% space range)
       setCurrentSection("space");
-      setAnimationProgress(0.95);
+      setAnimationProgress(0.85);
+    } else if (section === "information") {
+      scrollAccumulatorRef.current = maxScroll * 0.98; // 98% through (footer section)
+      setCurrentSection("information");
+      setAnimationProgress(0.98);
     }
 
     // Update auto-play time to current position
@@ -152,7 +157,7 @@ export default function Home() {
     swapStart: 0.533, // Begin transition when Cast Shadows ends
     swapEnd: 0.55, // Black buffer period (53.3% to 55%)
     animationStart: 0.567, // Laptop animation begins after black buffer (68s)  
-    animationEnd: 0.9, // Laptop animation completes at 90% (108s, giving 40s duration)
+    animationEnd: 0.8, // Laptop animation completes at 80% (96s, giving 28s duration)
   }; // Text Sequence Configuration - Complete flow
   const TEXT_SEQUENCE = {
     // Phase 1: Original first hero text "OH exists to redefine..."
@@ -289,11 +294,12 @@ export default function Home() {
       // Update current section based on raw progress (always update for correct section indicator)
       if (rawProgress < 0.55) {
         setCurrentSection("overview"); // Initial scroll sequence
-      } else if (rawProgress < 0.9) {
-        // Updated to match new Cast Shadows range
+      } else if (rawProgress < 0.8) {
         setCurrentSection("mission"); // Cast shadows sequence
-      } else {
+      } else if (rawProgress < 0.85) {
         setCurrentSection("space"); // Laptop sequence
+      } else {
+        setCurrentSection("information"); // Footer section
       }
 
       // Calculate fade progress for navigation and ring (Stage 1)
@@ -1022,6 +1028,19 @@ export default function Home() {
 
         {/* Card Demo Component - for visual display */}
         <CardDemo activeCard={activeCard} />
+
+        {/* Footer - appears when in information section */}
+        {currentSection === "information" && (
+          <Footer 
+            scrollProgress={(rawProgress - 0.85) / 0.15} 
+            onRingCenterComplete={() => {
+              // Lock scroll once ring reaches center
+              if (containerRef.current) {
+                containerRef.current.style.overflow = 'hidden';
+              }
+            }}
+          />
+        )}
 
         {/* Glass Sections for About and Contact */}
         <GlassSections

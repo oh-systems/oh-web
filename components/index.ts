@@ -4,6 +4,8 @@ export { default as UnifiedRingLoader } from './UnifiedRingLoader';
 export { default as Navigation } from './Navigation';
 export { default as SectionIndicator } from './SectionIndicator';
 export { default as Sound } from './Sound';
+export { default as Footer } from './Footer';
+export { default as ClosingRing } from './ClosingRing';
 export { default as ScrollDrivenText } from './ScrollDrivenText';
 export { default as CastShadowsText } from './CastShadowsText';
 export { default as Card } from './Card';

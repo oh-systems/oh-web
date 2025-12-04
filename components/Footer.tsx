@@ -1,0 +1,141 @@
+"use client";
+
+import React, { useEffect } from "react";
+import ClosingRing from "./ClosingRing";
+import { useAppContext } from "../src/app/AppContent";
+
+interface FooterProps {
+  className?: string;
+  style?: React.CSSProperties;
+  scrollProgress?: number; // Progress within the footer section
+  onRingCenterComplete?: () => void; // Callback when ring reaches center
+}
+
+export default function Footer({ className = "", style, scrollProgress = 0, onRingCenterComplete }: FooterProps) {
+  const { setPermanentRingVisible } = useAppContext();
+  
+  // Calculate if we're scrolling back up (should hide text and return ring to corner)
+  const shouldReturnToCorner = scrollProgress < 0.5; // If less than halfway through footer
+  const textOpacity = scrollProgress > 0.5 ? 1 : 0; // Show text only when fully in footer
+  
+  // Trigger callback when ring should be in center (not returning to corner and text is visible)
+  useEffect(() => {
+    if (!shouldReturnToCorner && textOpacity === 1 && onRingCenterComplete) {
+      const timer = setTimeout(() => {
+        onRingCenterComplete();
+      }, 3000); // Wait for ring animation to complete (3s transition)
+      
+      return () => clearTimeout(timer);
+    }
+  }, [shouldReturnToCorner, textOpacity, onRingCenterComplete]);
+
+  useEffect(() => {
+    // Hide permanent ring when footer mounts
+    setPermanentRingVisible(false);
+    
+    // Show permanent ring again when footer unmounts
+    return () => {
+      setPermanentRingVisible(true);
+    };
+  }, [setPermanentRingVisible]);
+  return (
+    <div 
+      className={`footer-container ${className}`}
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: "100vw",
+        height: "100vh",
+        backgroundColor: "black",
+        zIndex: 150,
+        ...style,
+      }}
+    >
+      {/* Top Left - Locations */}
+      <div
+        style={{
+          position: "absolute",
+          top: "40px",
+          left: "40px",
+          fontFamily: "Be Vietnam Pro, Arial, sans-serif",
+          fontSize: "15px",
+          fontWeight: "400",
+          color: "white",
+          lineHeight: "3.2",
+          opacity: textOpacity,
+          transition: "opacity 0.5s ease",
+        }}
+      >
+        <div>NEW YORK, NEW YORK</div>
+        <div>LOS ANGELES, CALIFORNIA</div>
+        <div>MIAMI, FLORIDA</div>
+      </div>
+
+      {/* Closing Ring Animation - starts from permanent ring position, grows to center */}
+      <ClosingRing shouldReturnToCorner={shouldReturnToCorner} />
+
+      {/* Bottom Left - Copyright */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "20px",
+          left: "40px",
+          fontFamily: "Be Vietnam Pro, Arial, sans-serif",
+          fontSize: "15px",
+          fontWeight: "400",
+          color: "white",
+          opacity: textOpacity,
+          transition: "opacity 0.5s ease",
+        }}
+      >
+        OH © 2025
+      </div>
+
+      {/* Bottom Right - Legal Links */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "20px",
+          right: "40px",
+          fontFamily: "Be Vietnam Pro, Arial, sans-serif",
+          fontSize: "10px",
+          fontWeight: "400",
+          color: "#484848",
+          display: "flex",
+          gap: "40px",
+          opacity: textOpacity,
+          transition: "opacity 0.5s ease",
+        }}
+      >
+        <a 
+          href="#" 
+          style={{ 
+            color: "#484848", 
+            textDecoration: "none",
+            cursor: "pointer"
+          }}
+        >
+          PRIVACY POLICY
+        </a>
+        <a 
+          href="#" 
+          style={{ 
+            color: "#484848", 
+            textDecoration: "none",
+            cursor: "pointer"
+          }}
+        >
+          TERMS
+        </a>
+      </div>
+
+      {/* Font Loading */}
+      <style jsx>{`
+        @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@100;200;300;400;500;600;700;800;900&display=swap');
+      `}</style>
+    </div>
+  );
+}

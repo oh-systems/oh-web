@@ -3,8 +3,8 @@
 import React from 'react';
 
 interface SectionIndicatorProps {
-  currentSection: 'overview' | 'mission' | 'space';
-  onSectionClick?: (section: 'overview' | 'mission' | 'space') => void;
+  currentSection: 'overview' | 'mission' | 'space' | 'information';
+  onSectionClick?: (section: 'overview' | 'mission' | 'space' | 'information') => void;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -13,6 +13,7 @@ const SECTIONS = [
   { id: 'overview', label: 'OVERVIEW', description: 'First model' },
   { id: 'mission', label: 'MISSION', description: 'Cast shadow' },
   { id: 'space', label: 'SPACE', description: 'Laptop' },
+  { id: 'information', label: 'INFORMATION', description: 'Footer' },
 ] as const;
 
 export default function SectionIndicator({ 
@@ -21,7 +22,7 @@ export default function SectionIndicator({
   className = '', 
   style 
 }: SectionIndicatorProps) {
-  const handleSectionClick = (sectionId: 'overview' | 'mission' | 'space') => {
+  const handleSectionClick = (sectionId: 'overview' | 'mission' | 'space' | 'information') => {
     onSectionClick?.(sectionId);
   };
 
@@ -49,7 +50,7 @@ export default function SectionIndicator({
               <div key={`label-${section.id}`} className="flex items-start justify-end" style={{ height: isLast ? '8px' : '52px', paddingTop: '0px' }}>
                 <span
                   className="cursor-pointer transition-colors duration-200 select-none"
-                  onClick={() => handleSectionClick(section.id as 'overview' | 'mission' | 'space')}
+                  onClick={() => handleSectionClick(section.id as 'overview' | 'mission' | 'space' | 'information')}
                   style={{
                     fontFamily: 'Be Vietnam, Arial, sans-serif',
                     fontSize: '10px',
@@ -80,7 +81,7 @@ export default function SectionIndicator({
                 {/* Circle */}
                 <div
                   className="rounded-full border transition-colors duration-200 cursor-pointer"
-                  onClick={() => handleSectionClick(section.id as 'overview' | 'mission' | 'space')}
+                  onClick={() => handleSectionClick(section.id as 'overview' | 'mission' | 'space' | 'information')}
                   style={{
                     width: '8px',
                     height: '8px',

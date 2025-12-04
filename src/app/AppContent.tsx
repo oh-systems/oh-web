@@ -15,8 +15,11 @@ const AppContext = createContext({
   ringInCenter: false,
   ringMovedToCorner: false,
   navigationFadeProgress: 0,
+  permanentRingVisible: true,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setNavigationFadeProgress: (progress: number) => {},
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  setPermanentRingVisible: (visible: boolean) => {},
 });
 
 export const useAppContext = () => useContext(AppContext);
@@ -32,6 +35,7 @@ export default function AppContent({
   const [ringInCenter, setRingInCenter] = useState(false);
   const [ringMovedToCorner, setRingMovedToCorner] = useState(false);
   const [navigationFadeProgress, setNavigationFadeProgress] = useState(0);
+  const [permanentRingVisible, setPermanentRingVisible] = useState(true);
 
   const handleRingCenterComplete = () => {
     // Ring has completed morphing in center, now show initial load
@@ -64,9 +68,10 @@ export default function AppContent({
         ringInCenter,
         ringMovedToCorner,
         navigationFadeProgress,
+        permanentRingVisible,
         setNavigationFadeProgress,
-      }}
-    >
+        setPermanentRingVisible,
+      }}>
       {/* Loading phase: show UnifiedRingLoader until moved to corner - only on first visit */}
       {!transitionComplete && (
         <UnifiedRingLoader
@@ -101,7 +106,7 @@ export default function AppContent({
       )}
 
       {/* Permanent phase: show static PermanentRing after transition */}
-      {transitionComplete && <PermanentRing visible={true} />}
+      {transitionComplete && <PermanentRing visible={permanentRingVisible} />}
 
       {/* Content slides up from bottom when ring moves to corner */}
       <div
