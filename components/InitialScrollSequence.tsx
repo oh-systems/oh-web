@@ -144,7 +144,7 @@ export default function InitialScrollSequence({
         desynchronized: true, // Better performance for animations
         willReadFrequently: false, // Optimize for write-heavy operations
         powerPreference: "high-performance", // Use dedicated GPU if available
-      });
+      }) as CanvasRenderingContext2D | null;
       if (!ctx) return;
 
       const img = imageCache.current.get(frameIndex);
