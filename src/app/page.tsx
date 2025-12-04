@@ -296,7 +296,7 @@ export default function Home() {
         setCurrentSection("overview"); // Initial scroll sequence
       } else if (rawProgress < 0.8) {
         setCurrentSection("mission"); // Cast shadows sequence
-      } else if (rawProgress < 0.85) {
+      } else if (rawProgress < 0.82) {
         setCurrentSection("space"); // Laptop sequence
       } else {
         setCurrentSection("information"); // Footer section
@@ -1032,7 +1032,7 @@ export default function Home() {
         {/* Footer - appears when in information section */}
         {currentSection === "information" && (
           <Footer 
-            scrollProgress={(rawProgress - 0.85) / 0.15} 
+            scrollProgress={(rawProgress - 0.82) / 0.18} 
             onRingCenterComplete={() => {
               // Lock scroll once ring reaches center
               if (containerRef.current) {

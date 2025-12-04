@@ -74,6 +74,50 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
         <div>MIAMI, FLORIDA</div>
       </div>
 
+      {/* Middle Left - Email Subscription */}
+      <div
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "40px",
+          transform: "translateY(-50%)",
+          opacity: textOpacity,
+          transition: "opacity 0.5s ease",
+        }}
+      >
+        {/* Email Input */}
+        <input
+          type="email"
+          placeholder="YOUR EMAIL"
+          className="email-input"
+          style={{
+            width: "320px",
+            background: "transparent",
+            border: "none",
+            borderBottom: "1px solid white",
+            outline: "none",
+            padding: "8px 0",
+            fontFamily: "Be Vietnam Pro, Arial, sans-serif",
+            fontSize: "10px",
+            fontWeight: "400",
+            color: "white",
+          }}
+        />
+        
+        {/* Newsletter Text */}
+        <div
+          style={{
+            marginTop: "8px",
+            fontFamily: "Be Vietnam Pro, Arial, sans-serif",
+            fontSize: "10px",
+            fontWeight: "400",
+            color: "white",
+          }}
+        >
+          Subscribe to our newsletter
+        </div>
+      </div>
+
       {/* Closing Ring Animation - starts from permanent ring position, grows to center */}
       <ClosingRing shouldReturnToCorner={shouldReturnToCorner} />
 
@@ -92,6 +136,70 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
         }}
       >
         OH © 2025
+      </div>
+
+      {/* Right Middle - Socials */}
+      <div
+        style={{
+          position: "absolute",
+          top: "75%",
+          right: "40px",
+          transform: "translateY(-50%)",
+          fontFamily: "Be Vietnam Pro, Arial, sans-serif",
+          opacity: textOpacity,
+          transition: "opacity 0.5s ease",
+          display: "flex",
+          alignItems: "center",
+          gap: "60px", // Greater space between SOCIALS and links
+        }}
+      >
+        {/* SOCIALS Label */}
+        <div
+          style={{
+            fontSize: "15px",
+            fontWeight: "400",
+            color: "#484848",
+          }}
+        >
+          SOCIALS
+        </div>
+        
+        {/* Social Links */}
+        <div
+          style={{
+            display: "flex",
+            gap: "20px",
+          }}
+        >
+          <a 
+            href="https://www.instagram.com/oh.systems/?hl=en" 
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ 
+              color: "white", 
+              textDecoration: "underline",
+              cursor: "pointer",
+              fontSize: "15px",
+              fontWeight: "400",
+            }}
+          >
+            INSTAGRAM
+          </a>
+          <a 
+            href="https://www.linkedin.com/company/oh-systems/" 
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ 
+              color: "white", 
+              textDecoration: "underline",
+              cursor: "pointer",
+              fontSize: "15px",
+              fontWeight: "400",
+            }}
+          >
+            LINKEDIN
+          </a>
+        </div>
       </div>
 
       {/* Bottom Right - Legal Links */}
@@ -132,9 +240,20 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
         </a>
       </div>
 
-      {/* Font Loading */}
+      {/* Font Loading and Styles */}
       <style jsx>{`
         @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@100;200;300;400;500;600;700;800;900&display=swap');
+        
+        .email-input::placeholder {
+          color: #484848;
+          font-family: 'Be Vietnam Pro', Arial, sans-serif;
+          font-size: 10px;
+          font-weight: 400;
+        }
+        
+        .email-input:focus::placeholder {
+          color: #484848;
+        }
       `}</style>
     </div>
   );
