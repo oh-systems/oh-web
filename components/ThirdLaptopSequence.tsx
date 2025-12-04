@@ -183,31 +183,30 @@ export default function ThirdLaptopSequence({
         // Vertical positioning based on animation progress
         const progress = isScrollDriven && typeof scrollProgress === 'number' ? scrollProgress : frameIndex / (totalFrames - 1);
         
-        // Smooth easing for vertical movement (ease-in-out)
-        const easeProgress = progress < 0.5 
-          ? 2 * progress * progress 
-          : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-        
-        // Position: bottom -> center -> top
-        // At progress 0: start much higher up from bottom of screen
-        // At progress 0.5: center aligned (y = (canvas.height - scaledHeight) / 2)  
-        // At progress 1: top aligned (y = 0)
-        const bottomY = height * 0.3; // Start laptop at 30% down the screen (much higher initial position)
-        const centerY = (height - scaledHeight) / 2 - 50; // Move center position up by 50px
-        const topY = height * 0.005; 
+        // Position: bottom -> center -> top with smooth easing
+        const bottomY = height * 0.3; // Start laptop at 30% down the screen
+        const centerY = (height - scaledHeight) / 2 - 50; // Center position
+        const topY = height * 0.005; // End position
         
         let y;
-        if (easeProgress <= 0.3) {
-          // Move from bottom to center (first 30% of animation)
-          const localProgress = easeProgress / 0.3; // 0 to 1
-          y = bottomY + (centerY - bottomY) * localProgress;
-        } else if (easeProgress <= 0.9) {
-          // Stay in center (30% to 90% of animation - stays in middle much longer)
-          y = centerY;
+        if (progress <= 0.4) {
+          // Move from bottom to center (first 40% of animation) with ease-out
+          const localProgress = progress / 0.4; // 0 to 1
+          // Cubic ease-out: starts fast, slows down as it approaches center
+          const easedProgress = 1 - Math.pow(1 - localProgress, 3);
+          y = bottomY + (centerY - bottomY) * easedProgress;
+        } else if (progress <= 0.6) {
+          // Stay in center (40% to 60% of animation - smooth dwell time)
+          const dwellProgress = (progress - 0.4) / 0.2; // 0 to 1
+          // Slight easing even during dwell for ultra-smooth feel
+          const microEase = 0.5 - 0.5 * Math.cos(dwellProgress * Math.PI);
+          y = centerY + (microEase - 0.5) * 5; // Very subtle movement (±2.5px)
         } else {
-          // Move from center to top (last 10% of animation)
-          const localProgress = (easeProgress - 0.9) / 0.1; // 0 to 1
-          y = centerY + (topY - centerY) * localProgress;
+          // Move from center to top (last 40% of animation) with ease-in
+          const localProgress = (progress - 0.6) / 0.4; // 0 to 1
+          // Cubic ease-in: starts slow, accelerates as it leaves center
+          const easedProgress = localProgress * localProgress * localProgress;
+          y = centerY + (topY - centerY) * easedProgress;
         }
 
         ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
