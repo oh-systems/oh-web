@@ -13,6 +13,7 @@ import {
   CastShadowsText,
   CardDemo,
 } from "../../components";
+import { GlassSections } from "../../components/GlassSections";
 import { useAppContext } from "./AppContent";
 
 export default function Home() {
@@ -32,6 +33,8 @@ export default function Home() {
   const [secondHeroOpacity, setSecondHeroOpacity] = useState(0);
   const [castTextProgress, setCastTextProgress] = useState(0);
   const [firstHeroFadeOut, setFirstHeroFadeOut] = useState(0);
+  const [showAbout, setShowAbout] = useState(false);
+  const [showContact, setShowContact] = useState(false);
   const [viewportDimensions, setViewportDimensions] = useState({
     width: 1920,
     height: 1080,
@@ -61,10 +64,16 @@ export default function Home() {
 
   // Handle navigation clicks
   const handleNavClick = (item: string) => {
-    if (item === "about" || item === "contact") {
-      setActiveCard(activeCard === item ? null : item); // Toggle card visibility
+    if (item === "about") {
+      setShowAbout(!showAbout);
+      setActiveCard(null);
+    } else if (item === "contact") {
+      setShowContact(!showContact);
+      setActiveCard(null);
     } else if (item === "space") {
       setActiveCard(null); // Hide cards for Space
+      setShowAbout(false);
+      setShowContact(false);
     }
   };
 
@@ -108,7 +117,7 @@ export default function Home() {
     if (autoPlayResumeTimeoutRef.current) {
       clearTimeout(autoPlayResumeTimeoutRef.current);
     }
-    
+
     // Schedule new timeout with longer delay for smoother UX
     autoPlayResumeTimeoutRef.current = setTimeout(() => {
       isAutoPlayingRef.current = true;
@@ -223,9 +232,13 @@ export default function Home() {
 
           // Smoothly lerp towards auto-play progress instead of jumping
           const lerpFactor = 0.05; // Very smooth transition
-          scrollAccumulatorRef.current += (autoScrollProgress - scrollAccumulatorRef.current) * lerpFactor;
-          scrollAccumulatorRef.current = Math.min(scrollAccumulatorRef.current, maxScrollRange * 1.5);
-          
+          scrollAccumulatorRef.current +=
+            (autoScrollProgress - scrollAccumulatorRef.current) * lerpFactor;
+          scrollAccumulatorRef.current = Math.min(
+            scrollAccumulatorRef.current,
+            maxScrollRange * 1.5
+          );
+
           // Keep target in sync during auto-play
           targetScrollRef.current = scrollAccumulatorRef.current;
         }
@@ -291,14 +304,18 @@ export default function Home() {
       if (rawProgress >= MODEL_SWAP_CONFIG.animationStart) {
         const castStart = MODEL_SWAP_CONFIG.animationStart; // 55.1%
         const castEnd = MODEL_SWAP_CONFIG.animationEnd; // 90%
-        const linearProgress = (rawProgress - castStart) / (castEnd - castStart);
+        const linearProgress =
+          (rawProgress - castStart) / (castEnd - castStart);
 
         // Use linear progress for consistent, smooth animation speed - no clamping to allow full range
         nextCastAnimationProgress = Math.max(0, linearProgress);
       }
-      
+
       // Only update state if the value actually changed to prevent render loops
-      if (Math.abs(nextCastAnimationProgress - castAnimationProgressRef.current) > 0.001) {
+      if (
+        Math.abs(nextCastAnimationProgress - castAnimationProgressRef.current) >
+        0.001
+      ) {
         castAnimationProgressRef.current = nextCastAnimationProgress;
         setCastAnimationProgress(nextCastAnimationProgress);
       }
@@ -413,14 +430,19 @@ export default function Home() {
       if (rawProgress >= LAPTOP_SWAP_CONFIG.animationStart) {
         const laptopStart = LAPTOP_SWAP_CONFIG.animationStart; // 90.1%
         const laptopEnd = LAPTOP_SWAP_CONFIG.animationEnd; // 150%
-        const linearProgress = (rawProgress - laptopStart) / (laptopEnd - laptopStart);
+        const linearProgress =
+          (rawProgress - laptopStart) / (laptopEnd - laptopStart);
 
         // Use linear progress for consistent, smooth animation speed - no clamping to allow full range
         nextLaptopAnimationProgress = Math.max(0, linearProgress);
       }
-      
+
       // Only update state if the value actually changed to prevent render loops
-      if (Math.abs(nextLaptopAnimationProgress - laptopAnimationProgressRef.current) > 0.001) {
+      if (
+        Math.abs(
+          nextLaptopAnimationProgress - laptopAnimationProgressRef.current
+        ) > 0.001
+      ) {
         laptopAnimationProgressRef.current = nextLaptopAnimationProgress;
         setLaptopAnimationProgress(nextLaptopAnimationProgress);
       }
@@ -432,7 +454,8 @@ export default function Home() {
     let lastFrameTime = 0;
     const startAnimationLoop = (currentTime: number = 0) => {
       // Throttle to 60fps to prevent excessive updates
-      if (currentTime - lastFrameTime >= 16.67) { // ~60fps
+      if (currentTime - lastFrameTime >= 16.67) {
+        // ~60fps
         updateAnimationProgress();
         lastFrameTime = currentTime;
       }
@@ -453,10 +476,12 @@ export default function Home() {
       isAutoPlayingRef.current = false;
 
       // Optimized scroll speed limiting with adaptive sensitivity
-      const currentProgress = scrollAccumulatorRef.current / (window.innerHeight * 4.5);
-      const inCastShadowsRange = currentProgress >= 0.55 && currentProgress < 0.9;
+      const currentProgress =
+        scrollAccumulatorRef.current / (window.innerHeight * 4.5);
+      const inCastShadowsRange =
+        currentProgress >= 0.55 && currentProgress < 0.9;
       const inLaptopRange = currentProgress >= 0.9;
-      
+
       // Adaptive scroll sensitivity based on current section
       let scrollMultiplier = 0.6; // Default for initial sections
       if (inCastShadowsRange) {
@@ -464,19 +489,27 @@ export default function Home() {
       } else if (inLaptopRange) {
         scrollMultiplier = 0.15; // Very slow in laptop section due to many frames
       }
-      
-      const scrollDelta = Math.max(-12, Math.min(12, e.deltaY * scrollMultiplier));
-      
+
+      const scrollDelta = Math.max(
+        -12,
+        Math.min(12, e.deltaY * scrollMultiplier)
+      );
+
       // Direct update without extra interpolation for better performance - allow scrolling beyond base range for laptop animation
       targetScrollRef.current = Math.max(
         0,
-        Math.min(targetScrollRef.current + scrollDelta, window.innerHeight * 4.5 * 1.5)
+        Math.min(
+          targetScrollRef.current + scrollDelta,
+          window.innerHeight * 4.5 * 1.5
+        )
       );
-      
+
       // Adaptive lerp for smoother feedback based on scroll speed and section
-      const scrollSpeed = Math.abs(targetScrollRef.current - scrollAccumulatorRef.current);
+      const scrollSpeed = Math.abs(
+        targetScrollRef.current - scrollAccumulatorRef.current
+      );
       let lerpFactor = 0.2; // Base lerp factor
-      
+
       if (inCastShadowsRange) {
         // Cast Shadows needs smooth movement without lag-induced oscillation
         if (scrollSpeed < 3) {
@@ -495,18 +528,18 @@ export default function Home() {
       } else if (scrollSpeed < 10) {
         lerpFactor = 0.4; // Very responsive for fine movements
       }
-      
+
       // Apply deadzone to prevent oscillation in Cast Shadows
       const scrollDiff = targetScrollRef.current - scrollAccumulatorRef.current;
       const deadzone = inCastShadowsRange ? 0.5 : 0.1; // Larger deadzone for Cast Shadows
-      
+
       if (Math.abs(scrollDiff) > deadzone) {
         scrollAccumulatorRef.current += scrollDiff * lerpFactor;
       } else {
         // Snap to target when very close to prevent micro-oscillations
         scrollAccumulatorRef.current = targetScrollRef.current;
       }
-      
+
       // Update auto-play timer to current position for smooth continuation
       autoPlayTimeRef.current =
         (scrollAccumulatorRef.current / (window.innerHeight * 4.5)) * 45;
@@ -545,17 +578,22 @@ export default function Home() {
       isAutoPlayingRef.current = false;
 
       // Optimized touch handling
-      const currentProgress = scrollAccumulatorRef.current / (window.innerHeight * 3);
+      const currentProgress =
+        scrollAccumulatorRef.current / (window.innerHeight * 3);
       const inLaptopRange = currentProgress >= 0.9;
-      
-      const limitedDelta = Math.max(-15, Math.min(15, deltaY * (inLaptopRange ? 0.3 : 0.6)));
-      
+
+      const limitedDelta = Math.max(
+        -15,
+        Math.min(15, deltaY * (inLaptopRange ? 0.3 : 0.6))
+      );
+
       targetScrollRef.current = Math.max(
         0,
         Math.min(targetScrollRef.current + limitedDelta, window.innerHeight * 3)
       );
-      
-      scrollAccumulatorRef.current += (targetScrollRef.current - scrollAccumulatorRef.current) * 0.3;
+
+      scrollAccumulatorRef.current +=
+        (targetScrollRef.current - scrollAccumulatorRef.current) * 0.3;
 
       touchStartY = touchY;
 
@@ -926,6 +964,14 @@ export default function Home() {
 
         {/* Card Demo Component - for visual display */}
         <CardDemo activeCard={activeCard} />
+
+        {/* Glass Sections for About and Contact */}
+        <GlassSections
+          showAbout={showAbout}
+          showContact={showContact}
+          onAboutClose={() => setShowAbout(false)}
+          onContactClose={() => setShowContact(false)}
+        />
       </div>
     </>
   );
