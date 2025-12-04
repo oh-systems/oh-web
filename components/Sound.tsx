@@ -73,6 +73,17 @@ export default function Sound({
             transition: 'opacity 0.3s ease'
           }}
         />
+        
+        {/* Third Circle - Fully #242424 */}
+        <div
+          style={{
+            width: '10px',
+            height: '10px',
+            borderRadius: '50%',
+            backgroundColor: '#242424',
+            border: 'none',
+          }}
+        />
       </div>
     </div>
   );
