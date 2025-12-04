@@ -142,14 +142,14 @@ export default function Home() {
     swapStart: 0.633, // Start Cast Shadows 3 seconds after initial scroll (55% + 3s/36.36s = 63.3%)
     swapEnd: 0.634, // Instant transition - 0.1% crossfade into Cast Shadows
     animationStart: 0.634, // Cast Shadows animation begins immediately
-    animationEnd: 1.458, // Extended to 145.8% for 30-second Cast Shadows duration (53s/36.36s)
+    animationEnd: 1.457, // Extended to 145.7% for 30-second Cast Shadows duration (53s/36.36s)
   };
 
   // Stage 3: Third Laptop Model Swap (Cast Shadows to Third Laptop)
   const LAPTOP_SWAP_CONFIG = {
-    swapStart: 1.458, // Begin laptop after Cast Shadows completes (53 seconds)
-    swapEnd: 1.459, // Instant transition - 0.1% crossfade into laptop
-    animationStart: 1.459, // Laptop animation begins immediately
+    swapStart: 1.457, // Begin laptop after Cast Shadows completes (53 seconds)
+    swapEnd: 1.458, // Instant transition - 0.1% crossfade into laptop
+    animationStart: 1.458, // Laptop animation begins immediately
     animationEnd: 2.0, // Extend for smooth laptop animation
   }; // Text Sequence Configuration - Complete flow
   const TEXT_SEQUENCE = {
@@ -833,7 +833,6 @@ export default function Home() {
                   height={viewportDimensions.height}
                   scrollProgress={castAnimationProgress}
                   priority={castSwapProgress > 0.1}
-                  fps={30}
                 />
               </div>
 
