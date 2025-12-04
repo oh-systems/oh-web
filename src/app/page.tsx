@@ -119,11 +119,14 @@ export default function Home() {
       clearTimeout(autoPlayResumeTimeoutRef.current);
     }
 
-    // Schedule new timeout with longer delay for smoother UX
+    // Resume immediately without delay for smoother experience
     autoPlayResumeTimeoutRef.current = setTimeout(() => {
       isAutoPlayingRef.current = true;
       lastAutoPlayTimeRef.current = performance.now();
-    }, 3000);
+      // Sync auto-play time to current scroll position to prevent catch-up
+      const maxScrollRange = window.innerHeight * 4.5;
+      autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScrollRange) * 36.36;
+    }, 100); // Very short delay just to avoid conflicts
   };
 
   // ==================== STAGE CONFIGURATION ====================
@@ -231,10 +234,8 @@ export default function Home() {
           const autoScrollProgress =
             (autoPlayTimeRef.current / 36.36) * maxScrollRange; // 36.36 seconds total animation (20s initial scroll at 55%)
 
-          // Smoothly lerp towards auto-play progress instead of jumping
-          const lerpFactor = 0.05; // Very smooth transition
-          scrollAccumulatorRef.current +=
-            (autoScrollProgress - scrollAccumulatorRef.current) * lerpFactor;
+          // Direct progression at normal speed to avoid catch-up behavior
+          scrollAccumulatorRef.current = autoScrollProgress;
           scrollAccumulatorRef.current = Math.min(
             scrollAccumulatorRef.current,
             maxScrollRange * 1.5
