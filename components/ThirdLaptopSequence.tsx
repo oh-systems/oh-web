@@ -217,20 +217,26 @@ export default function ThirdLaptopSequence({
     [width, height, scrollProgress, isScrollDriven, totalFrames]
   );
 
-  // Render current frame with RAF and 30fps throttling
+  // Render current frame with RAF - responsive for scroll, throttled for auto-play
   const lastRenderTime = useRef<number>(0);
   useEffect(() => {
     const frame = requestAnimationFrame((currentTime) => {
-      const deltaTime = currentTime - lastRenderTime.current;
-      const frameInterval = 1000 / 30; // 30fps
-
-      if (deltaTime >= frameInterval || lastRenderTime.current === 0) {
+      if (isScrollDriven) {
+        // Immediate rendering for scroll-driven mode
         renderFrame(displayFrame);
-        lastRenderTime.current = currentTime;
+      } else {
+        // 30fps throttling only for auto-play mode
+        const deltaTime = currentTime - lastRenderTime.current;
+        const frameInterval = 1000 / 30;
+
+        if (deltaTime >= frameInterval || lastRenderTime.current === 0) {
+          renderFrame(displayFrame);
+          lastRenderTime.current = currentTime;
+        }
       }
     });
     return () => cancelAnimationFrame(frame);
-  }, [displayFrame, renderFrame]);
+  }, [displayFrame, renderFrame, isScrollDriven]);
 
   // Intersection observer
   useEffect(() => {

@@ -126,7 +126,7 @@ export default function Home() {
       // Sync auto-play time to current scroll position to prevent catch-up
       const maxScrollRange = window.innerHeight * 4.5;
       autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScrollRange) * 80;
-    }, 100); // Very short delay just to avoid conflicts
+    }, 16); // Single frame delay (60fps) to avoid conflicts but maintain smoothness
   };
 
   // ==================== STAGE CONFIGURATION ====================
