@@ -100,7 +100,7 @@ export default function Home() {
     }
 
     // Update auto-play time to current position
-    autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScroll) * 45;
+    autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScroll) * 36.36;
 
     // Force animation update (this will recalculate section but should match what we just set)
     if (updateAnimationProgressRef.current) {
@@ -228,7 +228,7 @@ export default function Home() {
         // Start auto-scroll immediately when content is visible
         if (autoPlayTimeRef.current >= 0) {
           const autoScrollProgress =
-            (autoPlayTimeRef.current / 45) * maxScrollRange; // 45 seconds total animation to accommodate extended range
+            (autoPlayTimeRef.current / 36.36) * maxScrollRange; // 36.36 seconds total animation (20s initial scroll at 55%)
 
           // Smoothly lerp towards auto-play progress instead of jumping
           const lerpFactor = 0.05; // Very smooth transition
