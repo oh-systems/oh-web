@@ -142,15 +142,15 @@ export default function Home() {
     swapStart: 0.633, // Start Cast Shadows 3 seconds after initial scroll (55% + 3s/36.36s = 63.3%)
     swapEnd: 0.634, // Instant transition - 0.1% crossfade into Cast Shadows
     animationStart: 0.634, // Cast Shadows animation begins immediately
-    animationEnd: 0.9, // Extended range for even slower, smoother Cast Shadows animation
+    animationEnd: 1.622, // Extended to 162.2% for 36-second Cast Shadows duration (59s/36.36s)
   };
 
   // Stage 3: Third Laptop Model Swap (Cast Shadows to Third Laptop)
   const LAPTOP_SWAP_CONFIG = {
-    swapStart: 0.9, // Begin laptop after extended Cast Shadows range
-    swapEnd: 0.901, // Instant transition - 0.1% crossfade into laptop
-    animationStart: 0.901, // Laptop animation begins immediately
-    animationEnd: 1.5, // Extend to 50% extra scroll range for much slower, smoother animation
+    swapStart: 1.622, // Begin laptop after Cast Shadows completes (59 seconds)
+    swapEnd: 1.623, // Instant transition - 0.1% crossfade into laptop
+    animationStart: 1.623, // Laptop animation begins immediately
+    animationEnd: 2.0, // Extend for smooth laptop animation
   }; // Text Sequence Configuration - Complete flow
   const TEXT_SEQUENCE = {
     // Phase 1: Original first hero text "OH exists to redefine..."
@@ -218,7 +218,7 @@ export default function Home() {
       // Wait until initial load is complete before allowing animation
       if (!initialLoadComplete) return;
 
-      const maxScrollRange = window.innerHeight * 4.5; // 4.5 viewport heights to accommodate laptop animation extending to 1.5
+      const maxScrollRange = window.innerHeight * 4.5; // 4.5 viewport heights to accommodate extended Cast Shadows (162.2%) and laptop animations
 
       // Auto-play progression when not scrolling
       if (isAutoPlayingRef.current) {
@@ -238,7 +238,7 @@ export default function Home() {
           scrollAccumulatorRef.current = autoScrollProgress;
           scrollAccumulatorRef.current = Math.min(
             scrollAccumulatorRef.current,
-            maxScrollRange * 1.5
+            maxScrollRange * 2.1
           );
 
           // Keep target in sync during auto-play
@@ -497,12 +497,12 @@ export default function Home() {
         Math.min(12, e.deltaY * scrollMultiplier)
       );
 
-      // Direct update without extra interpolation for better performance - allow scrolling beyond base range for laptop animation
+      // Direct update without extra interpolation for better performance - allow scrolling beyond base range for extended Cast Shadows animation
       targetScrollRef.current = Math.max(
         0,
         Math.min(
           targetScrollRef.current + scrollDelta,
-          window.innerHeight * 4.5 * 1.5
+          window.innerHeight * 4.5 * 2.1
         )
       );
 
@@ -581,7 +581,7 @@ export default function Home() {
 
       // Optimized touch handling
       const currentProgress =
-        scrollAccumulatorRef.current / (window.innerHeight * 3);
+        scrollAccumulatorRef.current / (window.innerHeight * 4.5);
       const inLaptopRange = currentProgress >= 0.9;
 
       const limitedDelta = Math.max(
@@ -591,7 +591,7 @@ export default function Home() {
 
       targetScrollRef.current = Math.max(
         0,
-        Math.min(targetScrollRef.current + limitedDelta, window.innerHeight * 3)
+        Math.min(targetScrollRef.current + limitedDelta, window.innerHeight * 4.5 * 2.1)
       );
 
       scrollAccumulatorRef.current +=
@@ -601,7 +601,7 @@ export default function Home() {
 
       // Update auto-play timer to current position for smooth continuation
       autoPlayTimeRef.current =
-        (scrollAccumulatorRef.current / (window.innerHeight * 3)) * 45;
+        (scrollAccumulatorRef.current / (window.innerHeight * 4.5)) * 36.36;
 
       // Always update animation progress for smooth scrolling
       updateAnimationProgress();
@@ -629,7 +629,7 @@ export default function Home() {
           autoPlayTimeRef.current = -10; // Reset to start of delay period
           break;
         case "End":
-          scrollAccumulatorRef.current = window.innerHeight * 3; // Jump to end
+          scrollAccumulatorRef.current = window.innerHeight * 4.5 * 2.1; // Jump to end
           autoPlayTimeRef.current = 45; // Full progression time
           break;
         default:
@@ -645,12 +645,12 @@ export default function Home() {
         scrollAccumulatorRef.current += delta;
         scrollAccumulatorRef.current = Math.max(
           0,
-          Math.min(scrollAccumulatorRef.current, window.innerHeight * 3)
+          Math.min(scrollAccumulatorRef.current, window.innerHeight * 4.5 * 2.1)
         );
 
         // Reset auto-play timer to current position
         autoPlayTimeRef.current =
-          (scrollAccumulatorRef.current / (window.innerHeight * 3)) * 45;
+          (scrollAccumulatorRef.current / (window.innerHeight * 4.5)) * 36.36;
       }
 
       // Always update for smooth scrolling
