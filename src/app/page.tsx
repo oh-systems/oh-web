@@ -916,7 +916,7 @@ export default function Home() {
 
             {/* First Hero Text - with extra space for upward movement */}
             <div
-              className="absolute left-0 top-1/2 transform -translate-y-1/2 pl-16"
+              className="absolute left-0 top-1/2 transform -translate-y-1/2 pl-16 z-[150]"
               style={{ paddingTop: "100px" }}
             >
               {(() => {
@@ -952,7 +952,7 @@ export default function Home() {
 
             {/* Second Hero Text - "THE FUTURE OF E-COMMERCE, TODAY" (right side) */}
             <div
-              className="absolute right-16 z-50"
+              className="absolute right-16 z-[150]"
               style={{
                 top: "55%",
                 opacity: secondHeroOpacity,
@@ -1009,7 +1009,7 @@ export default function Home() {
             </div>
 
             {/* Cast Shadows Operating Principles Text Sequence */}
-            <div className="absolute inset-0 z-40 pointer-events-none">
+            <div className="absolute inset-0 z-[150] pointer-events-none">
               <CastShadowsText
                 scrollProgress={castTextProgress}
                 fadeOutProgress={0} // No longer needed since we handle fade separately
