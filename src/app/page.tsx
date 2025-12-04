@@ -101,7 +101,7 @@ export default function Home() {
 
     // Update auto-play time to current position
     autoPlayTimeRef.current =
-      (scrollAccumulatorRef.current / maxScroll) * 36.36;
+      (scrollAccumulatorRef.current / maxScroll) * 80;
 
     // Force animation update (this will recalculate section but should match what we just set)
     if (updateAnimationProgressRef.current) {
@@ -125,7 +125,7 @@ export default function Home() {
       lastAutoPlayTimeRef.current = performance.now();
       // Sync auto-play time to current scroll position to prevent catch-up
       const maxScrollRange = window.innerHeight * 4.5;
-      autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScrollRange) * 36.36;
+      autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScrollRange) * 80;
     }, 100); // Very short delay just to avoid conflicts
   };
 
@@ -232,13 +232,13 @@ export default function Home() {
         // Start auto-scroll immediately when content is visible
         if (autoPlayTimeRef.current >= 0) {
           const autoScrollProgress =
-            (autoPlayTimeRef.current / 36.36) * maxScrollRange; // 36.36 seconds total animation (20s initial scroll at 55%)
+            (autoPlayTimeRef.current / 80) * maxScrollRange; // 80 seconds total to reach 220% (laptop animation completion)
 
           // Direct progression at normal speed to avoid catch-up behavior
           scrollAccumulatorRef.current = autoScrollProgress;
           scrollAccumulatorRef.current = Math.min(
             scrollAccumulatorRef.current,
-            maxScrollRange * 2.1
+            maxScrollRange * 2.3
           );
 
           // Keep target in sync during auto-play
@@ -502,7 +502,7 @@ export default function Home() {
         0,
         Math.min(
           targetScrollRef.current + scrollDelta,
-          window.innerHeight * 4.5 * 2.1
+          window.innerHeight * 4.5 * 2.3
         )
       );
 
@@ -591,7 +591,7 @@ export default function Home() {
 
       targetScrollRef.current = Math.max(
         0,
-        Math.min(targetScrollRef.current + limitedDelta, window.innerHeight * 4.5 * 2.1)
+        Math.min(targetScrollRef.current + limitedDelta, window.innerHeight * 4.5 * 2.3)
       );
 
       scrollAccumulatorRef.current +=
@@ -601,7 +601,7 @@ export default function Home() {
 
       // Update auto-play timer to current position for smooth continuation
       autoPlayTimeRef.current =
-        (scrollAccumulatorRef.current / (window.innerHeight * 4.5)) * 36.36;
+        (scrollAccumulatorRef.current / (window.innerHeight * 4.5)) * 80;
 
       // Always update animation progress for smooth scrolling
       updateAnimationProgress();
@@ -629,7 +629,7 @@ export default function Home() {
           autoPlayTimeRef.current = -10; // Reset to start of delay period
           break;
         case "End":
-          scrollAccumulatorRef.current = window.innerHeight * 4.5 * 2.1; // Jump to end
+          scrollAccumulatorRef.current = window.innerHeight * 4.5 * 2.3; // Jump to end
           autoPlayTimeRef.current = 45; // Full progression time
           break;
         default:
@@ -645,12 +645,12 @@ export default function Home() {
         scrollAccumulatorRef.current += delta;
         scrollAccumulatorRef.current = Math.max(
           0,
-          Math.min(scrollAccumulatorRef.current, window.innerHeight * 4.5 * 2.1)
+          Math.min(scrollAccumulatorRef.current, window.innerHeight * 4.5 * 2.3)
         );
 
         // Reset auto-play timer to current position
         autoPlayTimeRef.current =
-          (scrollAccumulatorRef.current / (window.innerHeight * 4.5)) * 36.36;
+          (scrollAccumulatorRef.current / (window.innerHeight * 4.5)) * 80;
       }
 
       // Always update for smooth scrolling
