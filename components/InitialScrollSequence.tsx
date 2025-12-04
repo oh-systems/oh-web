@@ -7,7 +7,7 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
-import { getInitialScrollImageUrl } from '../lib/models-config';
+import { getInitialScrollImageUrl } from "../lib/models-config";
 
 interface InitialScrollSequenceProps {
   className?: string;
@@ -49,29 +49,45 @@ export default function InitialScrollSequence({
     return Math.max(0, Math.min(frame, totalFrames - 1));
   }, [scrollProgress, totalFrames]);
 
-  // Preload frame with optimization
-  const preloadFrame = useCallback((frameIndex: number) => {
-    if (imageCache.current.has(frameIndex) || loadingFrames.current.has(frameIndex)) {
-      return;
-    }
+  // Preload frame with production optimizations
+  const preloadFrame = useCallback(
+    (frameIndex: number) => {
+      if (
+        imageCache.current.has(frameIndex) ||
+        loadingFrames.current.has(frameIndex)
+      ) {
+        return;
+      }
 
-    loadingFrames.current.add(frameIndex);
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    
-    img.onload = () => {
-      imageCache.current.set(frameIndex, img);
-      loadingFrames.current.delete(frameIndex);
-      preloadQueue.current.delete(frameIndex);
-    };
-    
-    img.onerror = () => {
-      loadingFrames.current.delete(frameIndex);
-      preloadQueue.current.delete(frameIndex);
-    };
-    
-    img.src = imagePaths[frameIndex];
-  }, [imagePaths]);
+      loadingFrames.current.add(frameIndex);
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+
+      // Production optimizations for faster loading
+      img.loading = "eager"; // Load immediately
+      img.decoding = "async"; // Decode off main thread
+
+      img.onload = async () => {
+        // Decode the image off the main thread for smoother performance
+        try {
+          await img.decode();
+        } catch (e) {
+          // Fallback if decode fails
+        }
+        imageCache.current.set(frameIndex, img);
+        loadingFrames.current.delete(frameIndex);
+        preloadQueue.current.delete(frameIndex);
+      };
+
+      img.onerror = () => {
+        loadingFrames.current.delete(frameIndex);
+        preloadQueue.current.delete(frameIndex);
+      };
+
+      img.src = imagePaths[frameIndex];
+    },
+    [imagePaths]
+  );
 
   // Optimized preloading strategy - prioritize immediate frames
   useEffect(() => {
@@ -81,7 +97,8 @@ export default function InitialScrollSequence({
     const preloadBatch: number[] = [];
 
     // Priority: current frame and immediate neighbors (critical for smooth scrolling)
-    for (let i = -2; i <= 8; i++) { // Focus more on frames ahead
+    for (let i = -2; i <= 8; i++) {
+      // Focus more on frames ahead
       const frame = currentFrame + i;
       if (frame >= 0 && frame < totalFrames) {
         preloadBatch.push(frame);
@@ -115,40 +132,74 @@ export default function InitialScrollSequence({
   }, [currentFrame, isInView, totalFrames, preloadFrame]);
 
   // Render frame to canvas
-  const renderFrame = useCallback((frameIndex: number) => {
-    if (lastRenderedFrame.current === frameIndex) return;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const renderFrame = useCallback(
+    (frameIndex: number) => {
+      if (lastRenderedFrame.current === frameIndex) return;
 
-    const ctx = canvas.getContext('2d', { 
-      alpha: false,
-      desynchronized: true // Better performance for animations
-    });
-    if (!ctx) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    const img = imageCache.current.get(frameIndex);
-    if (img && img.complete) {
-      // Clear canvas and draw new frame
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Calculate aspect-fit dimensions
-      const scale = Math.min(width / img.width, height / img.height);
-      const x = (width - img.width * scale) / 2;
-      const y = (height - img.height * scale) / 2;
-      
-      ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-      lastRenderedFrame.current = frameIndex;
-    }
-  }, [width, height]);
+      const ctx = canvas.getContext("2d", {
+        alpha: false,
+        desynchronized: true, // Better performance for animations
+        willReadFrequently: false, // Optimize for write-heavy operations
+        powerPreference: "high-performance", // Use dedicated GPU if available
+      });
+      if (!ctx) return;
 
-  // Render current frame with RAF for smooth updates
+      const img = imageCache.current.get(frameIndex);
+      if (img && img.complete) {
+        // Clear canvas and draw new frame
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Calculate aspect-fit dimensions
+        const scale = Math.min(width / img.width, height / img.height);
+        const x = (width - img.width * scale) / 2;
+        const y = (height - img.height * scale) / 2;
+
+        ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+        lastRenderedFrame.current = frameIndex;
+      }
+    },
+    [width, height]
+  );
+
+  // Render current frame with RAF for smooth updates - optimized for production
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
-      renderFrame(currentFrame);
+      // Priority rendering: if current frame is not loaded, try to render any nearby loaded frame
+      const img = imageCache.current.get(currentFrame);
+      if (img && img.complete) {
+        renderFrame(currentFrame);
+      } else {
+        // Fallback: try rendering a nearby loaded frame to prevent blank canvas
+        for (let i = 1; i <= 3; i++) {
+          const fallbackFrame = currentFrame - i;
+          if (fallbackFrame >= 0 && imageCache.current.has(fallbackFrame)) {
+            renderFrame(fallbackFrame);
+            break;
+          }
+        }
+      }
     });
     return () => cancelAnimationFrame(frame);
   }, [currentFrame, renderFrame]);
+
+  // Early preloading for production performance
+  useEffect(() => {
+    // Start preloading the first few critical frames immediately (before intersection)
+    // This helps with production lag by starting network requests early
+    const preloadCriticalFrames = () => {
+      for (let i = 0; i < 3; i++) {
+        if (i < totalFrames) {
+          preloadFrame(i);
+        }
+      }
+    };
+
+    // Use a small delay to not block initial render
+    setTimeout(preloadCriticalFrames, 100);
+  }, [totalFrames, preloadFrame]);
 
   // Intersection observer for lazy loading
   useEffect(() => {
@@ -162,7 +213,7 @@ export default function InitialScrollSequence({
           }
         }
       },
-      { threshold: 0.01, rootMargin: '200px' }
+      { threshold: 0.01, rootMargin: "200px" }
     );
 
     if (containerRef.current) {
@@ -189,13 +240,13 @@ export default function InitialScrollSequence({
         width={width}
         height={height}
         style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'contain',
-          imageRendering: 'auto',
-          willChange: 'contents',
-          backfaceVisibility: 'hidden',
-          transform: 'translateZ(0)', // Hardware acceleration
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          imageRendering: "auto",
+          willChange: "contents",
+          backfaceVisibility: "hidden",
+          transform: "translateZ(0)", // Hardware acceleration
         }}
       />
 
