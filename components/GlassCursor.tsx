@@ -52,16 +52,11 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
       document.removeEventListener('mouseleave', handleMouseLeave);
       document.removeEventListener('mouseenter', handleMouseEnter);
       
-      // Restore default cursor
-      document.body.style.cursor = 'auto';
+      // NEVER restore cursor - always keep it hidden
+      document.body.style.cursor = 'none';
+      document.documentElement.style.cursor = 'none';
       
-      // Remove global cursor hiding
-      const styles = document.head.querySelectorAll('style');
-      styles.forEach(style => {
-        if (style.textContent?.includes('cursor: none !important')) {
-          style.remove();
-        }
-      });
+      // Don't remove cursor hiding styles - keep them active
     };
   }, [scrollAnimationStarted]);
 
@@ -70,7 +65,7 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
     if (scrollAnimationStarted) {
       setIsVisible(true);
     }
-  }, [scrollAnimationStarted]);
+  }, [scrollAnimationStarted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Separate effect for animation loop
   useEffect(() => {

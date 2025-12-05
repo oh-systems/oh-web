@@ -36,7 +36,7 @@ export default function Navigation({ className = '', style, onNavClick }: Naviga
               console.log('Mouse down on:', item);
               e.preventDefault();
             }}
-            className="text-white hover:opacity-70 transition-opacity duration-200 bg-transparent border-none cursor-pointer"
+            className="text-white hover:opacity-70 transition-opacity duration-200 bg-transparent border-none"
             style={{
               fontFamily: 'Helvetica, Arial, sans-serif',
               fontSize: '20px',
