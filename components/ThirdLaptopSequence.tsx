@@ -49,7 +49,7 @@ export default function ThirdLaptopSequence({
 
   const imagePaths = useMemo(() => {
     const paths: string[] = [];
-    for (let i = 1; i <= 1200; i++) {
+    for (let i = 1; i <= 1181; i++) {
       paths.push(getThirdLaptopImageUrl(i));
     }
     return paths;
