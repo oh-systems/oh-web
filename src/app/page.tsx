@@ -205,8 +205,46 @@ export default function Home() {
     // Always enforce cursor hiding
     forceCursorHiding();
     
-    // Set up continuous enforcement
-    const cursorHidingInterval = setInterval(forceCursorHiding, 50);
+    // Set up continuous enforcement with more aggressive checking
+    const cursorHidingInterval = setInterval(() => {
+      forceCursorHiding();
+      
+      // Additional browser-specific cursor hiding
+      try {
+        // Force cursor properties on document
+        document.documentElement.setAttribute('style', 'cursor: none !important');
+        document.body.setAttribute('style', 'cursor: none !important');
+        
+        // Override any CSS cursor properties
+        const allElements = document.querySelectorAll('*');
+        allElements.forEach(el => {
+          if (el instanceof HTMLElement) {
+            el.style.setProperty('cursor', 'none', 'important');
+            el.removeAttribute('data-cursor');
+            // Remove any cursor-related classes
+            if (el.className) {
+              el.className = el.className.replace(/cursor-[a-z-]+/g, '');
+            }
+          }
+        });
+        
+        // Browser-specific overrides
+        if (navigator.userAgent.includes('Chrome')) {
+          document.documentElement.style.setProperty('-webkit-cursor', 'none', 'important');
+        }
+        if (navigator.userAgent.includes('Firefox')) {
+          document.documentElement.style.setProperty('-moz-cursor', 'none', 'important');
+        }
+        if (navigator.userAgent.includes('Safari')) {
+          document.documentElement.style.setProperty('-webkit-cursor', 'none', 'important');
+        }
+        if (navigator.userAgent.includes('Edge')) {
+          document.documentElement.style.setProperty('-ms-cursor', 'none', 'important');
+        }
+      } catch {
+        // Ignore any errors
+      }
+    }, 16); // Run at ~60fps for maximum coverage
     
     // Watch for DOM changes
     observeAndHideCursor();

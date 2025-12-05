@@ -136,3 +136,58 @@ iframe, object, embed {
 iframe *, object *, embed * {
   cursor: none !important;
 }
+
+/* Additional OS-specific cursor hiding for maximum compatibility */
+* {
+  cursor: none !important;
+  -webkit-cursor: none !important;
+  -moz-cursor: none !important;
+  -ms-cursor: none !important;
+  -o-cursor: none !important;
+}
+
+/* Force cursor hiding on all possible selectors with maximum specificity */
+html * {
+  cursor: none !important;
+}
+
+body * {
+  cursor: none !important;
+}
+
+html body * {
+  cursor: none !important;
+}
+
+/* Override system cursor properties */
+:root {
+  --cursor: none !important;
+}
+
+/* Prevent any cursor property from being applied */
+[style*="cursor"] {
+  cursor: none !important;
+}
+
+/* WebKit-specific overrides */
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+  *, *:hover, *:focus, *:active {
+    cursor: none !important;
+    -webkit-cursor: none !important;
+  }
+}
+
+/* Force cursor hiding on all input types */
+input[type="text"], input[type="password"], input[type="email"], 
+input[type="search"], input[type="tel"], input[type="url"],
+input[type="number"], input[type="range"], input[type="date"],
+input[type="time"], input[type="datetime-local"], input[type="month"],
+input[type="week"], input[type="color"], input[type="file"],
+textarea, select, button {
+  cursor: none !important;
+}
+
+/* Universal cursor override with highest possible specificity */
+html body div * {
+  cursor: none !important;
+}
