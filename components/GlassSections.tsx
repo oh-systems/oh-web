@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import GlassSurface from './GlassSurface';
 
 interface DraggableCardProps {
   children: React.ReactNode;
@@ -62,152 +63,44 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
     };
   }, [isDragging, dragOffset]);
 
-  // Generate displacement map exactly like the provided example
-  const generateDisplacementMap = () => {
-    const width = 382;
-    const height = 382;
-    const radius = 42;
-    const border = Math.min(width, height) * 0.07; // 7% border like the example
-    
-    const svg = `
-      <svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="red" x1="100%" y1="0%" x2="0%" y2="0%">
-            <stop offset="0%" stop-color="#000"/>
-            <stop offset="100%" stop-color="red"/>
-          </linearGradient>
-          <linearGradient id="blue" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="#000"/>
-            <stop offset="100%" stop-color="blue"/>
-          </linearGradient>
-        </defs>
-        <!-- backdrop -->
-        <rect x="0" y="0" width="${width}" height="${height}" fill="black"></rect>
-        <!-- red linear -->
-        <rect x="0" y="0" width="${width}" height="${height}" rx="${radius}" fill="url(#red)" />
-        <!-- blue linear -->
-        <rect x="0" y="0" width="${width}" height="${height}" rx="${radius}" fill="url(#blue)" style="mix-blend-mode: difference" />
-        <!-- block out distortion -->
-        <rect x="${border}" y="${border}" width="${width - border * 2}" height="${height - border * 2}" rx="${radius}" fill="hsl(0 0% 50% / 1.0)" style="filter:blur(25px)" />
-      </svg>
-    `;
-    
-    const encoded = encodeURIComponent(svg);
-    return `data:image/svg+xml,${encoded}`;
-  };
-
   return (
-    <>
-      {/* Exact SVG filter from the provided example */}
-      <svg style={{ position: "absolute", width: 0, height: 0 }}>
-        <defs>
-          <filter id="filter" colorInterpolationFilters="sRGB">
-            {/* the input displacement image */}
-            <feImage
-              x="0"
-              y="0"
-              width="100%"
-              height="100%"
-              href={generateDisplacementMap()}
-              result="map"
-            />
-            
-            {/* RED channel with strongest displacement */}
-            <feDisplacementMap
-              in="SourceGraphic"
-              in2="map"
-              id="redchannel"
-              xChannelSelector="R"
-              yChannelSelector="G"
-              scale="-180"
-              result="dispRed"
-            />
-            <feColorMatrix
-              in="dispRed"
-              type="matrix"
-              values="1 0 0 0 0
-                      0 0 0 0 0
-                      0 0 0 0 0
-                      0 0 0 1 0"
-              result="red"
-            />
-            
-            {/* GREEN channel (reference / least displaced) */}
-            <feDisplacementMap
-              in="SourceGraphic"
-              in2="map"
-              id="greenchannel"
-              xChannelSelector="R"
-              yChannelSelector="G"
-              scale="-170"
-              result="dispGreen"
-            />
-            <feColorMatrix
-              in="dispGreen"
-              type="matrix"
-              values="0 0 0 0 0
-                      0 1 0 0 0
-                      0 0 0 0 0
-                      0 0 0 1 0"
-              result="green"
-            />
-            
-            {/* BLUE channel with medium displacement */}
-            <feDisplacementMap
-              in="SourceGraphic"
-              in2="map"
-              id="bluechannel"
-              xChannelSelector="R"
-              yChannelSelector="G"
-              scale="-160"
-              result="dispBlue"
-            />
-            <feColorMatrix
-              in="dispBlue"
-              type="matrix"
-              values="0 0 0 0 0
-                      0 0 0 0 0
-                      0 0 1 0 0
-                      0 0 0 1 0"
-              result="blue"
-            />
-            
-            {/* Blend channels back together */}
-            <feBlend in="red" in2="green" mode="screen" result="rg" />
-            <feBlend in="rg" in2="blue" mode="screen" result="output" />
-            
-            {/* output blend */}
-            <feGaussianBlur in="output" stdDeviation="0.7" />
-          </filter>
-        </defs>
-      </svg>
-
+    <GlassSurface
+      width={382}
+      height={382}
+      borderRadius={42}
+      borderWidth={0}
+      brightness={50}
+      opacity={0.93}
+      blur={25}
+      displace={0.7}
+      backgroundOpacity={0.04}
+      saturation={1.5}
+      distortionScale={-180}
+      redOffset={0}
+      greenOffset={10}
+      blueOffset={20}
+      className="draggable-card"
+      style={{
+        position: "fixed",
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        cursor: isDragging ? "grabbing" : "grab",
+        userSelect: "none",
+        zIndex: 50000,
+        transition: isDragging ? "none" : "all 0.2s ease",
+      }}
+    >
       <div
         ref={cardRef}
         style={{
-          position: "fixed",
-          left: `${position.x}px`,
-          top: `${position.y}px`,
-          width: "382px",
-          height: "382px",
-          borderRadius: "42px",
-
-          // Enhanced glass effect based on provided CSS
-          background: "rgba(255, 255, 255, 0.04)",
-          border: "none",
-          boxShadow: "0 16px 32px rgba(0, 0, 0, 0.12)",
-          backdropFilter: "blur(2px) url(#filter) brightness(1.1) saturate(1.5)",
-          WebkitBackdropFilter: "blur(2x) url(#filter) brightness(1.1) saturate(1.5)",
-
+          width: "100%",
+          height: "100%",
           display: "flex",
           flexDirection: "column",
           alignItems: "stretch",
           justifyContent: "center",
           padding: "24px",
-          cursor: isDragging ? "grabbing" : "grab",
-          userSelect: "none",
-          zIndex: 10000,
-          transition: isDragging ? "none" : "all 0.2s ease",
+          position: "relative",
         }}
         onMouseDown={handleMouseDown}
       >
@@ -242,7 +135,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
         </button>
         {children}
       </div>
-    </>
+    </GlassSurface>
   );
 };
 
@@ -255,11 +148,18 @@ export const AboutSection: React.FC<AboutSectionProps> = ({
   isVisible,
   onClose,
 }) => {
-  if (!isVisible) return null;
-
   return (
-    <DraggableCard onClose={onClose || (() => {})}>
-      <div className="text-center" style={{ paddingTop: "60px" }}>
+    <div
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'scale(1) translateY(0)' : 'scale(0.8) translateY(-20px)',
+        transition: 'opacity 0.3s ease-out, transform 0.3s ease-out',
+        pointerEvents: isVisible ? 'auto' : 'none',
+        visibility: isVisible ? 'visible' : 'hidden'
+      }}
+    >
+      <DraggableCard onClose={onClose || (() => {})}>
+        <div className="text-center" style={{ paddingTop: "60px" }}>
         <h2
           style={{
             fontSize: "20px",
@@ -294,8 +194,9 @@ export const AboutSection: React.FC<AboutSectionProps> = ({
           cloud infrastructure. Our work spans both digital and physical domains
           and is built to scale with the future of interaction.
         </p>
-      </div>
-    </DraggableCard>
+        </div>
+      </DraggableCard>
+    </div>
   );
 };
 
@@ -308,16 +209,23 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
   isVisible,
   onClose,
 }) => {
-  if (!isVisible) return null;
-
   return (
-    <DraggableCard
-      onClose={onClose || (() => {})}
-      initialPosition={{
-        x: window.innerWidth / 2 - 191 + 50,
-        y: window.innerHeight / 2 - 191 + 50,
+    <div
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'scale(1) translateY(0)' : 'scale(0.8) translateY(-20px)',
+        transition: 'opacity 0.3s ease-out, transform 0.3s ease-out',
+        pointerEvents: isVisible ? 'auto' : 'none',
+        visibility: isVisible ? 'visible' : 'hidden'
       }}
     >
+      <DraggableCard
+        onClose={onClose || (() => {})}
+        initialPosition={{
+          x: window.innerWidth / 2 - 191 + 50,
+          y: window.innerHeight / 2 - 191 + 50,
+        }}
+      >
       <div style={{ paddingTop: "60px" }}>
         <h2
           style={{
@@ -463,7 +371,8 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
           </div>
         </form>
       </div>
-    </DraggableCard>
+      </DraggableCard>
+    </div>
   );
 };
 

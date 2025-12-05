@@ -10,6 +10,7 @@ export { default as ScrollDrivenText } from './ScrollDrivenText';
 export { default as CastShadowsText } from './CastShadowsText';
 export { default as Card } from './Card';
 export { default as CardDemo } from './CardDemo';
+export { default as GlassSurface } from './GlassSurface';
 
 // Animation Sequences  
 export { default as InitialLoadSequence } from './InitialLoadSequence';

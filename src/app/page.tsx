@@ -1062,14 +1062,15 @@ export default function Home() {
           />
         )}
 
-        {/* Glass Sections for About and Contact */}
-        <GlassSections
-          showAbout={showAbout}
-          showContact={showContact}
-          onAboutClose={() => setShowAbout(false)}
-          onContactClose={() => setShowContact(false)}
-        />
       </div>
+
+      {/* Glass Sections for About and Contact - rendered outside main container like Navigation */}
+      <GlassSections
+        showAbout={showAbout}
+        showContact={showContact}
+        onAboutClose={() => setShowAbout(false)}
+        onContactClose={() => setShowContact(false)}
+      />
     </>
   );
 }
