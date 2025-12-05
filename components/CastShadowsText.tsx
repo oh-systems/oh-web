@@ -53,9 +53,10 @@ export default function CastShadowsText({
 
       {/* Operating Principles - Top Right */}
       <div
-        className="absolute right-16 text-white"
+        className="absolute text-white"
         style={{
-          top: "25%",
+          top: "10%",
+          right: "8%",
           opacity: operatingPrinciplesOpacity,
           transform: `translateY(${20 * (1 - operatingPrinciplesOpacity)}px)`,
           transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
@@ -65,14 +66,14 @@ export default function CastShadowsText({
           lineHeight: "1.2",
         }}
       >
-        Operating Principles
+        OPERATING PRINCIPLES
       </div>
 
       {/* Everything is built - Lower Left Area */}
       <div
         className="absolute text-white"
         style={{
-          top: "38%",
+          top: "18%",
           left: "15%",
           opacity: everythingBuiltOpacity,
           transform: `translateY(${30 * (1 - everythingBuiltOpacity)}px)`,
@@ -83,15 +84,15 @@ export default function CastShadowsText({
           lineHeight: "1.2",
         }}
       >
-        Everything is built
+        EVERYTHING IS BUILT
       </div>
 
       {/* Interactivity is a requirement - Lower Center-Right */}
       <div
         className="absolute text-white"
         style={{
-          top: "55%",
-          left: "60%",
+          top: "30%",
+          left: "40%",
           opacity: interactivityOpacity,
           transform: `translateY(${25 * (1 - interactivityOpacity)}px)`,
           transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
@@ -101,14 +102,14 @@ export default function CastShadowsText({
           lineHeight: "1.2",
         }}
       >
-        Interactivity is a requirement
+        INTERACTIVITY IS A REQUIREMENT
       </div>
 
       {/* Deployments must be live - Lower Left */}
       <div
         className="absolute text-white"
         style={{
-          top: "67%",
+          top: "45%",
           left: "5%",
           opacity: deploymentsOpacity,
           transform: `translateY(${35 * (1 - deploymentsOpacity)}px)`,
@@ -119,15 +120,16 @@ export default function CastShadowsText({
           lineHeight: "1.2",
         }}
       >
-        Deployments must be live
+        <div>DEPLOYMENTS MUST</div>
+        <div style={{ paddingLeft: "440px" }}>BE LIVE</div>
       </div>
 
       {/* All systems are modular - Below Deployments */}
       <div
         className="absolute text-white"
         style={{
-          top: "78%",
-          left: "5%",
+          top: "68%",
+          left: "10%",
           opacity: modularOpacity,
           transform: `translateY(${30 * (1 - modularOpacity)}px)`,
           transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
@@ -137,15 +139,15 @@ export default function CastShadowsText({
           lineHeight: "1.2",
         }}
       >
-        All systems are modular
+        ALL SYSTEMS ARE MODULAR
       </div>
 
       {/* AI is built in, not added on - Same line as modular, to the right */}
       <div
         className="absolute text-white"
         style={{
-          top: "78%",
-          left: "45%",
+          top: "68%",
+          left: "62%",
           opacity: aiBuiltInOpacity,
           transform: `translateY(${30 * (1 - aiBuiltInOpacity)}px)`,
           transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
@@ -155,23 +157,24 @@ export default function CastShadowsText({
           lineHeight: "1.2",
         }}
       >
-        AI is built in, not added on
+        AI IS BUILT IN, NOT ADDED ON
       </div>
 
       {/* LATENCY MATTERS - Lower Center-Right */}
       <div
         className="absolute text-white"
         style={{
-          top: "86%",
-          left: "55%",
+          top: "82%",
+          left: "45%",
           opacity: latencyOpacity,
           transform: `translateY(${40 * (1 - latencyOpacity)}px)`,
           transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
           fontSize: "64px",
-          fontWeight: "bold",
+          fontWeight: "normal",
           lineHeight: "1.2",
           letterSpacing: "2px",
+          whiteSpace: "nowrap",
         }}
       >
         LATENCY MATTERS
