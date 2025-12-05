@@ -25,169 +25,33 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* ABSOLUTE CURSOR HIDING - OVERRIDES EVERYTHING */
-/* Hide ALL cursors ALWAYS - no exceptions */
-html, body,
-html *, body *,
-*, *::before, *::after {
+/* Hide ALL cursors by default until scroll starts - cross-browser compatibility */
+body:not(.scroll-started),
+body:not(.scroll-started) *,
+body:not(.scroll-started) *::before,
+body:not(.scroll-started) *::after {
   cursor: none !important;
   -webkit-cursor: none !important;
   -moz-cursor: none !important;
   -ms-cursor: none !important;
   -o-cursor: none !important;
+}
+
+html:not(.scroll-started) {
+  cursor: none !important;
+  -webkit-cursor: none !important;
+  -moz-cursor: none !important;
+  -ms-cursor: none !important;
+  -o-cursor: none !important;
+}
+
+/* Force hide on specific elements that might override */
+body:not(.scroll-started) button,
+body:not(.scroll-started) a,
+body:not(.scroll-started) input,
+body:not(.scroll-started) textarea,
+body:not(.scroll-started) select {
+  cursor: none !important;
+  -webkit-cursor: none !important;
   pointer-events: auto !important;
-}
-
-/* Override any possible cursor classes including Tailwind */
-.cursor-pointer,
-.cursor-default,
-.cursor-auto,
-.cursor-text,
-.cursor-grab,
-.cursor-grabbing,
-.cursor-move,
-.cursor-resize,
-.cursor-help,
-.cursor-wait,
-.cursor-crosshair,
-.cursor-progress,
-.cursor-not-allowed {
-  cursor: none !important;
-  -webkit-cursor: none !important;
-  -moz-cursor: none !important;
-  -ms-cursor: none !important;
-  -o-cursor: none !important;
-}
-
-/* Force hide on ALL interactive elements */
-button, a, input, textarea, select,
-button *, a *, input *, textarea *, select *,
-[role="button"], [role="link"], [role="menuitem"],
-[onclick], [onmousedown], [onmouseup], [onmouseover],
-[tabindex], [href], [type="button"], [type="submit"],
-[contenteditable="true"], [draggable="true"] {
-  cursor: none !important;
-  -webkit-cursor: none !important;
-  -moz-cursor: none !important;
-  -ms-cursor: none !important;
-  -o-cursor: none !important;
-  pointer-events: auto !important;
-}
-
-/* Force hide on hover, focus, active states */
-*:hover, *:focus, *:active, *:visited, *:link,
-*:focus-visible, *:focus-within, *:target {
-  cursor: none !important;
-  -webkit-cursor: none !important;
-  -moz-cursor: none !important;
-  -ms-cursor: none !important;
-  -o-cursor: none !important;
-}
-
-/* Device-specific overrides */
-@media (pointer: coarse), (pointer: fine), (any-pointer: coarse), (any-pointer: fine) {
-  *, *:hover, *:focus, *:active {
-    cursor: none !important;
-  }
-}
-
-/* Browser-specific overrides */
-@-moz-document url-prefix() {
-  *, *:hover, *:focus, *:active {
-    cursor: none !important;
-  }
-}
-
-@supports (-webkit-appearance: none) {
-  *, *:hover, *:focus, *:active {
-    cursor: none !important;
-  }
-}
-
-/* ULTIMATE FAILSAFE - HIGHEST SPECIFICITY POSSIBLE */
-html body * {
-  cursor: none !important;
-}
-
-html body *:hover,
-html body *:focus,
-html body *:active,
-html body *:visited {
-  cursor: none !important;
-}
-
-/* Override any possible framework or library cursor styles */
-[class*="cursor"], 
-[style*="cursor"],
-[data-cursor] {
-  cursor: none !important;
-}
-
-/* Final failsafe for any dynamically added content */
-* {
-  cursor: none !important;
-}
-
-/* Ensure even iframe and embedded content follows the rule */
-iframe, object, embed {
-  cursor: none !important;
-}
-
-iframe *, object *, embed * {
-  cursor: none !important;
-}
-
-/* Additional OS-specific cursor hiding for maximum compatibility */
-* {
-  cursor: none !important;
-  -webkit-cursor: none !important;
-  -moz-cursor: none !important;
-  -ms-cursor: none !important;
-  -o-cursor: none !important;
-}
-
-/* Force cursor hiding on all possible selectors with maximum specificity */
-html * {
-  cursor: none !important;
-}
-
-body * {
-  cursor: none !important;
-}
-
-html body * {
-  cursor: none !important;
-}
-
-/* Override system cursor properties */
-:root {
-  --cursor: none !important;
-}
-
-/* Prevent any cursor property from being applied */
-[style*="cursor"] {
-  cursor: none !important;
-}
-
-/* WebKit-specific overrides */
-@media screen and (-webkit-min-device-pixel-ratio:0) {
-  *, *:hover, *:focus, *:active {
-    cursor: none !important;
-    -webkit-cursor: none !important;
-  }
-}
-
-/* Force cursor hiding on all input types */
-input[type="text"], input[type="password"], input[type="email"], 
-input[type="search"], input[type="tel"], input[type="url"],
-input[type="number"], input[type="range"], input[type="date"],
-input[type="time"], input[type="datetime-local"], input[type="month"],
-input[type="week"], input[type="color"], input[type="file"],
-textarea, select, button {
-  cursor: none !important;
-}
-
-/* Universal cursor override with highest possible specificity */
-html body div * {
-  cursor: none !important;
 }

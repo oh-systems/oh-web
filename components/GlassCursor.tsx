@@ -38,42 +38,13 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
     // Hide system cursor when our custom cursor is active
     if (scrollAnimationStarted) {
       document.body.style.cursor = 'none';
-      document.documentElement.style.cursor = 'none';
-      
       const style = document.createElement('style');
-      style.id = 'glass-cursor-hide';
       style.textContent = `
-        /* Force cursor hiding from GlassCursor component */
         *, *::before, *::after {
           cursor: none !important;
-          -webkit-cursor: none !important;
-          -moz-cursor: none !important;
-          -ms-cursor: none !important;
-          -o-cursor: none !important;
-        }
-        
-        /* Override any possible cursor properties */
-        html, body {
-          cursor: none !important;
-          -webkit-cursor: none !important;
-        }
-        
-        /* Browser-specific enforcement */
-        @media screen and (-webkit-min-device-pixel-ratio:0) {
-          *, *:hover, *:focus, *:active {
-            cursor: none !important;
-          }
         }
       `;
       document.head.appendChild(style);
-      
-      // Force cursor properties on all existing elements
-      const allElements = document.querySelectorAll('*');
-      allElements.forEach(el => {
-        if (el instanceof HTMLElement) {
-          el.style.setProperty('cursor', 'none', 'important');
-        }
-      });
     }
 
     return () => {
@@ -81,11 +52,16 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
       document.removeEventListener('mouseleave', handleMouseLeave);
       document.removeEventListener('mouseenter', handleMouseEnter);
       
-      // NEVER restore cursor - always keep it hidden
-      document.body.style.cursor = 'none';
-      document.documentElement.style.cursor = 'none';
+      // Restore default cursor
+      document.body.style.cursor = 'auto';
       
-      // Don't remove cursor hiding styles - keep them active
+      // Remove global cursor hiding
+      const styles = document.head.querySelectorAll('style');
+      styles.forEach(style => {
+        if (style.textContent?.includes('cursor: none !important')) {
+          style.remove();
+        }
+      });
     };
   }, [scrollAnimationStarted]);
 
@@ -94,7 +70,7 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
     if (scrollAnimationStarted) {
       setIsVisible(true);
     }
-  }, [scrollAnimationStarted]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [scrollAnimationStarted]);
 
   // Separate effect for animation loop
   useEffect(() => {

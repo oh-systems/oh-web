@@ -49,7 +49,7 @@ export default function SectionIndicator({
             return (
               <div key={`label-${section.id}`} className="flex items-start justify-end" style={{ height: isLast ? '8px' : '52px', paddingTop: '0px' }}>
                 <span
-                  className="transition-colors duration-200 select-none"
+                  className="cursor-pointer transition-colors duration-200 select-none"
                   onClick={() => handleSectionClick(section.id as 'overview' | 'mission' | 'space' | 'information')}
                   style={{
                     fontFamily: 'Be Vietnam, Arial, sans-serif',
@@ -80,7 +80,7 @@ export default function SectionIndicator({
               <div key={`circle-${section.id}`} className="flex flex-col items-center">
                 {/* Circle */}
                 <div
-                  className="rounded-full border transition-colors duration-200"
+                  className="rounded-full border transition-colors duration-200 cursor-pointer"
                   onClick={() => handleSectionClick(section.id as 'overview' | 'mission' | 'space' | 'information')}
                   style={{
                     width: '8px',

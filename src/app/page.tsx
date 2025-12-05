@@ -26,8 +26,6 @@ export default function Home() {
 
   // Simple cursor management - CSS handles most of the work
   useEffect(() => {
-    let mutationObserver: MutationObserver;
-
     // Force inline styles as additional backup
     const enforceCursorHiding = () => {
       document.documentElement.style.setProperty('cursor', 'none', 'important');
@@ -37,8 +35,7 @@ export default function Home() {
     // Enforce cursor hiding on mount and periodically
     enforceCursorHiding();
     const interval = setInterval(enforceCursorHiding, 100);
-
-    const forceCursorHiding = () => {
+      
       // Remove and recreate style element to ensure it's applied
       const existingStyle = document.getElementById('cursor-hiding-rules');
       if (existingStyle) {
@@ -202,74 +199,63 @@ export default function Home() {
       });
     };
 
-    // Always enforce cursor hiding
-    forceCursorHiding();
-    
-    // Set up continuous enforcement with more aggressive checking
-    const cursorHidingInterval = setInterval(() => {
+    if (!scrollAnimationStarted) {
+      // Initial cursor hiding
       forceCursorHiding();
       
-      // Additional browser-specific cursor hiding
-      try {
-        // Force cursor properties on document
-        document.documentElement.setAttribute('style', 'cursor: none !important');
-        document.body.setAttribute('style', 'cursor: none !important');
-        
-        // Override any CSS cursor properties
-        const allElements = document.querySelectorAll('*');
-        allElements.forEach(el => {
-          if (el instanceof HTMLElement) {
-            el.style.setProperty('cursor', 'none', 'important');
-            el.removeAttribute('data-cursor');
-            // Remove any cursor-related classes
-            if (el.className) {
-              el.className = el.className.replace(/cursor-[a-z-]+/g, '');
-            }
-          }
-        });
-        
-        // Browser-specific overrides
-        if (navigator.userAgent.includes('Chrome')) {
-          document.documentElement.style.setProperty('-webkit-cursor', 'none', 'important');
+      // Set up continuous enforcement
+      cursorHidingInterval = setInterval(forceCursorHiding, 50); // More frequent updates
+      
+      // Watch for DOM changes
+      observeAndHideCursor();
+      
+      // Handle page visibility changes
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          setTimeout(forceCursorHiding, 10);
         }
-        if (navigator.userAgent.includes('Firefox')) {
-          document.documentElement.style.setProperty('-moz-cursor', 'none', 'important');
-        }
-        if (navigator.userAgent.includes('Safari')) {
-          document.documentElement.style.setProperty('-webkit-cursor', 'none', 'important');
-        }
-        if (navigator.userAgent.includes('Edge')) {
-          document.documentElement.style.setProperty('-ms-cursor', 'none', 'important');
-        }
-      } catch {
-        // Ignore any errors
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      // Handle window focus
+      const handleFocus = () => setTimeout(forceCursorHiding, 10);
+      window.addEventListener('focus', handleFocus);
+      
+      return () => {
+        clearInterval(cursorHidingInterval);
+        mutationObserver?.disconnect();
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('focus', handleFocus);
+      };
+    } else {
+      // Cleanup when scroll starts
+      if (cursorHidingInterval) {
+        clearInterval(cursorHidingInterval);
       }
-    }, 16); // Run at ~60fps for maximum coverage
-    
-    // Watch for DOM changes
-    observeAndHideCursor();
-    
-    // Handle page visibility changes
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        setTimeout(forceCursorHiding, 10);
+      mutationObserver?.disconnect();
+      
+      const style = document.getElementById('cursor-hiding-rules');
+      if (style) {
+        style.remove();
       }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Handle window focus
-    const handleFocus = () => setTimeout(forceCursorHiding, 10);
-    window.addEventListener('focus', handleFocus);
-    
+      
+      // Reset all inline styles
+      document.documentElement.style.removeProperty('cursor');
+      document.body.style.removeProperty('cursor');
+      document.documentElement.style.removeProperty('--cursor');
+      document.body.style.removeProperty('--cursor');
+      
+      // Reset styles on all elements
+      const allElements = document.querySelectorAll('*');
+      allElements.forEach(el => {
+        if (el instanceof HTMLElement) {
+          el.style.removeProperty('cursor');
+        }
+      });
     return () => {
       clearInterval(interval);
-      clearInterval(cursorHidingInterval);
-      mutationObserver?.disconnect();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
     };
   }, []);
-
   const [navigationFadeProgress, setNavigationFadeProgress] = useState(0);
   const [activeCard, setActiveCard] = useState<string | null>(null);
   const [castSwapProgress, setCastSwapProgress] = useState(0);
