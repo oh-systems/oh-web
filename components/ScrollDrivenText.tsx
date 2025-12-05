@@ -27,7 +27,7 @@ export default function ScrollDrivenText({
   scrollThreshold = 0.05, // Start animation when user starts scrolling
   animationDuration = 0.3, // Complete animation over 30% of scroll progress
   stopAtMiddle = false, // By default, move to top of screen
-  lineHeightMultiplier = 0.5, // very tight line spacing for almost touching lines
+  lineHeightMultiplier = 0.6, // very tight line spacing for almost touching lines
 }: ScrollDrivenTextProps) {
   const [hasInitiallyAnimated, setHasInitiallyAnimated] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
@@ -72,7 +72,7 @@ export default function ScrollDrivenText({
             display: block;
             transform: translateY(100%);
             opacity: 0;
-            animation: letterSlideUp 1.2s ease-out forwards;
+            animation: letterSlideUp 2.4s ease-out forwards;
             animation-delay: ${baseDelay}ms;
           `;
           
