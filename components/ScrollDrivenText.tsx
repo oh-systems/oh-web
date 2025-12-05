@@ -27,7 +27,7 @@ export default function ScrollDrivenText({
   scrollThreshold = 0.05, // Start animation when user starts scrolling
   animationDuration = 0.3, // Complete animation over 30% of scroll progress
   stopAtMiddle = false, // By default, move to top of screen
-  lineHeightMultiplier = 0.5, // default matches previous hardcoded value
+  lineHeightMultiplier = 0.5, // very tight line spacing for almost touching lines
 }: ScrollDrivenTextProps) {
   const [hasInitiallyAnimated, setHasInitiallyAnimated] = useState(false);
   const textRef = useRef<HTMLDivElement>(null);
@@ -62,7 +62,7 @@ export default function ScrollDrivenText({
             display: inline-block;
             overflow: hidden;
             vertical-align: top;
-            height: 1.2em;
+            height: ${lineHeightMultiplier}em;
           `;
           
           // Create the actual letter span that will animate
@@ -178,8 +178,8 @@ export default function ScrollDrivenText({
           key={`${line}-${index}`}
           style={{
             overflow: 'visible', // Allow text to move outside bounds
-            minHeight: `${fontSize * lineHeightMultiplier}px`,
-            marginBottom: effectiveMarginBottom,
+            marginBottom: '-0.3em', // Pull lines closer together
+            paddingBottom: 0,
           }}
         >
           <p

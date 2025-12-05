@@ -18,11 +18,58 @@ import {
 import { GlassSections } from "../../components/GlassSections";
 import { useAppContext } from "./AppContent";
 
+// ==================== STAGE CONFIGURATION ====================
+// Move config objects outside component to prevent recreation on every render
+const STAGE_1_CONFIG = {
+  fadeStartProgress: 0.001, // Start fading immediately (0.1% of scroll progress)
+  fadeDuration: 0.02, // Complete fade over 2% of scroll progress - very quick fade
+  slideDistance: 20, // Pixels to slide upward during fade animation
+};
+
+// Stage 2: Model Swap (Initial Scroll to Cast Shadows) - black buffer transition
+const MODEL_SWAP_CONFIG = {
+  swapStart: 0.167, // Start transition after initial scroll ends (20s/120s = 16.7%)
+  swapEnd: 0.183, // Black buffer period (16.7% to 18.3%)
+  animationStart: 0.2, // Cast Shadows animation begins after black buffer (24s)
+  animationEnd: 0.533, // Cast Shadows ends at 53.3% (40s duration: 24s-64s)
+};
+
+// Stage 3: Third Laptop Model Swap (Cast Shadows to Third Laptop) - black buffer transition
+const LAPTOP_SWAP_CONFIG = {
+  swapStart: 0.533, // Begin transition when Cast Shadows ends
+  swapEnd: 0.55, // Black buffer period (53.3% to 55%)
+  animationStart: 0.567, // Laptop animation begins after black buffer (68s)
+  animationEnd: 0.8, // Laptop animation completes at 80% (96s, giving 28s duration)
+};
+
+// Text Sequence Configuration - Complete flow
+const TEXT_SEQUENCE = {
+  // Phase 1: Original first hero text "OH exists to redefine..."
+  firstHeroEnd: 0.15, // First hero text completes and fades
+
+  // Phase 2: "THE FUTURE OF..." + descriptive text (both on right side)
+  secondHeroStart: 0.17, // Start "THE FUTURE OF..." on right
+  secondHeroEnd: 0.3, // Stay until Cast Shadows text appears
+  descriptiveStart: 0.17, // Start descriptive text at same time
+  descriptiveEnd: 0.3, // Stay until Cast Shadows text appears
+
+  // Phase 3: Cast Shadows transition
+  castShadowsStart: 0.25, // Cast Shadows model appears
+
+  // Phase 4: Operating principles (all appear together)
+  principlesStart: 0.32, // Start operating principles after Cast Shadows transition
+  principlesEnd: 0.89, // End as Cast Shadows fades
+
+  // Phase 5: Laptop (no text)
+  laptopStart: 0.92, // Laptop appears with no text
+};
+// =============================================================
+
 export default function Home() {
   const [animationProgress, setAnimationProgress] = useState(0);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [scrollContentReady, setScrollContentReady] = useState(false);
-  const [scrollAnimationStarted, setScrollAnimationStarted] = useState(false);
+  const scrollAnimationStartedRef = useRef(false);
 
   // No cursor management needed - CSS always hides default cursor
   const [navigationFadeProgress, setNavigationFadeProgress] = useState(0);
@@ -142,50 +189,7 @@ export default function Home() {
     }, 16); // Single frame delay (60fps) to avoid conflicts but maintain smoothness
   };
 
-  // ==================== STAGE CONFIGURATION ====================
-  // Stage 1: Navigation & Ring Fade Out
-  const STAGE_1_CONFIG = {
-    fadeStartProgress: 0.001, // Start fading immediately (0.1% of scroll progress)
-    fadeDuration: 0.02, // Complete fade over 2% of scroll progress - very quick fade
-    slideDistance: 20, // Pixels to slide upward during fade animation
-  };
 
-  // Stage 2: Model Swap (Initial Scroll to Cast Shadows) - black buffer transition
-  const MODEL_SWAP_CONFIG = {
-    swapStart: 0.167, // Start transition after initial scroll ends (20s/120s = 16.7%)
-    swapEnd: 0.183, // Black buffer period (16.7% to 18.3%)
-    animationStart: 0.2, // Cast Shadows animation begins after black buffer (24s)
-    animationEnd: 0.533, // Cast Shadows ends at 53.3% (40s duration: 24s-64s)
-  };
-
-  // Stage 3: Third Laptop Model Swap (Cast Shadows to Third Laptop) - black buffer transition
-  const LAPTOP_SWAP_CONFIG = {
-    swapStart: 0.533, // Begin transition when Cast Shadows ends
-    swapEnd: 0.55, // Black buffer period (53.3% to 55%)
-    animationStart: 0.567, // Laptop animation begins after black buffer (68s)
-    animationEnd: 0.8, // Laptop animation completes at 80% (96s, giving 28s duration)
-  }; // Text Sequence Configuration - Complete flow
-  const TEXT_SEQUENCE = {
-    // Phase 1: Original first hero text "OH exists to redefine..."
-    firstHeroEnd: 0.15, // First hero text completes and fades
-
-    // Phase 2: "THE FUTURE OF..." + descriptive text (both on right side)
-    secondHeroStart: 0.17, // Start "THE FUTURE OF..." on right
-    secondHeroEnd: 0.3, // Stay until Cast Shadows text appears
-    descriptiveStart: 0.17, // Start descriptive text at same time
-    descriptiveEnd: 0.3, // Stay until Cast Shadows text appears
-
-    // Phase 3: Cast Shadows transition
-    castShadowsStart: 0.25, // Cast Shadows model appears
-
-    // Phase 4: Operating principles (all appear together)
-    principlesStart: 0.32, // Start operating principles after Cast Shadows transition
-    principlesEnd: 0.89, // End as Cast Shadows fades
-
-    // Phase 5: Laptop (no text)
-    laptopStart: 0.92, // Laptop appears with no text
-  };
-  // =============================================================
 
   // Track viewport dimensions for full-screen CastShadowsSequence
   useLayoutEffect(() => {
@@ -278,8 +282,8 @@ export default function Home() {
         // Start auto-scroll immediately when content is visible
         if (autoPlayTimeRef.current >= 0) {
           // Mark that scroll animation has actually started
-          if (!scrollAnimationStarted) {
-            setScrollAnimationStarted(true);
+          if (!scrollAnimationStartedRef.current) {
+            scrollAnimationStartedRef.current = true;
             document.body.classList.add("scroll-started");
             document.documentElement.classList.add("scroll-started");
 
@@ -752,28 +756,7 @@ export default function Home() {
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [
-    scrollContentReady,
-    initialLoadComplete,
-    scrollAnimationStarted,
-    STAGE_1_CONFIG.fadeStartProgress,
-    STAGE_1_CONFIG.fadeDuration,
-    MODEL_SWAP_CONFIG.swapStart,
-    MODEL_SWAP_CONFIG.swapEnd,
-    MODEL_SWAP_CONFIG.animationStart,
-    MODEL_SWAP_CONFIG.animationEnd,
-    LAPTOP_SWAP_CONFIG.swapStart,
-    LAPTOP_SWAP_CONFIG.swapEnd,
-    LAPTOP_SWAP_CONFIG.animationStart,
-    LAPTOP_SWAP_CONFIG.animationEnd,
-    TEXT_SEQUENCE.firstHeroEnd,
-    TEXT_SEQUENCE.secondHeroStart,
-    TEXT_SEQUENCE.secondHeroEnd,
-    TEXT_SEQUENCE.descriptiveStart,
-    TEXT_SEQUENCE.descriptiveEnd,
-    TEXT_SEQUENCE.principlesStart,
-    TEXT_SEQUENCE.principlesEnd,
-  ]);
+  }, [scrollContentReady]);
 
   // Don't render main content until transition is complete
   if (!transitionComplete) {
