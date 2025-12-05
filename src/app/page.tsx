@@ -85,7 +85,9 @@ export default function Home() {
   };
 
   // Handle section navigation clicks
-  const handleSectionClick = (section: "overview" | "mission" | "space" | "information") => {
+  const handleSectionClick = (
+    section: "overview" | "mission" | "space" | "information"
+  ) => {
     // Stop auto-play and directly control scroll position
     isAutoPlayingRef.current = false;
 
@@ -111,8 +113,7 @@ export default function Home() {
     }
 
     // Update auto-play time to current position
-    autoPlayTimeRef.current =
-      (scrollAccumulatorRef.current / maxScroll) * 80;
+    autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScroll) * 80;
 
     // Force animation update (this will recalculate section but should match what we just set)
     if (updateAnimationProgressRef.current) {
@@ -136,7 +137,8 @@ export default function Home() {
       lastAutoPlayTimeRef.current = performance.now();
       // Sync auto-play time to current scroll position to prevent catch-up
       const maxScrollRange = window.innerHeight * 4.5;
-      autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScrollRange) * 100;
+      autoPlayTimeRef.current =
+        (scrollAccumulatorRef.current / maxScrollRange) * 100;
     }, 16); // Single frame delay (60fps) to avoid conflicts but maintain smoothness
   };
 
@@ -160,7 +162,7 @@ export default function Home() {
   const LAPTOP_SWAP_CONFIG = {
     swapStart: 0.533, // Begin transition when Cast Shadows ends
     swapEnd: 0.55, // Black buffer period (53.3% to 55%)
-    animationStart: 0.567, // Laptop animation begins after black buffer (68s)  
+    animationStart: 0.567, // Laptop animation begins after black buffer (68s)
     animationEnd: 0.8, // Laptop animation completes at 80% (96s, giving 28s duration)
   }; // Text Sequence Configuration - Complete flow
   const TEXT_SEQUENCE = {
@@ -241,11 +243,14 @@ export default function Home() {
   // Scroll-to-progress animation system with auto-play
   useLayoutEffect(() => {
     if (!scrollContentReady) return; // Only start animation when content is ready
-    
+
     let animationFrameId: number;
 
     // Initialize refs only when starting
-    if (autoPlayTimeRef.current === undefined || autoPlayTimeRef.current === null) {
+    if (
+      autoPlayTimeRef.current === undefined ||
+      autoPlayTimeRef.current === null
+    ) {
       scrollAccumulatorRef.current = 0;
       targetScrollRef.current = 0;
       autoPlayTimeRef.current = 0;
@@ -261,7 +266,8 @@ export default function Home() {
 
       // Auto-play progression when not scrolling - continue through footer
       const currentProgress = scrollAccumulatorRef.current / maxScrollRange;
-      if (isAutoPlayingRef.current && currentProgress < 1.0) { // Continue auto-play through footer
+      if (isAutoPlayingRef.current && currentProgress < 1.0) {
+        // Continue auto-play through footer
         const now = performance.now();
         const deltaTime = (now - lastAutoPlayTimeRef.current) / 1000; // Convert to seconds
         lastAutoPlayTimeRef.current = now;
@@ -274,16 +280,16 @@ export default function Home() {
           // Mark that scroll animation has actually started
           if (!scrollAnimationStarted) {
             setScrollAnimationStarted(true);
-            document.body.classList.add('scroll-started');
-            document.documentElement.classList.add('scroll-started');
-            
+            document.body.classList.add("scroll-started");
+            document.documentElement.classList.add("scroll-started");
+
             // Remove forced cursor hiding
-            const style = document.getElementById('cursor-hiding-rules');
+            const style = document.getElementById("cursor-hiding-rules");
             if (style) {
               style.remove();
             }
           }
-          
+
           const autoScrollProgress =
             (autoPlayTimeRef.current / 100) * maxScrollRange; // 100 seconds total to include footer progression
 
@@ -654,14 +660,14 @@ export default function Home() {
         touchMultiplier = 0.3; // Even faster footer touch scrolling
       }
 
-      const limitedDelta = Math.max(
-        -4,
-        Math.min(4, deltaY * touchMultiplier)
-      );
+      const limitedDelta = Math.max(-4, Math.min(4, deltaY * touchMultiplier));
 
       targetScrollRef.current = Math.max(
         0,
-        Math.min(targetScrollRef.current + limitedDelta, window.innerHeight * 4.5)
+        Math.min(
+          targetScrollRef.current + limitedDelta,
+          window.innerHeight * 4.5
+        )
       );
 
       scrollAccumulatorRef.current +=
@@ -849,12 +855,6 @@ export default function Home() {
               }}
               priority={true}
             />
-
-            {/* Loading text */}
-            <div className="absolute bottom-32 text-white text-center">
-              <div className="text-lg mb-2">Loading Experience</div>
-              <div className="text-sm opacity-70">Please wait...</div>
-            </div>
           </div>
         )}
 
@@ -865,15 +865,22 @@ export default function Home() {
               {/* Initial Scroll sequence - no artificial fading, images handle their own transitions */}
               <div
                 style={{
-                  display: rawProgress < MODEL_SWAP_CONFIG.swapStart ? "block" : "none", // Show only during initial scroll period
+                  display:
+                    rawProgress < MODEL_SWAP_CONFIG.swapStart
+                      ? "block"
+                      : "none", // Show only during initial scroll period
                   position: "absolute",
-                  pointerEvents: rawProgress < MODEL_SWAP_CONFIG.swapStart ? "auto" : "none",
+                  pointerEvents:
+                    rawProgress < MODEL_SWAP_CONFIG.swapStart ? "auto" : "none",
                 }}
               >
                 <InitialScrollSequence
                   width={1000}
                   height={800}
-                  scrollProgress={Math.min(rawProgress / MODEL_SWAP_CONFIG.swapStart, 1)} // Map 0-25% raw progress to 0-100% sequence
+                  scrollProgress={Math.min(
+                    rawProgress / MODEL_SWAP_CONFIG.swapStart,
+                    1
+                  )} // Map 0-25% raw progress to 0-100% sequence
                   priority={true}
                 />
               </div>
@@ -881,7 +888,11 @@ export default function Home() {
               {/* Black buffer overlay between Initial Scroll and Cast Shadows */}
               <div
                 style={{
-                  display: (rawProgress >= MODEL_SWAP_CONFIG.swapStart && rawProgress <= MODEL_SWAP_CONFIG.swapEnd) ? "block" : "none",
+                  display:
+                    rawProgress >= MODEL_SWAP_CONFIG.swapStart &&
+                    rawProgress <= MODEL_SWAP_CONFIG.swapEnd
+                      ? "block"
+                      : "none",
                   position: "absolute",
                   inset: 0,
                   width: "100vw",
@@ -922,7 +933,11 @@ export default function Home() {
               {/* Black buffer overlay between Cast Shadows and Third Laptop */}
               <div
                 style={{
-                  display: (rawProgress >= LAPTOP_SWAP_CONFIG.swapStart && rawProgress <= LAPTOP_SWAP_CONFIG.swapEnd) ? "block" : "none",
+                  display:
+                    rawProgress >= LAPTOP_SWAP_CONFIG.swapStart &&
+                    rawProgress <= LAPTOP_SWAP_CONFIG.swapEnd
+                      ? "block"
+                      : "none",
                   position: "absolute",
                   inset: 0,
                   width: "100vw",
@@ -1065,13 +1080,13 @@ export default function Home() {
 
         {/* Footer - appears when in information section */}
         {currentSection === "information" && (
-          <Footer 
-            scrollProgress={(rawProgress - 0.8) / 0.2} 
+          <Footer
+            scrollProgress={(rawProgress - 0.8) / 0.2}
             onRingCenterComplete={() => {
               // Lock scroll once ring reaches center
               if (containerRef.current) {
-                containerRef.current.style.overflow = 'hidden';
-                containerRef.current.style.touchAction = 'none';
+                containerRef.current.style.overflow = "hidden";
+                containerRef.current.style.touchAction = "none";
                 // Prevent further scroll accumulation
                 const maxScrollRange = window.innerHeight * 4.5;
                 scrollAccumulatorRef.current = maxScrollRange * 1.0;
@@ -1079,7 +1094,6 @@ export default function Home() {
             }}
           />
         )}
-
       </div>
 
       {/* Glass Sections for About and Contact - rendered outside main container like Navigation */}

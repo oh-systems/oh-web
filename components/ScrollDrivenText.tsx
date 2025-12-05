@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 type TextAlign = 'left' | 'center' | 'right';
 
@@ -30,12 +30,61 @@ export default function ScrollDrivenText({
   lineHeightMultiplier = 0.5, // default matches previous hardcoded value
 }: ScrollDrivenTextProps) {
   const [hasInitiallyAnimated, setHasInitiallyAnimated] = useState(false);
+  const textRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Initial slide-up animation on mount
     const timeout = setTimeout(() => setHasInitiallyAnimated(true), 300);
     return () => clearTimeout(timeout);
   }, []);
+
+  // Split text into letters and animate them
+  useEffect(() => {
+    if (textRef.current && hasInitiallyAnimated) {
+      const paragraphs = textRef.current.querySelectorAll('p');
+      
+      paragraphs.forEach((paragraph, paragraphIndex) => {
+        const text = paragraph.textContent || '';
+        
+        // Hide the paragraph initially to prevent flash
+        (paragraph as HTMLElement).style.visibility = 'hidden';
+        
+        paragraph.innerHTML = '';
+        
+        // Hero text appears after navigation completes
+        const baseDelay = 1500; // 1.5s delay to appear after navigation
+        
+        // Split into letters and create animated spans
+        text.split('').forEach((char, charIndex) => {
+          // Create container for each letter with overflow hidden
+          const letterContainer = document.createElement('span');
+          letterContainer.style.cssText = `
+            display: inline-block;
+            overflow: hidden;
+            vertical-align: top;
+            height: 1.2em;
+          `;
+          
+          // Create the actual letter span that will animate
+          const letterSpan = document.createElement('span');
+          letterSpan.textContent = char === ' ' ? '\u00A0' : char;
+          letterSpan.style.cssText = `
+            display: block;
+            transform: translateY(100%);
+            opacity: 0;
+            animation: letterSlideUp 1.2s ease-out forwards;
+            animation-delay: ${baseDelay}ms;
+          `;
+          
+          letterContainer.appendChild(letterSpan);
+          paragraph.appendChild(letterContainer);
+        });
+        
+        // Show the paragraph now that letters are ready
+        (paragraph as HTMLElement).style.visibility = 'visible';
+      });
+    }
+  }, [hasInitiallyAnimated]);
 
   // Calculate scroll-driven animation progress
   const scrollAnimationProgress = Math.max(0, Math.min(1, 
@@ -99,6 +148,7 @@ export default function ScrollDrivenText({
 
   return (
     <div 
+      ref={textRef}
       className={`${className} z-40`}
       style={{
         fontFamily: "'Spartan', Helvetica, Arial, sans-serif",
@@ -133,18 +183,17 @@ export default function ScrollDrivenText({
           }}
         >
           <p
+            className="hero-text-paragraph"
             style={{
               margin: 0,
               padding: 0,
               lineHeight: lineHeightMultiplier,
-              transform: hasInitiallyAnimated ? getLineTransform() : 'translateY(30px)',
-              opacity: hasInitiallyAnimated ? getLineOpacity() : 0,
+              transform: scrollProgress > scrollThreshold ? getLineTransform() : 'translateY(0px)',
+              opacity: scrollProgress > scrollThreshold ? getLineOpacity() : 1,
               transition: scrollProgress > scrollThreshold 
                 ? 'transform 0.1s ease-out, opacity 0.2s ease-out' 
                 : 'none',
-              animation: hasInitiallyAnimated && scrollProgress < scrollThreshold
-                ? `initialSlideUp 3.0s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${index * 0.08}s both`
-                : 'none',
+              visibility: 'hidden', // Hide initially to prevent flash
             }}
           >
             {line}

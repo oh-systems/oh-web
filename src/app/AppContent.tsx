@@ -108,13 +108,11 @@ export default function AppContent({
       {/* Permanent phase: show static PermanentRing after transition */}
       {transitionComplete && <PermanentRing visible={permanentRingVisible} />}
 
-      {/* Content slides up from bottom when ring moves to corner */}
+      {/* Content is immediately visible - no global slide animation */}
       <div
         style={{
-          transition:
-            "transform 2000ms cubic-bezier(0.4, 0, 0.2, 1), opacity 2000ms cubic-bezier(0.4, 0, 0.2, 1)",
-          transform: contentVisible ? "translateY(0)" : "translateY(100px)",
-          opacity: contentVisible ? 1 : 0,
+          transform: "translateY(0)",
+          opacity: 1,
         }}
       >
         {children}

@@ -62,3 +62,73 @@ select,
   cursor: none !important;
   -webkit-cursor: none !important;
 }
+
+/* Slide-up animation for navigation */
+.slide-up {
+  animation: slide-up 0.9s cubic-bezier(0.65, 0, 0.35, 1) both;
+  margin: 0;
+  padding: 0;
+  display: inline-block;
+}
+
+.slide-up-delay-1 {
+  animation-delay: 0.05s;
+}
+
+.slide-up-delay-2 {
+  animation-delay: 0.1s;
+}
+
+.slide-up-delay-3 {
+  animation-delay: 0.15s;
+}
+
+@keyframes slide-up {
+  0% {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Navigation letter slide-up animation for hero text */
+@keyframes letterSlideUp {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0%);
+    opacity: 1;
+  }
+}
+
+/* Navigation letter fade-in animation (stays in place) */
+@keyframes navLetterFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Hide hero text initially to prevent flash */
+.hero-text-paragraph {
+  visibility: hidden !important;
+}
+
+.nav-letter {
+  display: inline-block;
+  transform: translateY(100px);
+  opacity: 0;
+}
+
+.nav-button {
+  overflow: hidden;
+  padding-bottom: 0.1em;
+  margin-bottom: -0.1em;
+}

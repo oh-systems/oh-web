@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface SectionIndicatorProps {
   currentSection: 'overview' | 'mission' | 'space' | 'information';
@@ -22,6 +22,17 @@ export default function SectionIndicator({
   className = '', 
   style 
 }: SectionIndicatorProps) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    // Show indicator with hero text after navigation completes
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 1500); // Same 1.5s delay as hero text
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleSectionClick = (sectionId: 'overview' | 'mission' | 'space' | 'information') => {
     onSectionClick?.(sectionId);
   };
@@ -36,6 +47,9 @@ export default function SectionIndicator({
         transform: 'translateY(-50%)',
         zIndex: 1000,
         pointerEvents: 'auto',
+        opacity: isVisible ? 1 : 0,
+        visibility: isVisible ? 'visible' : 'hidden',
+        transition: 'opacity 0.6s ease-out, visibility 0s linear 0.6s',
         ...style
       }}
     >

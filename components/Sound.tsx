@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface SoundProps {
   className?: string;
@@ -15,6 +15,18 @@ export default function Sound({
   onToggle,
   isEnabled = true
 }: SoundProps) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    // Show sound component after hero text animation completes
+    // Nav duration (1.2s) + Hero delay (1.5s) + Hero duration (1.2s) + buffer = 4.4s
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, 2700); // 2.7s delay to appear after hero text animation
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div 
       className={`sound-container ${className}`}
@@ -28,6 +40,8 @@ export default function Sound({
         display: 'flex',
         alignItems: 'center',
         gap: '10px',
+        opacity: isVisible ? 1 : 0,
+        transition: 'opacity 0.6s ease-out',
         cursor: 'pointer',
         userSelect: 'none',
       }}
