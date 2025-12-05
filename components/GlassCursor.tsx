@@ -47,9 +47,9 @@ const GlassCursor = () => {
       }}
     >
       <GlassSurface
-        width={160}
-        height={160}
-        borderRadius={80}
+        width={112}
+        height={112}
+        borderRadius={56}
         borderWidth={0}
         brightness={50}
         opacity={0.93}

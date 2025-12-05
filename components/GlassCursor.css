@@ -1,7 +1,7 @@
 .glass-cursor {
   position: fixed;
-  width: 160px;
-  height: 160px;
+  width: 112px;
+  height: 112px;
   pointer-events: none;
   z-index: 999999999;
   transform: translate(-50%, -50%);
