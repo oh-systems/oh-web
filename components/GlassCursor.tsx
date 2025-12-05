@@ -25,8 +25,17 @@ const GlassCursor = () => {
     document.addEventListener('mouseleave', handleMouseLeave);
     document.addEventListener('mouseenter', handleMouseEnter);
 
-    // Hide default cursor
+    // Hide default cursor globally
     document.body.style.cursor = 'none';
+    
+    // Hide cursor on all interactive elements
+    const style = document.createElement('style');
+    style.textContent = `
+      *, *::before, *::after {
+        cursor: none !important;
+      }
+    `;
+    document.head.appendChild(style);
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
@@ -34,6 +43,14 @@ const GlassCursor = () => {
       document.removeEventListener('mouseenter', handleMouseEnter);
       // Restore default cursor
       document.body.style.cursor = 'auto';
+      
+      // Remove global cursor hiding
+      const styles = document.head.querySelectorAll('style');
+      styles.forEach(style => {
+        if (style.textContent?.includes('cursor: none !important')) {
+          style.remove();
+        }
+      });
     };
   }, [isVisible]);
 
@@ -47,9 +64,9 @@ const GlassCursor = () => {
       }}
     >
       <GlassSurface
-        width={112}
-        height={112}
-        borderRadius={56}
+        width={78}
+        height={78}
+        borderRadius={39}
         borderWidth={0}
         brightness={50}
         opacity={0.93}
