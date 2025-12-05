@@ -25,14 +25,33 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Hide ALL cursors by default until scroll starts */
+/* Hide ALL cursors by default until scroll starts - cross-browser compatibility */
+body:not(.scroll-started),
 body:not(.scroll-started) *,
 body:not(.scroll-started) *::before,
-body:not(.scroll-started) *::after,
-body:not(.scroll-started) {
+body:not(.scroll-started) *::after {
   cursor: none !important;
+  -webkit-cursor: none !important;
+  -moz-cursor: none !important;
+  -ms-cursor: none !important;
+  -o-cursor: none !important;
 }
 
 html:not(.scroll-started) {
   cursor: none !important;
+  -webkit-cursor: none !important;
+  -moz-cursor: none !important;
+  -ms-cursor: none !important;
+  -o-cursor: none !important;
+}
+
+/* Force hide on specific elements that might override */
+body:not(.scroll-started) button,
+body:not(.scroll-started) a,
+body:not(.scroll-started) input,
+body:not(.scroll-started) textarea,
+body:not(.scroll-started) select {
+  cursor: none !important;
+  -webkit-cursor: none !important;
+  pointer-events: auto !important;
 }

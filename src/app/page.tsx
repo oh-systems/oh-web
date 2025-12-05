@@ -23,6 +23,87 @@ export default function Home() {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [scrollContentReady, setScrollContentReady] = useState(false);
   const [scrollAnimationStarted, setScrollAnimationStarted] = useState(false);
+
+  // Aggressive cursor hiding for cross-browser compatibility
+  useEffect(() => {
+    const forceCursorHiding = () => {
+      // Set inline styles with maximum priority
+      document.documentElement.style.setProperty('cursor', 'none', 'important');
+      document.body.style.setProperty('cursor', 'none', 'important');
+      
+      // Create comprehensive cursor hiding rules for all browsers
+      const style = document.createElement('style');
+      style.id = 'cursor-hiding-rules';
+      style.textContent = `
+        /* Universal cursor hiding */
+        *, *::before, *::after,
+        html, body,
+        div, span, p, h1, h2, h3, h4, h5, h6,
+        a, button, input, textarea, select,
+        img, canvas, svg,
+        nav, header, footer, main, section, article {
+          cursor: none !important;
+          -webkit-cursor: none !important;
+          -moz-cursor: none !important;
+          -o-cursor: none !important;
+          -ms-cursor: none !important;
+        }
+        
+        /* Hover states */
+        *:hover, *:focus, *:active {
+          cursor: none !important;
+          -webkit-cursor: none !important;
+        }
+        
+        /* Webkit specific rules */
+        * {
+          -webkit-touch-callout: none !important;
+          -webkit-user-select: none !important;
+          -webkit-tap-highlight-color: transparent !important;
+        }
+        
+        /* Firefox specific */
+        @-moz-document url-prefix() {
+          * {
+            cursor: none !important;
+          }
+        }
+        
+        /* Internet Explorer / Edge */
+        @media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {
+          * {
+            cursor: none !important;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+      
+      // Additional DOM manipulation for stubborn browsers
+      const allElements = document.querySelectorAll('*');
+      allElements.forEach(el => {
+        if (el instanceof HTMLElement) {
+          el.style.setProperty('cursor', 'none', 'important');
+        }
+      });
+    };
+
+    if (!scrollAnimationStarted) {
+      forceCursorHiding();
+      
+      // Continuously enforce cursor hiding until scroll starts
+      const interval = setInterval(forceCursorHiding, 100);
+      return () => clearInterval(interval);
+    } else {
+      // Remove global cursor hiding when scroll starts
+      const style = document.getElementById('cursor-hiding-rules');
+      if (style) {
+        style.remove();
+      }
+      // Reset inline styles
+      document.documentElement.style.removeProperty('cursor');
+      document.body.style.removeProperty('cursor');
+    }
+  }, [scrollAnimationStarted]);
   const [navigationFadeProgress, setNavigationFadeProgress] = useState(0);
   const [activeCard, setActiveCard] = useState<string | null>(null);
   const [castSwapProgress, setCastSwapProgress] = useState(0);
@@ -273,6 +354,13 @@ export default function Home() {
           if (!scrollAnimationStarted) {
             setScrollAnimationStarted(true);
             document.body.classList.add('scroll-started');
+            document.documentElement.classList.add('scroll-started');
+            
+            // Remove forced cursor hiding
+            const style = document.getElementById('cursor-hiding-rules');
+            if (style) {
+              style.remove();
+            }
           }
           
           const autoScrollProgress =
