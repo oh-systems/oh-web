@@ -13,6 +13,7 @@ import {
   CastShadowsText,
   CardDemo,
   Footer,
+  GlassCursor,
 } from "../../components";
 import { GlassSections } from "../../components/GlassSections";
 import { useAppContext } from "./AppContent";
@@ -1071,6 +1072,9 @@ export default function Home() {
         onAboutClose={() => setShowAbout(false)}
         onContactClose={() => setShowContact(false)}
       />
+
+      {/* Glass Cursor - rendered last to be on top of everything */}
+      <GlassCursor />
     </>
   );
 }

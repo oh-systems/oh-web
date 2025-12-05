@@ -1,0 +1,45 @@
+.glass-cursor {
+  position: fixed;
+  width: 160px;
+  height: 160px;
+  pointer-events: none;
+  z-index: 999999999;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.3s ease;
+  opacity: 0;
+  will-change: transform;
+}
+
+.glass-cursor--visible {
+  opacity: 1;
+}
+
+.glass-cursor__surface {
+  width: 100%;
+  height: 100%;
+  border-radius: 50% !important;
+}
+
+.glass-cursor__content {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+/* Hide cursor on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .glass-cursor {
+    display: none;
+  }
+}
+
+/* Special cursor states for interactive elements */
+.glass-cursor--hover {
+  transform: translate(-50%, -50%) scale(1.2);
+  transition: transform 0.2s ease, opacity 0.3s ease;
+}
+
+.glass-cursor--click {
+  transform: translate(-50%, -50%) scale(0.9);
+  transition: transform 0.1s ease, opacity 0.3s ease;
+}
