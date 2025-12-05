@@ -25,11 +25,8 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Hide ALL cursors by default until scroll starts - cross-browser compatibility */
-body:not(.scroll-started),
-body:not(.scroll-started) *,
-body:not(.scroll-started) *::before,
-body:not(.scroll-started) *::after {
+/* STRONGEST POSSIBLE CURSOR HIDING - UNIVERSAL */
+* {
   cursor: none !important;
   -webkit-cursor: none !important;
   -moz-cursor: none !important;
@@ -37,7 +34,13 @@ body:not(.scroll-started) *::after {
   -o-cursor: none !important;
 }
 
-html:not(.scroll-started) {
+*:hover,
+*:focus,
+*:active,
+*:visited,
+*:link,
+*:focus-visible,
+*:focus-within {
   cursor: none !important;
   -webkit-cursor: none !important;
   -moz-cursor: none !important;
@@ -45,13 +48,60 @@ html:not(.scroll-started) {
   -o-cursor: none !important;
 }
 
-/* Force hide on specific elements that might override */
-body:not(.scroll-started) button,
-body:not(.scroll-started) a,
-body:not(.scroll-started) input,
-body:not(.scroll-started) textarea,
-body:not(.scroll-started) select {
+html,
+body,
+html *,
+body * {
   cursor: none !important;
   -webkit-cursor: none !important;
+  -moz-cursor: none !important;
+  -ms-cursor: none !important;
+  -o-cursor: none !important;
+}
+
+/* Specific element targeting */
+button,
+a,
+input,
+textarea,
+select,
+div,
+span,
+p,
+img,
+canvas,
+svg {
+  cursor: none !important;
+  -webkit-cursor: none !important;
+  -moz-cursor: none !important;
+  -ms-cursor: none !important;
+  -o-cursor: none !important;
   pointer-events: auto !important;
+}
+
+/* Cross-browser and cross-device support */
+@media (any-pointer: fine) {
+  * { cursor: none !important; }
+}
+
+@media (any-pointer: coarse) {
+  * { cursor: none !important; }
+}
+
+@media (pointer: fine) {
+  * { cursor: none !important; }
+}
+
+@media (pointer: coarse) {
+  * { cursor: none !important; }
+}
+
+/* WebKit specific */
+@supports (-webkit-appearance: none) {
+  * { cursor: none !important; }
+}
+
+/* Firefox specific */
+@-moz-document url-prefix() {
+  * { cursor: none !important; }
 }

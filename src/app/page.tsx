@@ -26,16 +26,11 @@ export default function Home() {
 
   // Simple cursor management - CSS handles most of the work
   useEffect(() => {
-    // Force inline styles as additional backup
-    const enforceCursorHiding = () => {
-      document.documentElement.style.setProperty('cursor', 'none', 'important');
-      document.body.style.setProperty('cursor', 'none', 'important');
-    };
+    let cursorHidingInterval: NodeJS.Timeout | null = null;
+    let mutationObserver: MutationObserver | null = null;
 
-    // Enforce cursor hiding on mount and periodically
-    enforceCursorHiding();
-    const interval = setInterval(enforceCursorHiding, 100);
-      
+    // Advanced cursor hiding with comprehensive CSS injection
+    const forceCursorHiding = () => {
       // Remove and recreate style element to ensure it's applied
       const existingStyle = document.getElementById('cursor-hiding-rules');
       if (existingStyle) {
@@ -222,40 +217,47 @@ export default function Home() {
       window.addEventListener('focus', handleFocus);
       
       return () => {
-        clearInterval(cursorHidingInterval);
+        if (cursorHidingInterval) {
+          clearInterval(cursorHidingInterval);
+        }
         mutationObserver?.disconnect();
         document.removeEventListener('visibilitychange', handleVisibilityChange);
         window.removeEventListener('focus', handleFocus);
       };
-    } else {
-      // Cleanup when scroll starts
+    } 
+
+    // Cleanup function that runs when component unmounts or dependencies change
+    return () => {
       if (cursorHidingInterval) {
         clearInterval(cursorHidingInterval);
       }
-      mutationObserver?.disconnect();
-      
-      const style = document.getElementById('cursor-hiding-rules');
-      if (style) {
-        style.remove();
+      if (mutationObserver) {
+        mutationObserver.disconnect();
       }
       
-      // Reset all inline styles
-      document.documentElement.style.removeProperty('cursor');
-      document.body.style.removeProperty('cursor');
-      document.documentElement.style.removeProperty('--cursor');
-      document.body.style.removeProperty('--cursor');
-      
-      // Reset styles on all elements
-      const allElements = document.querySelectorAll('*');
-      allElements.forEach(el => {
-        if (el instanceof HTMLElement) {
-          el.style.removeProperty('cursor');
+      // Clean up styles when scrolling starts
+      if (scrollAnimationStarted) {
+        const style = document.getElementById('cursor-hiding-rules');
+        if (style) {
+          style.remove();
         }
-      });
-    return () => {
-      clearInterval(interval);
+        
+        // Reset all inline styles
+        document.documentElement.style.removeProperty('cursor');
+        document.body.style.removeProperty('cursor');
+        document.documentElement.style.removeProperty('--cursor');
+        document.body.style.removeProperty('--cursor');
+        
+        // Reset styles on all elements
+        const allElements = document.querySelectorAll('*');
+        allElements.forEach(el => {
+          if (el instanceof HTMLElement) {
+            el.style.removeProperty('cursor');
+          }
+        });
+      }
     };
-  }, []);
+  }, [scrollAnimationStarted]);
   const [navigationFadeProgress, setNavigationFadeProgress] = useState(0);
   const [activeCard, setActiveCard] = useState<string | null>(null);
   const [castSwapProgress, setCastSwapProgress] = useState(0);
