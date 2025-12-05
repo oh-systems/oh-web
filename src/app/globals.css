@@ -25,33 +25,14 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* STRONGEST POSSIBLE CURSOR HIDING - UNIVERSAL */
-* {
-  cursor: none !important;
-  -webkit-cursor: none !important;
-  -moz-cursor: none !important;
-  -ms-cursor: none !important;
-  -o-cursor: none !important;
-}
-
-*:hover,
-*:focus,
-*:active,
-*:visited,
-*:link,
-*:focus-visible,
-*:focus-within {
-  cursor: none !important;
-  -webkit-cursor: none !important;
-  -moz-cursor: none !important;
-  -ms-cursor: none !important;
-  -o-cursor: none !important;
-}
-
+/* Always hide default cursor - only show GlassCursor */
 html,
 body,
 html *,
-body * {
+body *,
+*,
+*::before,
+*::after {
   cursor: none !important;
   -webkit-cursor: none !important;
   -moz-cursor: none !important;
@@ -59,49 +40,25 @@ body * {
   -o-cursor: none !important;
 }
 
-/* Specific element targeting */
+/* Force hide on all interactive elements */
 button,
 a,
 input,
 textarea,
 select,
-div,
-span,
-p,
-img,
-canvas,
-svg {
+[role="button"],
+[tabindex] {
   cursor: none !important;
   -webkit-cursor: none !important;
-  -moz-cursor: none !important;
-  -ms-cursor: none !important;
-  -o-cursor: none !important;
   pointer-events: auto !important;
 }
 
-/* Cross-browser and cross-device support */
-@media (any-pointer: fine) {
-  * { cursor: none !important; }
-}
-
-@media (any-pointer: coarse) {
-  * { cursor: none !important; }
-}
-
-@media (pointer: fine) {
-  * { cursor: none !important; }
-}
-
-@media (pointer: coarse) {
-  * { cursor: none !important; }
-}
-
-/* WebKit specific */
-@supports (-webkit-appearance: none) {
-  * { cursor: none !important; }
-}
-
-/* Firefox specific */
-@-moz-document url-prefix() {
-  * { cursor: none !important; }
+/* Override all possible cursor states */
+*:hover,
+*:focus,
+*:active,
+*:visited,
+*:link {
+  cursor: none !important;
+  -webkit-cursor: none !important;
 }

@@ -27,10 +27,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <Script
-          src="/cursor-hide.js"
-          strategy="beforeInteractive"
-        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

@@ -8,12 +8,20 @@ interface GlassCursorProps {
 
 const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
   const cursorRef = useRef<HTMLDivElement>(null);
-  const [cursorPosition, setCursorPosition] = useState({ x: typeof window !== 'undefined' ? window.innerWidth / 2 : 0, y: typeof window !== 'undefined' ? window.innerHeight / 2 : 0 });
+  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const [isVisible, setIsVisible] = useState(false);
-  const mousePositionRef = useRef({ x: typeof window !== 'undefined' ? window.innerWidth / 2 : 0, y: typeof window !== 'undefined' ? window.innerHeight / 2 : 0 });
+  const mousePositionRef = useRef({ x: 0, y: 0 });
   const animationFrameRef = useRef<number>(0);
 
   useEffect(() => {
+    // Initialize cursor position on client mount
+    if (typeof window !== 'undefined') {
+      const initialX = window.innerWidth / 2;
+      const initialY = window.innerHeight / 2;
+      setCursorPosition({ x: initialX, y: initialY });
+      mousePositionRef.current = { x: initialX, y: initialY };
+    }
+
     const handleMouseMove = (e: MouseEvent) => {
       if (!scrollAnimationStarted) return; // Don't track mouse until scroll animation starts
       
@@ -35,33 +43,10 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
     document.addEventListener('mouseleave', handleMouseLeave);
     document.addEventListener('mouseenter', handleMouseEnter);
 
-    // Hide system cursor when our custom cursor is active
-    if (scrollAnimationStarted) {
-      document.body.style.cursor = 'none';
-      const style = document.createElement('style');
-      style.textContent = `
-        *, *::before, *::after {
-          cursor: none !important;
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseleave', handleMouseLeave);
       document.removeEventListener('mouseenter', handleMouseEnter);
-      
-      // Restore default cursor
-      document.body.style.cursor = 'auto';
-      
-      // Remove global cursor hiding
-      const styles = document.head.querySelectorAll('style');
-      styles.forEach(style => {
-        if (style.textContent?.includes('cursor: none !important')) {
-          style.remove();
-        }
-      });
     };
   }, [scrollAnimationStarted]);
 
