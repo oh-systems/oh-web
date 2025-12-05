@@ -112,43 +112,7 @@ export default function ThirdLaptopSequence({
     [imagePaths, totalFrames]
   );
 
-  // Aggressive preloading strategy
-  useEffect(() => {
-    if (!isInView) return;
-
-    const framesToPreload = 30;
-    const preloadBatch: number[] = [];
-
-    // Priority: current frame and immediate neighbors
-    for (let i = -10; i <= 10; i++) {
-      const frame = displayFrame + i;
-      if (frame >= 0 && frame < totalFrames) {
-        preloadBatch.push(frame);
-      }
-    }
-
-    // Then preload further ahead
-    for (let i = 11; i <= framesToPreload; i++) {
-      const frame = displayFrame + i;
-      if (frame >= 0 && frame < totalFrames) {
-        preloadBatch.push(frame);
-      }
-    }
-
-    const preloadInBatch = () => {
-      preloadBatch.forEach((frame) => {
-        if (window.requestIdleCallback) {
-          window.requestIdleCallback(() => preloadFrame(frame), {
-            timeout: 100,
-          });
-        } else {
-          setTimeout(() => preloadFrame(frame), 0);
-        }
-      });
-    };
-
-    preloadInBatch();
-  }, [displayFrame, isInView, totalFrames, preloadFrame]);
+  // Removed individual frame preloading - now handled by batch preload above
 
   // Render frame to canvas
   const renderFrame = useCallback(
@@ -233,15 +197,50 @@ export default function ThirdLaptopSequence({
     return () => cancelAnimationFrame(frame);
   }, [displayFrame, renderFrame, isScrollDriven]);
 
-  // Intersection observer
+  // Intersection observer with aggressive preloading (similar to InitialLoadSequence)
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsInView(true);
-          for (let i = 0; i < Math.min(60, totalFrames); i++) {
-            preloadFrame(i);
-          }
+
+          // Preload all frames immediately for smooth experience
+          const preloadAllFrames = async () => {
+            console.log(`🚀 Starting preload of all ${totalFrames} Laptop frames...`);
+            const batchSize = 50; // Efficient batch size
+            
+            for (let batchStart = 0; batchStart < totalFrames; batchStart += batchSize) {
+              const batchEnd = Math.min(batchStart + batchSize, totalFrames);
+              const promises = [];
+              
+              // Load batch
+              for (let i = batchStart; i < batchEnd; i++) {
+                promises.push(
+                  new Promise<void>((resolve) => {
+                    preloadFrame(i);
+                    resolve();
+                  })
+                );
+              }
+              
+              await Promise.all(promises);
+              
+              // Set ready after first batch for immediate playback
+              if (batchStart === 0) {
+                setIsReady(true);
+                console.log(`✅ Laptop first batch loaded, ready to play`);
+              }
+              
+              // Very small delay between batches
+              if (batchEnd < totalFrames) {
+                await new Promise(resolve => setTimeout(resolve, 5));
+              }
+            }
+            
+            console.log(`🎯 All ${totalFrames} Laptop frames preloaded`);
+          };
+
+          preloadAllFrames();
         }
       },
       { threshold: 0.01, rootMargin: "200px" }

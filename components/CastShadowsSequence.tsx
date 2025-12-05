@@ -123,43 +123,7 @@ export default function CastShadowsSequence({
     [imagePaths]
   );
 
-  // Aggressive preloading strategy - match laptop approach
-  useEffect(() => {
-    if (!isInView) return;
-
-    const framesToPreload = 30;
-    const preloadBatch: number[] = [];
-
-    // Priority: current frame and immediate neighbors
-    for (let i = -10; i <= 10; i++) {
-      const frame = displayFrame + i;
-      if (frame >= 0 && frame < totalFrames) {
-        preloadBatch.push(frame);
-      }
-    }
-
-    // Then preload further ahead
-    for (let i = 11; i <= framesToPreload; i++) {
-      const frame = displayFrame + i;
-      if (frame >= 0 && frame < totalFrames) {
-        preloadBatch.push(frame);
-      }
-    }
-
-    const preloadInBatch = () => {
-      preloadBatch.forEach((frame) => {
-        if (window.requestIdleCallback) {
-          window.requestIdleCallback(() => preloadFrame(frame), {
-            timeout: 100,
-          });
-        } else {
-          setTimeout(() => preloadFrame(frame), 0);
-        }
-      });
-    };
-
-    preloadInBatch();
-  }, [displayFrame, isInView, totalFrames, preloadFrame]);
+  // Removed individual frame preloading - now handled by batch preload above
 
   // Render frame to canvas - match laptop approach exactly
   const renderFrame = useCallback(
@@ -202,45 +166,45 @@ export default function CastShadowsSequence({
     return () => cancelAnimationFrame(frame);
   }, [displayFrame, renderFrame]);
 
-  // Simple intersection observer
+  // Intersection observer with aggressive preloading (similar to InitialLoadSequence)
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsInView(true);
 
-          // Production-optimized initial preload
-          const preloadInitial = async () => {
-            // Load first 150 frames for better production experience
-            const initialBatch = Math.min(150, totalFrames);
-            const promises = [];
-
-            // Load in batches to prevent overwhelming network
-            for (let i = 0; i < initialBatch; i++) {
-              promises.push(preloadFrame(i));
-
-              // Process in batches of 20
-              if (promises.length >= 20) {
-                await Promise.all(promises);
-                promises.length = 0;
-                // Small delay between batches for production stability
-                await new Promise((resolve) => setTimeout(resolve, 10));
+          // Preload all frames immediately for smooth experience (like InitialLoadSequence)
+          const preloadAllFrames = async () => {
+            console.log(`🚀 Starting preload of all ${totalFrames} Cast Shadows frames...`);
+            const batchSize = 50; // Larger batches for efficiency
+            
+            for (let batchStart = 0; batchStart < totalFrames; batchStart += batchSize) {
+              const batchEnd = Math.min(batchStart + batchSize, totalFrames);
+              const promises = [];
+              
+              // Load batch
+              for (let i = batchStart; i < batchEnd; i++) {
+                promises.push(preloadFrame(i));
+              }
+              
+              await Promise.all(promises);
+              
+              // Set ready after first batch for immediate playback
+              if (batchStart === 0) {
+                setIsReady(true);
+                console.log(`✅ Cast Shadows first batch loaded, ready to play`);
+              }
+              
+              // Very small delay between batches to prevent overwhelming
+              if (batchEnd < totalFrames) {
+                await new Promise(resolve => setTimeout(resolve, 5));
               }
             }
-
-            if (promises.length > 0) {
-              await Promise.all(promises);
-            }
-
-            setIsReady(true);
-
-            // Continue loading remaining frames in background
-            for (let i = initialBatch; i < totalFrames; i++) {
-              setTimeout(() => preloadFrame(i), (i - initialBatch) * 25);
-            }
+            
+            console.log(`🎯 All ${totalFrames} Cast Shadows frames preloaded`);
           };
 
-          preloadInitial();
+          preloadAllFrames();
         }
       },
       { threshold: 0.1 }

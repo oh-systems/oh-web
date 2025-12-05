@@ -115,47 +115,7 @@ export default function InitialScrollSequence({
     [imagePaths]
   );
 
-  // Optimized preloading strategy - prioritize immediate frames
-  useEffect(() => {
-    if (!isInView) return;
-
-    const framesToPreload = 15; // Reduced preload window for better performance
-    const preloadBatch: number[] = [];
-
-    // Priority: current frame and immediate neighbors (critical for smooth scrolling)
-    for (let i = -2; i <= 8; i++) {
-      // Focus more on frames ahead
-      const frame = currentFrame + i;
-      if (frame >= 0 && frame < totalFrames) {
-        preloadBatch.push(frame);
-      }
-    }
-
-    // Then preload further ahead with lower priority
-    for (let i = 9; i <= framesToPreload; i++) {
-      const frame = currentFrame + i;
-      if (frame >= 0 && frame < totalFrames) {
-        preloadBatch.push(frame);
-      }
-    }
-
-    // Preload using requestIdleCallback with shorter timeout for better responsiveness
-    const preloadInBatch = () => {
-      preloadBatch.forEach((frame, index) => {
-        if (window.requestIdleCallback) {
-          // Prioritize immediate frames with shorter timeout
-          const timeout = index < 5 ? 16 : 50; // 16ms for critical frames, 50ms for others
-          window.requestIdleCallback(() => preloadFrame(frame), { timeout });
-        } else {
-          // Use different delays for priority
-          const delay = index < 5 ? 0 : 16;
-          setTimeout(() => preloadFrame(frame), delay);
-        }
-      });
-    };
-
-    preloadInBatch();
-  }, [currentFrame, isInView, totalFrames, preloadFrame]);
+  // Removed individual frame preloading - now handled by batch preload above
 
   // Render frame to canvas
   const renderFrame = useCallback(
@@ -279,16 +239,49 @@ export default function InitialScrollSequence({
     setTimeout(preloadCriticalFrames, 100);
   }, [totalFrames, preloadFrame]);
 
-  // Intersection observer for lazy loading
+  // Intersection observer with aggressive preloading (similar to InitialLoadSequence)
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsInView(true);
-          // Start preloading with just the first few frames for immediate responsiveness
-          for (let i = 0; i < Math.min(10, totalFrames); i++) {
-            preloadFrame(i);
-          }
+
+          // Preload all frames immediately for smooth scrolling experience
+          const preloadAllFrames = async () => {
+            console.log(`🚀 Starting preload of all ${totalFrames} Initial Scroll frames...`);
+            const batchSize = 50; // Efficient batch size
+            
+            for (let batchStart = 0; batchStart < totalFrames; batchStart += batchSize) {
+              const batchEnd = Math.min(batchStart + batchSize, totalFrames);
+              const promises = [];
+              
+              // Load batch
+              for (let i = batchStart; i < batchEnd; i++) {
+                promises.push(
+                  new Promise<void>((resolve) => {
+                    preloadFrame(i);
+                    resolve();
+                  })
+                );
+              }
+              
+              await Promise.all(promises);
+              
+              // Log progress for first batch
+              if (batchStart === 0) {
+                console.log(`✅ Initial Scroll first batch loaded`);
+              }
+              
+              // Very small delay between batches
+              if (batchEnd < totalFrames) {
+                await new Promise(resolve => setTimeout(resolve, 5));
+              }
+            }
+            
+            console.log(`🎯 All ${totalFrames} Initial Scroll frames preloaded`);
+          };
+
+          preloadAllFrames();
         }
       },
       { threshold: 0.01, rootMargin: "200px" }
