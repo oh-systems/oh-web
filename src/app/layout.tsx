@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" style={{cursor: 'none'}}>
+    <html lang="en">
       <head>
         <Script
           src="/cursor-hide.js"
@@ -34,7 +34,6 @@ export default function RootLayout({
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        style={{cursor: 'none'}}
       >
         <AppContent>{children}</AppContent>
       </body>
