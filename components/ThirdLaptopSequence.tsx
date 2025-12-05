@@ -196,11 +196,8 @@ export default function ThirdLaptopSequence({
           const easedProgress = 1 - Math.pow(1 - localProgress, 3);
           y = bottomY + (centerY - bottomY) * easedProgress;
         } else if (progress <= 0.6) {
-          // Stay in center (40% to 60% of animation - smooth dwell time)
-          const dwellProgress = (progress - 0.4) / 0.2; // 0 to 1
-          // Slight easing even during dwell for ultra-smooth feel
-          const microEase = 0.5 - 0.5 * Math.cos(dwellProgress * Math.PI);
-          y = centerY + (microEase - 0.5) * 5; // Very subtle movement (±2.5px)
+          // Stay perfectly still in center (40% to 60% of animation)
+          y = centerY;
         } else {
           // Move from center to top (last 40% of animation) with ease-in
           const localProgress = (progress - 0.6) / 0.4; // 0 to 1
