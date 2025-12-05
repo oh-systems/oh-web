@@ -11,6 +11,7 @@ import {
   CastShadowsSequence,
   ThirdLaptopSequence,
   CastShadowsText,
+  CastShadowsDetailsText,
   CardDemo,
   Footer,
   GlassCursor,
@@ -1107,6 +1108,11 @@ export default function Home() {
                 scrollProgress={castTextProgress}
                 fadeOutProgress={0} // No longer needed since we handle fade separately
               />
+            </div>
+
+            {/* Cast Shadows Details Text Sequence */}
+            <div className="absolute inset-0 z-[150] pointer-events-none">
+              <CastShadowsDetailsText scrollProgress={castAnimationProgress} />
             </div>
 
             {/* No third hero text - laptop appears without text */}
