@@ -94,7 +94,7 @@ export default function Home() {
   const [descriptiveTextOpacity, setDescriptiveTextOpacity] = useState(0);
   const [secondHeroOpacity, setSecondHeroOpacity] = useState(0);
   const [secondHeroPosition, setSecondHeroPosition] = useState(98); // Start at 98%
-  const [descriptiveTextPosition, setDescriptiveTextPosition] = useState(116); // Start 18% below second hero
+  const [descriptiveTextPosition, setDescriptiveTextPosition] = useState(98); // Start at same position
   const [castTextProgress, setCastTextProgress] = useState(0);
   const [firstHeroFadeOut, setFirstHeroFadeOut] = useState(0);
   const [showAbout, setShowAbout] = useState(false);
@@ -199,8 +199,6 @@ export default function Home() {
     }, 16); // Single frame delay (60fps) to avoid conflicts but maintain smoothness
   };
 
-
-
   // Track viewport dimensions for full-screen CastShadowsSequence
   useLayoutEffect(() => {
     const updateDimensions = () => {
@@ -226,18 +224,22 @@ export default function Home() {
   // Start preloading all sequences immediately when component mounts
   useEffect(() => {
     const startPreloading = async () => {
-      console.log('🎬 Starting to preload all sequences during initial load...');
-      
+      console.log(
+        "🎬 Starting to preload all sequences during initial load..."
+      );
+
       try {
         await preloader.preloadAllSequences((progress: PreloadProgress) => {
           setPreloadProgress(progress);
-          console.log(`📊 Preload progress: ${(progress.overall * 100).toFixed(1)}%`);
+          console.log(
+            `📊 Preload progress: ${(progress.overall * 100).toFixed(1)}%`
+          );
         });
-        
-        console.log('✅ All sequences preloaded!');
+
+        console.log("✅ All sequences preloaded!");
         setAllSequencesPreloaded(true);
       } catch (error) {
-        console.error('❌ Error preloading sequences:', error);
+        console.error("❌ Error preloading sequences:", error);
         // Still allow the app to continue even if preloading fails
         setAllSequencesPreloaded(true);
       }
@@ -249,7 +251,7 @@ export default function Home() {
   // Update initialLoadComplete when content becomes visible AND all sequences are preloaded
   useEffect(() => {
     if (contentVisible && allSequencesPreloaded && !initialLoadComplete) {
-      console.log('🎉 Initial load complete - all sequences ready!');
+      console.log("🎉 Initial load complete - all sequences ready!");
       setInitialLoadComplete(true);
     }
   }, [contentVisible, allSequencesPreloaded, initialLoadComplete]);
@@ -443,36 +445,41 @@ export default function Home() {
 
       // Calculate second hero text - direct custom animation control
       const scrollStartThreshold = 0.08; // Later than first hero text (which starts at 0.02)
-      const moveToMiddleEnd = 0.20; // Move to middle completes at 20% (slower movement - was 16%)
+      const moveToMiddleEnd = 0.2; // Move to middle completes at 20% (slower movement - was 16%)
       const pauseAtMiddleEnd = 0.22; // Shorter pause
       const fadeCompleteEnd = 0.27; // Fade completes much sooner, before cast shadows
-      
+      const gapInVh = (180 / window.innerHeight) * 100; // Convert 180px to vh percentage
+
       if (rawProgress < scrollStartThreshold) {
         // Phase 0: Before scroll starts - stay at original position
         setSecondHeroPosition(98);
-        setDescriptiveTextPosition(116); // Stay 18% below second hero
+        setDescriptiveTextPosition(98 + gapInVh); // Responsive gap below second hero
         setSecondHeroOpacity(1);
         setDescriptiveTextOpacity(1);
       } else if (rawProgress <= moveToMiddleEnd) {
         // Phase 1: Moving to middle - interpolate position from 98% to 50%
-        const moveProgress = (rawProgress - scrollStartThreshold) / (moveToMiddleEnd - scrollStartThreshold);
-        const heroPos = 98 - (moveProgress * 48); // 98% to 50%
+        const moveProgress =
+          (rawProgress - scrollStartThreshold) /
+          (moveToMiddleEnd - scrollStartThreshold);
+        const heroPos = 98 - moveProgress * 48; // 98% to 50%
         setSecondHeroPosition(heroPos);
-        setDescriptiveTextPosition(heroPos + 18); // Always 18% below second hero
+        setDescriptiveTextPosition(heroPos + gapInVh); // Responsive gap below second hero
         setSecondHeroOpacity(1);
         setDescriptiveTextOpacity(1);
       } else if (rawProgress <= pauseAtMiddleEnd) {
         // Phase 2: Pause at middle - stay at 50%
         setSecondHeroPosition(50);
-        setDescriptiveTextPosition(68); // 18% below middle position
+        setDescriptiveTextPosition(50 + gapInVh); // Responsive gap below middle position
         setSecondHeroOpacity(1);
         setDescriptiveTextOpacity(1);
       } else if (rawProgress <= fadeCompleteEnd) {
         // Phase 3: Continue moving up while fading - SAME timing as second hero
-        const continueProgress = (rawProgress - pauseAtMiddleEnd) / (fadeCompleteEnd - pauseAtMiddleEnd);
-        const heroPos = 50 - (continueProgress * 30); // Move from 50% to 20%
+        const continueProgress =
+          (rawProgress - pauseAtMiddleEnd) /
+          (fadeCompleteEnd - pauseAtMiddleEnd);
+        const heroPos = 50 - continueProgress * 30; // Move from 50% to 20%
         setSecondHeroPosition(heroPos);
-        setDescriptiveTextPosition(heroPos + 18); // Always 18% below second hero
+        setDescriptiveTextPosition(heroPos + gapInVh); // Responsive gap below second hero
         const fadeProgress = continueProgress;
         const smoothFade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
         const opacity = Math.max(0, 1 - smoothFade);
@@ -480,7 +487,7 @@ export default function Home() {
         setDescriptiveTextOpacity(opacity); // EXACT same opacity timing as second hero
       } else {
         setSecondHeroPosition(20);
-        setDescriptiveTextPosition(38); // 18% below final position
+        setDescriptiveTextPosition(20 + gapInVh); // Responsive gap below final position
         setSecondHeroOpacity(0);
         setDescriptiveTextOpacity(0);
       }
@@ -865,21 +872,21 @@ export default function Home() {
               }}
               priority={true}
             />
-            
+
             {/* Loading Progress Indicator */}
             <div className="absolute bottom-20 left-0 right-0 flex flex-col items-center gap-4 z-50">
               <div className="text-white text-sm font-light tracking-wider opacity-70">
                 LOADING EXPERIENCE
               </div>
-              
+
               {/* Progress Bar */}
               <div className="w-64 h-0.5 bg-white/20 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-white/80 transition-all duration-300 ease-out rounded-full"
                   style={{ width: `${preloadProgress.overall * 100}%` }}
                 />
               </div>
-              
+
               {/* Percentage */}
               <div className="text-white text-xs font-light tracking-widest opacity-50">
                 {Math.round(preloadProgress.overall * 100)}%
@@ -1002,9 +1009,9 @@ export default function Home() {
             {/* First Hero Text - starting in middle of screen */}
             <div
               className="absolute left-0 pl-16 z-[150]"
-              style={{ 
+              style={{
                 top: "50%",
-                transform: "translateY(-50%)"
+                transform: "translateY(-50%)",
               }}
             >
               {(() => {
@@ -1071,7 +1078,8 @@ export default function Home() {
                 opacity: descriptiveTextOpacity, // Same opacity as second hero
                 transform: "translateY(-50%)", // Center vertically
                 transition: "none", // No CSS transitions for smooth scrubbing
-                visibility: descriptiveTextOpacity < 0.01 ? "hidden" : "visible",
+                visibility:
+                  descriptiveTextOpacity < 0.01 ? "hidden" : "visible",
               }}
             >
               <ScrollDrivenText
