@@ -1009,7 +1009,7 @@ export default function Home() {
 
             {/* Descriptive Text - About Oh (right side, below second hero) */}
             <div
-              className="absolute right-16 z-50"
+              className="absolute right-16 z-[150]"
               style={{
                 top: `${descriptiveTextPosition}%`, // Follow second hero text position
                 opacity: descriptiveTextOpacity, // Same opacity as second hero
