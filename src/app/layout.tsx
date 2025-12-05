@@ -17,9 +17,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "oh",
   description: "Immersive environments for commerce and culture",
-  icons: {
-    icon: '/icon.png',
-  },
 };
 
 export default function RootLayout({
