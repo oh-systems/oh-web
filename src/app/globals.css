@@ -116,9 +116,9 @@ select,
   }
 }
 
-/* Hide hero text initially to prevent flash */
+/* Hide hero text paragraphs initially to prevent flash */
 .hero-text-paragraph {
-  visibility: hidden !important;
+  visibility: hidden;
 }
 
 .nav-letter {

@@ -51,8 +51,8 @@ export default function ScrollDrivenText({
         
         paragraph.innerHTML = '';
         
-        // Hero text appears after navigation completes
-        const baseDelay = 1500; // 1.5s delay to appear after navigation
+        // All lines animate simultaneously - no delays between lines
+        const baseDelay = 0; // Remove line delay so all animate together
         
         // Split into letters and create animated spans
         text.split('').forEach((char, charIndex) => {
@@ -193,7 +193,7 @@ export default function ScrollDrivenText({
               transition: scrollProgress > scrollThreshold 
                 ? 'transform 0.1s ease-out, opacity 0.2s ease-out' 
                 : 'none',
-              visibility: 'hidden', // Hide initially to prevent flash
+              visibility: 'hidden', // Hide by default until letters are ready
             }}
           >
             {line}

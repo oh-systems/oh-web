@@ -32,8 +32,8 @@ export default function Navigation({ className = '', style, onNavClick }: Naviga
         
         button.innerHTML = '';
         
-        // Navigation appears first - no delay
-        const baseDelay = 0; // Navigation starts immediately
+        // All buttons animate simultaneously - no delays between buttons
+        const baseDelay = 0; // Remove button delay so all animate together
         
         // Create spans for each letter
         text.split('').forEach((char, charIndex) => {
