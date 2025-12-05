@@ -133,7 +133,7 @@ export default function Home() {
       lastAutoPlayTimeRef.current = performance.now();
       // Sync auto-play time to current scroll position to prevent catch-up
       const maxScrollRange = window.innerHeight * 4.5;
-      autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScrollRange) * 120;
+      autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScrollRange) * 100;
     }, 16); // Single frame delay (60fps) to avoid conflicts but maintain smoothness
   };
 
@@ -256,9 +256,9 @@ export default function Home() {
 
       const maxScrollRange = window.innerHeight * 4.5; // 4.5 viewport heights to accommodate extended Cast Shadows (162.2%) and laptop animations
 
-      // Auto-play progression when not scrolling - stop at footer section
+      // Auto-play progression when not scrolling - continue through footer
       const currentProgress = scrollAccumulatorRef.current / maxScrollRange;
-      if (isAutoPlayingRef.current && currentProgress < 0.8) { // Stop auto-play when reaching footer
+      if (isAutoPlayingRef.current && currentProgress < 1.0) { // Continue auto-play through footer
         const now = performance.now();
         const deltaTime = (now - lastAutoPlayTimeRef.current) / 1000; // Convert to seconds
         lastAutoPlayTimeRef.current = now;
@@ -269,21 +269,21 @@ export default function Home() {
         // Start auto-scroll immediately when content is visible
         if (autoPlayTimeRef.current >= 0) {
           const autoScrollProgress =
-            (autoPlayTimeRef.current / 120) * maxScrollRange; // 120 seconds total to accommodate 40s laptop sequence
+            (autoPlayTimeRef.current / 100) * maxScrollRange; // 100 seconds total to include footer progression
 
           // Direct progression at normal speed to avoid catch-up behavior
           scrollAccumulatorRef.current = autoScrollProgress;
-          // Limit to footer start (80% of maxScrollRange)
+          // Allow progression to full maxScrollRange
           scrollAccumulatorRef.current = Math.min(
             scrollAccumulatorRef.current,
-            maxScrollRange * 0.8
+            maxScrollRange
           );
 
           // Keep target in sync during auto-play
           targetScrollRef.current = scrollAccumulatorRef.current;
         }
-      } else if (currentProgress >= 0.8) {
-        // Stop auto-play completely when in footer
+      } else if (currentProgress >= 1.0) {
+        // Stop auto-play completely when reaching the end
         isAutoPlayingRef.current = false;
       }
 
@@ -590,7 +590,7 @@ export default function Home() {
 
       // Update auto-play timer to current position for smooth continuation
       autoPlayTimeRef.current =
-        (scrollAccumulatorRef.current / (window.innerHeight * 4.5)) * 120;
+        (scrollAccumulatorRef.current / (window.innerHeight * 4.5)) * 100;
 
       // Always update animation progress for smooth scrolling
       updateAnimationProgress();
