@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "oh",
+  title: "OH",
   description: "Immersive environments for commerce and culture",
 };
 
