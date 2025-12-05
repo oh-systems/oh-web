@@ -38,8 +38,60 @@ export default function CastShadowsText({
   const aiBuiltInOpacity = allTextOpacity;
   const latencyOpacity = allTextOpacity;
 
+  // Helper function to draw SVG line
+  const renderLine = (x1: string, y1: string, x2: string, y2: string, key: string) => (
+    <svg
+      key={key}
+      className="absolute inset-0 pointer-events-none"
+      style={{
+        width: "100%",
+        height: "100%",
+        opacity: allTextOpacity,
+        transition: "opacity 0.5s ease-out",
+      }}
+    >
+      <line
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+        stroke="white"
+        strokeWidth="1"
+        opacity="0.5"
+      />
+    </svg>
+  );
+
   return (
     <>
+      {/* Connecting Lines */}
+      {/* Operating Principles to Interactivity */}
+      {renderLine("86%", "10%", "60%", "30%", "line1")}
+      
+      {/* Everything is built to Interactivity */}
+      {renderLine("28%", "18%", "60%", "30%", "line2")}
+      
+      {/* Everything is built to Deployments Must */}
+      {renderLine("28%", "18%", "33%", "48%", "line3")}
+      
+      {/* Interactivity to Deployments Must */}
+      {renderLine("60%", "30%", "33%", "48%", "line4")}
+      
+      {/* Interactivity to Latency Matters */}
+      {renderLine("60%", "30%", "55%", "82%", "line5")}
+      
+      {/* Interactivity to AI is built in */}
+      {renderLine("60%", "30%", "72%", "68%", "line6")}
+      
+      {/* Deployments to All systems are modular */}
+      {renderLine("33%", "48%", "25%", "68%", "line7")}
+      
+      {/* Deployments to Latency Matters */}
+      {renderLine("33%", "48%", "55%", "82%", "line8")}
+      
+      {/* Latency Matters to AI is built in */}
+      {renderLine("55%", "82%", "72%", "68%", "line9")}
+
       {/* "THE FUTURE OF..." fade out overlay */}
       <div
         className="absolute inset-0 pointer-events-none"
