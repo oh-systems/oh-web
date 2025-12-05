@@ -4,12 +4,14 @@ import './GlassCursor.css';
 
 const GlassCursor = () => {
   const cursorRef = useRef<HTMLDivElement>(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const [isVisible, setIsVisible] = useState(false);
+  const mousePositionRef = useRef({ x: 0, y: 0 });
+  const animationFrameRef = useRef<number>(0);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
+      mousePositionRef.current = { x: e.clientX, y: e.clientY };
       if (!isVisible) setIsVisible(true);
     };
 
@@ -41,6 +43,7 @@ const GlassCursor = () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseleave', handleMouseLeave);
       document.removeEventListener('mouseenter', handleMouseEnter);
+      
       // Restore default cursor
       document.body.style.cursor = 'auto';
       
@@ -52,15 +55,42 @@ const GlassCursor = () => {
         }
       });
     };
-  }, [isVisible]);
+  }, []);
+
+  // Separate effect for animation loop
+  useEffect(() => {
+    const animate = () => {
+      setCursorPosition(prevPos => {
+        const targetX = mousePositionRef.current.x;
+        const targetY = mousePositionRef.current.y;
+        
+        // Smooth easing - lower values = more lag/trailing effect
+        const easeAmount = 0.05;
+        const newX = prevPos.x + (targetX - prevPos.x) * easeAmount;
+        const newY = prevPos.y + (targetY - prevPos.y) * easeAmount;
+        
+        return { x: newX, y: newY };
+      });
+      
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+    
+    animate();
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div
       ref={cursorRef}
       className={`glass-cursor ${isVisible ? 'glass-cursor--visible' : ''}`}
       style={{
-        left: mousePosition.x,
-        top: mousePosition.y,
+        left: cursorPosition.x,
+        top: cursorPosition.y,
       }}
     >
       <GlassSurface
