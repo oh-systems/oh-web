@@ -48,7 +48,7 @@ export default function ScrollDrivenText({
   const effectiveMarginBottom = scrollProgress > scrollThreshold ? '0px' : '16px';
 
   // Calculate transform and opacity based on scroll progress
-  const getLineTransform = (lineIndex: number) => {
+  const getLineTransform = () => {
     if (!hasInitiallyAnimated) {
       return 'translateY(30px)';
     }
@@ -76,7 +76,7 @@ export default function ScrollDrivenText({
     return `translateY(-${moveDistance}px)`;
   };
 
-  const getLineOpacity = (lineIndex: number) => {
+  const getLineOpacity = () => {
     if (!hasInitiallyAnimated) {
       return 0;
     }
@@ -137,8 +137,8 @@ export default function ScrollDrivenText({
               margin: 0,
               padding: 0,
               lineHeight: lineHeightMultiplier,
-              transform: hasInitiallyAnimated ? getLineTransform(index) : 'translateY(30px)',
-              opacity: hasInitiallyAnimated ? getLineOpacity(index) : 0,
+              transform: hasInitiallyAnimated ? getLineTransform() : 'translateY(30px)',
+              opacity: hasInitiallyAnimated ? getLineOpacity() : 0,
               transition: scrollProgress > scrollThreshold 
                 ? 'transform 0.1s ease-out, opacity 0.2s ease-out' 
                 : 'none',

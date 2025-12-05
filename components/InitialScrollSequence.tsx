@@ -26,7 +26,6 @@ export default function InitialScrollSequence({
   width = 600,
   height = 600,
   scrollProgress = 0,
-  priority = false,
   autoPlay = false,
   startAnimation = false,
   duration = 20,
@@ -98,7 +97,7 @@ export default function InitialScrollSequence({
         // Decode the image off the main thread for smoother performance
         try {
           await img.decode();
-        } catch (e) {
+        } catch {
           // Fallback if decode fails
         }
         imageCache.current.set(frameIndex, img);

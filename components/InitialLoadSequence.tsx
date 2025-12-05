@@ -22,11 +22,9 @@ export default function InitialLoadSequence({
   height = 600,
   autoPlay = true,
   startAnimation = false,
-  loop = false,
   duration = 5,
   fps = 60,
-  onSequenceComplete,
-  priority = false
+  onSequenceComplete
 }: InitialLoadSequenceProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentFrame, setCurrentFrame] = useState(0);

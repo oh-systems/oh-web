@@ -34,7 +34,6 @@ export default function ThirdLaptopSequence({
   duration = 40,
   fps = 30,
   onSequenceComplete,
-  priority = false,
 }: ThirdLaptopSequenceProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentFrame, setCurrentFrame] = useState(0);

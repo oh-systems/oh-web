@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, createContext, useContext, useEffect } from "react";
+import { useState, createContext, useContext } from "react";
 import {
   UnifiedRingLoader,
   PermanentRing,

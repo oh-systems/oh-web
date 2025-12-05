@@ -11,7 +11,7 @@ interface PermanentRingProps {
 
 export default function PermanentRing({ visible, className = '', style }: PermanentRingProps) {
   const [hasTransitioned, setHasTransitioned] = useState(false);
-  const { navigationFadeProgress } = useAppContext();
+  const {} = useAppContext();
 
   useEffect(() => {
     if (visible && !hasTransitioned) {

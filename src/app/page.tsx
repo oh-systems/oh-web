@@ -26,8 +26,8 @@ export default function Home() {
 
   // Ultra-aggressive cursor hiding for all devices and browsers
   useEffect(() => {
-    let cursorHidingInterval: NodeJS.Timeout;
-    let mutationObserver: MutationObserver;
+    let cursorHidingInterval: NodeJS.Timeout | undefined;
+    let mutationObserver: MutationObserver | undefined;
 
     const forceCursorHiding = () => {
       // Set inline styles with maximum priority on html and body
@@ -158,16 +158,20 @@ export default function Home() {
           el.style.setProperty('cursor', 'none', 'important');
           // Also set on computed style if possible
           try {
-            (el as any).style.cursor = 'none';
-          } catch (e) {}
+            (el as HTMLElement).style.cursor = 'none';
+          } catch {
+            // Ignore errors
+          }
         }
       });
       
       // Set on window object for some browsers
       try {
-        (window as any).document.body.style.cursor = 'none';
-        (window as any).document.documentElement.style.cursor = 'none';
-      } catch (e) {}
+        (window as Window & { document: Document }).document.body.style.cursor = 'none';
+        (window as Window & { document: Document }).document.documentElement.style.cursor = 'none';
+      } catch {
+        // Ignore errors
+      }
     };
 
     const observeAndHideCursor = () => {
@@ -227,7 +231,9 @@ export default function Home() {
       };
     } else {
       // Cleanup when scroll starts
-      clearInterval(cursorHidingInterval);
+      if (cursorHidingInterval) {
+        clearInterval(cursorHidingInterval);
+      }
       mutationObserver?.disconnect();
       
       const style = document.getElementById('cursor-hiding-rules');
@@ -974,6 +980,7 @@ export default function Home() {
   }, [
     scrollContentReady,
     initialLoadComplete,
+    scrollAnimationStarted,
     STAGE_1_CONFIG.fadeStartProgress,
     STAGE_1_CONFIG.fadeDuration,
     MODEL_SWAP_CONFIG.swapStart,
