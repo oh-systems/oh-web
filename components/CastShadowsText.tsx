@@ -66,13 +66,13 @@ export default function CastShadowsText({
     <>
       {/* Connecting Lines */}
       {/* Operating Principles to Interactivity */}
-      {renderLine("86%", "10%", "60%", "30%", "line1")}
+      {renderLine("86%", "13%", "60%", "30%", "line1")}
       
       {/* Everything is built to Interactivity */}
-      {renderLine("28%", "18%", "60%", "30%", "line2")}
+      {renderLine("28%", "20%", "60%", "30%", "line2")}
       
       {/* Everything is built to Deployments Must */}
-      {renderLine("28%", "18%", "33%", "48%", "line3")}
+      {renderLine("28%", "20%", "33%", "48%", "line3")}
       
       {/* Interactivity to Deployments Must */}
       {renderLine("60%", "30%", "33%", "48%", "line4")}

@@ -59,7 +59,7 @@ const TEXT_SEQUENCE = {
 
   // Phase 4: Operating principles (all appear together)
   principlesStart: 0.27, // Start operating principles right after second hero text fades completely
-  principlesEnd: 0.32, // End much earlier, well before Cast Shadows fades
+  principlesEnd: 0.40, // End later to last longer during Cast Shadows sequence
 
   // Phase 5: Laptop (no text)
   laptopStart: 0.92, // Laptop appears with no text
