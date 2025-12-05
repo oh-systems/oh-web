@@ -24,24 +24,31 @@ export default function Home() {
   const [scrollContentReady, setScrollContentReady] = useState(false);
   const [scrollAnimationStarted, setScrollAnimationStarted] = useState(false);
 
-  // Aggressive cursor hiding for cross-browser compatibility
+  // Ultra-aggressive cursor hiding for all devices and browsers
   useEffect(() => {
+    let cursorHidingInterval: NodeJS.Timeout;
+    let mutationObserver: MutationObserver;
+
     const forceCursorHiding = () => {
-      // Set inline styles with maximum priority
+      // Set inline styles with maximum priority on html and body
       document.documentElement.style.setProperty('cursor', 'none', 'important');
       document.body.style.setProperty('cursor', 'none', 'important');
       
-      // Create comprehensive cursor hiding rules for all browsers
+      // Also set CSS custom properties for fallback
+      document.documentElement.style.setProperty('--cursor', 'none');
+      document.body.style.setProperty('--cursor', 'none');
+      
+      // Remove and recreate style element to ensure it's applied
+      const existingStyle = document.getElementById('cursor-hiding-rules');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+      
       const style = document.createElement('style');
       style.id = 'cursor-hiding-rules';
       style.textContent = `
-        /* Universal cursor hiding */
-        *, *::before, *::after,
-        html, body,
-        div, span, p, h1, h2, h3, h4, h5, h6,
-        a, button, input, textarea, select,
-        img, canvas, svg,
-        nav, header, footer, main, section, article {
+        /* MAXIMUM PRIORITY CURSOR HIDING - DEVICE AGNOSTIC */
+        html, body {
           cursor: none !important;
           -webkit-cursor: none !important;
           -moz-cursor: none !important;
@@ -49,59 +56,198 @@ export default function Home() {
           -ms-cursor: none !important;
         }
         
-        /* Hover states */
-        *:hover, *:focus, *:active {
+        /* Universal selectors with maximum specificity */
+        *, *::before, *::after,
+        html *, body *,
+        div, span, p, h1, h2, h3, h4, h5, h6,
+        a, button, input, textarea, select,
+        img, canvas, svg, video, audio,
+        nav, header, footer, main, section, article,
+        ul, ol, li, table, tr, td, th,
+        form, fieldset, label {
+          cursor: none !important;
+          -webkit-cursor: none !important;
+          -moz-cursor: none !important;
+          -o-cursor: none !important;
+          -ms-cursor: none !important;
+          pointer-events: auto !important;
+        }
+        
+        /* All possible interactive states */
+        *:hover, *:focus, *:active, *:visited, *:link,
+        *:focus-visible, *:focus-within {
           cursor: none !important;
           -webkit-cursor: none !important;
         }
         
-        /* Webkit specific rules */
+        /* Device-specific overrides */
+        @media (pointer: coarse) {
+          * { cursor: none !important; }
+        }
+        
+        @media (pointer: fine) {
+          * { cursor: none !important; }
+        }
+        
+        @media (any-pointer: coarse) {
+          * { cursor: none !important; }
+        }
+        
+        @media (any-pointer: fine) {
+          * { cursor: none !important; }
+        }
+        
+        /* High DPI / Retina displays */
+        @media (-webkit-min-device-pixel-ratio: 2) {
+          * { cursor: none !important; }
+        }
+        
+        @media (min-resolution: 192dpi) {
+          * { cursor: none !important; }
+        }
+        
+        /* Touch devices */
+        @media (hover: none) and (pointer: coarse) {
+          * { cursor: none !important; }
+        }
+        
+        /* WebKit specific - maximum coverage */
         * {
           -webkit-touch-callout: none !important;
           -webkit-user-select: none !important;
           -webkit-tap-highlight-color: transparent !important;
+          -webkit-appearance: none !important;
         }
         
-        /* Firefox specific */
+        /* Firefox specific with !important */
         @-moz-document url-prefix() {
-          * {
+          *, *:hover, *:focus, *:active {
             cursor: none !important;
           }
         }
         
-        /* Internet Explorer / Edge */
+        /* Edge Legacy and IE */
         @media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {
-          * {
+          *, *:hover, *:focus, *:active {
+            cursor: none !important;
+          }
+        }
+        
+        /* Chromium-based browsers */
+        @supports (-webkit-appearance: none) {
+          *, *:hover, *:focus, *:active {
+            cursor: none !important;
+          }
+        }
+        
+        /* Safari specific */
+        @supports (-webkit-overflow-scrolling: touch) {
+          *, *:hover, *:focus, *:active {
             cursor: none !important;
           }
         }
       `;
+      
+      // Insert at the very end of head to ensure maximum priority
       document.head.appendChild(style);
       
-      // Additional DOM manipulation for stubborn browsers
+      // Force styles on all current DOM elements
       const allElements = document.querySelectorAll('*');
       allElements.forEach(el => {
         if (el instanceof HTMLElement) {
           el.style.setProperty('cursor', 'none', 'important');
+          // Also set on computed style if possible
+          try {
+            (el as any).style.cursor = 'none';
+          } catch (e) {}
         }
+      });
+      
+      // Set on window object for some browsers
+      try {
+        (window as any).document.body.style.cursor = 'none';
+        (window as any).document.documentElement.style.cursor = 'none';
+      } catch (e) {}
+    };
+
+    const observeAndHideCursor = () => {
+      // Watch for new DOM elements and hide their cursors immediately
+      mutationObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'childList') {
+            mutation.addedNodes.forEach((node) => {
+              if (node instanceof HTMLElement) {
+                node.style.setProperty('cursor', 'none', 'important');
+                // Also apply to all children
+                const children = node.querySelectorAll('*');
+                children.forEach(child => {
+                  if (child instanceof HTMLElement) {
+                    child.style.setProperty('cursor', 'none', 'important');
+                  }
+                });
+              }
+            });
+          }
+        });
+      });
+      
+      mutationObserver.observe(document.body, {
+        childList: true,
+        subtree: true
       });
     };
 
     if (!scrollAnimationStarted) {
+      // Initial cursor hiding
       forceCursorHiding();
       
-      // Continuously enforce cursor hiding until scroll starts
-      const interval = setInterval(forceCursorHiding, 100);
-      return () => clearInterval(interval);
+      // Set up continuous enforcement
+      cursorHidingInterval = setInterval(forceCursorHiding, 50); // More frequent updates
+      
+      // Watch for DOM changes
+      observeAndHideCursor();
+      
+      // Handle page visibility changes
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          setTimeout(forceCursorHiding, 10);
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      // Handle window focus
+      const handleFocus = () => setTimeout(forceCursorHiding, 10);
+      window.addEventListener('focus', handleFocus);
+      
+      return () => {
+        clearInterval(cursorHidingInterval);
+        mutationObserver?.disconnect();
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('focus', handleFocus);
+      };
     } else {
-      // Remove global cursor hiding when scroll starts
+      // Cleanup when scroll starts
+      clearInterval(cursorHidingInterval);
+      mutationObserver?.disconnect();
+      
       const style = document.getElementById('cursor-hiding-rules');
       if (style) {
         style.remove();
       }
-      // Reset inline styles
+      
+      // Reset all inline styles
       document.documentElement.style.removeProperty('cursor');
       document.body.style.removeProperty('cursor');
+      document.documentElement.style.removeProperty('--cursor');
+      document.body.style.removeProperty('--cursor');
+      
+      // Reset styles on all elements
+      const allElements = document.querySelectorAll('*');
+      allElements.forEach(el => {
+        if (el instanceof HTMLElement) {
+          el.style.removeProperty('cursor');
+        }
+      });
     }
   }, [scrollAnimationStarted]);
   const [navigationFadeProgress, setNavigationFadeProgress] = useState(0);
