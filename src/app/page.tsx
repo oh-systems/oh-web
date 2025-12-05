@@ -22,6 +22,7 @@ export default function Home() {
   const [animationProgress, setAnimationProgress] = useState(0);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [scrollContentReady, setScrollContentReady] = useState(false);
+  const [scrollAnimationStarted, setScrollAnimationStarted] = useState(false);
   const [navigationFadeProgress, setNavigationFadeProgress] = useState(0);
   const [activeCard, setActiveCard] = useState<string | null>(null);
   const [castSwapProgress, setCastSwapProgress] = useState(0);
@@ -268,6 +269,12 @@ export default function Home() {
 
         // Start auto-scroll immediately when content is visible
         if (autoPlayTimeRef.current >= 0) {
+          // Mark that scroll animation has actually started
+          if (!scrollAnimationStarted) {
+            setScrollAnimationStarted(true);
+            document.body.classList.add('scroll-started');
+          }
+          
           const autoScrollProgress =
             (autoPlayTimeRef.current / 100) * maxScrollRange; // 100 seconds total to include footer progression
 
@@ -1074,7 +1081,7 @@ export default function Home() {
       />
 
       {/* Glass Cursor - rendered last to be on top of everything */}
-      <GlassCursor />
+      <GlassCursor scrollAnimationStarted={rawProgress > 0} />
     </>
   );
 }

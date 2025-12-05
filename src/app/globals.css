@@ -24,3 +24,15 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Hide ALL cursors by default until scroll starts */
+body:not(.scroll-started) *,
+body:not(.scroll-started) *::before,
+body:not(.scroll-started) *::after,
+body:not(.scroll-started) {
+  cursor: none !important;
+}
+
+html:not(.scroll-started) {
+  cursor: none !important;
+}

@@ -2,24 +2,32 @@ import { useEffect, useRef, useState } from 'react';
 import GlassSurface from './GlassSurface';
 import './GlassCursor.css';
 
-const GlassCursor = () => {
+interface GlassCursorProps {
+  scrollAnimationStarted?: boolean;
+}
+
+const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
   const cursorRef = useRef<HTMLDivElement>(null);
-  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
+  const [cursorPosition, setCursorPosition] = useState({ x: typeof window !== 'undefined' ? window.innerWidth / 2 : 0, y: typeof window !== 'undefined' ? window.innerHeight / 2 : 0 });
   const [isVisible, setIsVisible] = useState(false);
-  const mousePositionRef = useRef({ x: 0, y: 0 });
+  const mousePositionRef = useRef({ x: typeof window !== 'undefined' ? window.innerWidth / 2 : 0, y: typeof window !== 'undefined' ? window.innerHeight / 2 : 0 });
   const animationFrameRef = useRef<number>(0);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
+      if (!scrollAnimationStarted) return; // Don't track mouse until scroll animation starts
+      
       mousePositionRef.current = { x: e.clientX, y: e.clientY };
       if (!isVisible) setIsVisible(true);
     };
 
     const handleMouseLeave = () => {
+      if (!scrollAnimationStarted) return;
       setIsVisible(false);
     };
 
     const handleMouseEnter = () => {
+      if (!scrollAnimationStarted) return;
       setIsVisible(true);
     };
 
@@ -27,17 +35,17 @@ const GlassCursor = () => {
     document.addEventListener('mouseleave', handleMouseLeave);
     document.addEventListener('mouseenter', handleMouseEnter);
 
-    // Hide default cursor globally
-    document.body.style.cursor = 'none';
-    
-    // Hide cursor on all interactive elements
-    const style = document.createElement('style');
-    style.textContent = `
-      *, *::before, *::after {
-        cursor: none !important;
-      }
-    `;
-    document.head.appendChild(style);
+    // Hide system cursor when our custom cursor is active
+    if (scrollAnimationStarted) {
+      document.body.style.cursor = 'none';
+      const style = document.createElement('style');
+      style.textContent = `
+        *, *::before, *::after {
+          cursor: none !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
@@ -55,17 +63,26 @@ const GlassCursor = () => {
         }
       });
     };
-  }, []);
+  }, [scrollAnimationStarted]);
+
+  // Show cursor when scroll animation starts
+  useEffect(() => {
+    if (scrollAnimationStarted) {
+      setIsVisible(true);
+    }
+  }, [scrollAnimationStarted]);
 
   // Separate effect for animation loop
   useEffect(() => {
+    if (!scrollAnimationStarted) return; // Don't animate until scroll animation starts
+    
     const animate = () => {
       setCursorPosition(prevPos => {
         const targetX = mousePositionRef.current.x;
         const targetY = mousePositionRef.current.y;
         
         // Smooth easing - lower values = more lag/trailing effect
-        const easeAmount = 0.05;
+        const easeAmount = 0.06;
         const newX = prevPos.x + (targetX - prevPos.x) * easeAmount;
         const newY = prevPos.y + (targetY - prevPos.y) * easeAmount;
         
@@ -82,7 +99,12 @@ const GlassCursor = () => {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, []);
+  }, [scrollAnimationStarted]);
+
+  // Don't render anything at all until scroll animation actually starts
+  if (!scrollAnimationStarted) {
+    return null;
+  }
 
   return (
     <div
