@@ -8,6 +8,7 @@ import React, {
   useCallback,
 } from "react";
 import { getInitialScrollImageUrl } from "../lib/models-config";
+import { SequencePreloader } from "../lib/sequence-preloader";
 
 interface InitialScrollSequenceProps {
   className?: string;
@@ -75,9 +76,16 @@ export default function InitialScrollSequence({
     }
   }, [scrollProgress, totalFrames, isScrollDriven, currentTimeFrame]);
 
-  // Preload frame with production optimizations
+  // Preload frame - use globally preloaded images when available
   const preloadFrame = useCallback(
     (frameIndex: number) => {
+      // First check if already in global cache
+      const cachedImg = SequencePreloader.getCachedImage('initialScroll', frameIndex);
+      if (cachedImg) {
+        imageCache.current.set(frameIndex, cachedImg);
+        return;
+      }
+
       if (
         imageCache.current.has(frameIndex) ||
         loadingFrames.current.has(frameIndex)
@@ -223,6 +231,16 @@ export default function InitialScrollSequence({
     return () => cancelAnimationFrame(frame);
   }, [currentFrame, renderFrame]);
 
+  // Populate local cache from global preloader cache on mount
+  useEffect(() => {
+    for (let i = 0; i < totalFrames; i++) {
+      const cachedImg = SequencePreloader.getCachedImage('initialScroll', i);
+      if (cachedImg) {
+        imageCache.current.set(i, cachedImg);
+      }
+    }
+  }, [totalFrames]);
+
   // Early preloading for production performance
   useEffect(() => {
     // Start preloading the first few critical frames immediately (before intersection)
@@ -239,49 +257,12 @@ export default function InitialScrollSequence({
     setTimeout(preloadCriticalFrames, 100);
   }, [totalFrames, preloadFrame]);
 
-  // Intersection observer with aggressive preloading (similar to InitialLoadSequence)
+  // Simple intersection observer to mark component as in view (preloading handled globally)
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsInView(true);
-
-          // Preload all frames immediately for smooth scrolling experience
-          const preloadAllFrames = async () => {
-            console.log(`🚀 Starting preload of all ${totalFrames} Initial Scroll frames...`);
-            const batchSize = 50; // Efficient batch size
-            
-            for (let batchStart = 0; batchStart < totalFrames; batchStart += batchSize) {
-              const batchEnd = Math.min(batchStart + batchSize, totalFrames);
-              const promises = [];
-              
-              // Load batch
-              for (let i = batchStart; i < batchEnd; i++) {
-                promises.push(
-                  new Promise<void>((resolve) => {
-                    preloadFrame(i);
-                    resolve();
-                  })
-                );
-              }
-              
-              await Promise.all(promises);
-              
-              // Log progress for first batch
-              if (batchStart === 0) {
-                console.log(`✅ Initial Scroll first batch loaded`);
-              }
-              
-              // Very small delay between batches
-              if (batchEnd < totalFrames) {
-                await new Promise(resolve => setTimeout(resolve, 5));
-              }
-            }
-            
-            console.log(`🎯 All ${totalFrames} Initial Scroll frames preloaded`);
-          };
-
-          preloadAllFrames();
         }
       },
       { threshold: 0.01, rootMargin: "200px" }

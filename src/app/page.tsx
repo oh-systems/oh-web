@@ -17,6 +17,7 @@ import {
 } from "../../components";
 import { GlassSections } from "../../components/GlassSections";
 import { useAppContext } from "./AppContent";
+import { preloader, type PreloadProgress } from "../../lib/sequence-preloader";
 
 // ==================== STAGE CONFIGURATION ====================
 // Move config objects outside component to prevent recreation on every render
@@ -69,6 +70,13 @@ export default function Home() {
   const [animationProgress, setAnimationProgress] = useState(0);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [scrollContentReady, setScrollContentReady] = useState(false);
+  const [allSequencesPreloaded, setAllSequencesPreloaded] = useState(false);
+  const [preloadProgress, setPreloadProgress] = useState({
+    initialScroll: 0,
+    castShadows: 0,
+    thirdLaptop: 0,
+    overall: 0,
+  });
   const scrollAnimationStartedRef = useRef(false);
 
   // No cursor management needed - CSS always hides default cursor
@@ -215,12 +223,36 @@ export default function Home() {
     setContextFadeProgress(navigationFadeProgress);
   }, [navigationFadeProgress, setContextFadeProgress]);
 
-  // Update initialLoadComplete when content becomes visible
+  // Start preloading all sequences immediately when component mounts
   useEffect(() => {
-    if (contentVisible && !initialLoadComplete) {
+    const startPreloading = async () => {
+      console.log('🎬 Starting to preload all sequences during initial load...');
+      
+      try {
+        await preloader.preloadAllSequences((progress: PreloadProgress) => {
+          setPreloadProgress(progress);
+          console.log(`📊 Preload progress: ${(progress.overall * 100).toFixed(1)}%`);
+        });
+        
+        console.log('✅ All sequences preloaded!');
+        setAllSequencesPreloaded(true);
+      } catch (error) {
+        console.error('❌ Error preloading sequences:', error);
+        // Still allow the app to continue even if preloading fails
+        setAllSequencesPreloaded(true);
+      }
+    };
+
+    startPreloading();
+  }, []);
+
+  // Update initialLoadComplete when content becomes visible AND all sequences are preloaded
+  useEffect(() => {
+    if (contentVisible && allSequencesPreloaded && !initialLoadComplete) {
+      console.log('🎉 Initial load complete - all sequences ready!');
       setInitialLoadComplete(true);
     }
-  }, [contentVisible, initialLoadComplete]);
+  }, [contentVisible, allSequencesPreloaded, initialLoadComplete]);
 
   // Handle 2-second delay before showing scroll content
   useEffect(() => {
@@ -816,24 +848,48 @@ export default function Home() {
       >
         {/* Permanent Ring fade is now handled in AppContent.tsx - we apply fade to that ring */}
 
-        {/* Initial Load State - 3D INITIAL_LOAD model */}
+        {/* Initial Load State - 3D INITIAL_LOAD model with loading indicator */}
         {!initialLoadComplete && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black">
             <InitialLoadSequence
               width={800}
               height={600}
               autoPlay={true}
               startAnimation={true}
               onSequenceComplete={() => {
-                setInitialLoadComplete(true);
+                // Note: we don't set initialLoadComplete here anymore
+                // It's set when both contentVisible AND allSequencesPreloaded are true
+              }}
+              onLoadingProgress={() => {
+                // This tracks InitialLoadSequence progress (optional, not used for gating)
               }}
               priority={true}
             />
+            
+            {/* Loading Progress Indicator */}
+            <div className="absolute bottom-20 left-0 right-0 flex flex-col items-center gap-4 z-50">
+              <div className="text-white text-sm font-light tracking-wider opacity-70">
+                LOADING EXPERIENCE
+              </div>
+              
+              {/* Progress Bar */}
+              <div className="w-64 h-0.5 bg-white/20 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-white/80 transition-all duration-300 ease-out rounded-full"
+                  style={{ width: `${preloadProgress.overall * 100}%` }}
+                />
+              </div>
+              
+              {/* Percentage */}
+              <div className="text-white text-xs font-light tracking-widest opacity-50">
+                {Math.round(preloadProgress.overall * 100)}%
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Scroll-driven Animation Content - only visible after initial load + 2s delay */}
-        {scrollContentReady && (
+        {/* Scroll-driven Animation Content - only visible after initial load + all sequences preloaded */}
+        {scrollContentReady && allSequencesPreloaded && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-full h-full flex items-center justify-center">
               {/* Initial Scroll sequence - no artificial fading, images handle their own transitions */}

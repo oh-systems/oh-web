@@ -8,6 +8,7 @@ import React, {
   useMemo,
 } from "react";
 import { getCastShadowsImageUrl } from "../lib/models-config";
+import { SequencePreloader } from "../lib/sequence-preloader";
 
 interface CastShadowsSequenceProps {
   className?: string;
@@ -74,9 +75,19 @@ export default function CastShadowsSequence({
     return currentFrame;
   }, [isScrollDriven, scrollProgress, currentFrame, totalFrames]);
 
-  // Production-ready preload function with better error handling
+  // Production-ready preload function - use globally preloaded images when available
   const preloadFrame = useCallback(
     (frameIndex: number) => {
+      // First check if already in global cache
+      const cachedImg = SequencePreloader.getCachedImage('castShadows', frameIndex);
+      if (cachedImg) {
+        imageCache.current.set(frameIndex, cachedImg);
+        if (imageCache.current.size >= 10) {
+          setIsReady(true);
+        }
+        return Promise.resolve();
+      }
+
       if (
         imageCache.current.has(frameIndex) ||
         loadingFrames.current.has(frameIndex)
@@ -151,6 +162,20 @@ export default function CastShadowsSequence({
     [width, height]
   );
 
+  // Populate local cache from global preloader cache on mount
+  useEffect(() => {
+    for (let i = 0; i < totalFrames; i++) {
+      const cachedImg = SequencePreloader.getCachedImage('castShadows', i);
+      if (cachedImg) {
+        imageCache.current.set(i, cachedImg);
+      }
+    }
+    // If we have frames cached, mark as ready
+    if (imageCache.current.size >= 10) {
+      setIsReady(true);
+    }
+  }, [totalFrames]);
+
   // Render current frame with RAF and 30fps throttling - match laptop approach
   const lastRenderTime = useRef<number>(0);
   useEffect(() => {
@@ -166,45 +191,13 @@ export default function CastShadowsSequence({
     return () => cancelAnimationFrame(frame);
   }, [displayFrame, renderFrame]);
 
-  // Intersection observer with aggressive preloading (similar to InitialLoadSequence)
+  // Simple intersection observer to mark component as in view (preloading handled globally)
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsInView(true);
-
-          // Preload all frames immediately for smooth experience (like InitialLoadSequence)
-          const preloadAllFrames = async () => {
-            console.log(`🚀 Starting preload of all ${totalFrames} Cast Shadows frames...`);
-            const batchSize = 50; // Larger batches for efficiency
-            
-            for (let batchStart = 0; batchStart < totalFrames; batchStart += batchSize) {
-              const batchEnd = Math.min(batchStart + batchSize, totalFrames);
-              const promises = [];
-              
-              // Load batch
-              for (let i = batchStart; i < batchEnd; i++) {
-                promises.push(preloadFrame(i));
-              }
-              
-              await Promise.all(promises);
-              
-              // Set ready after first batch for immediate playback
-              if (batchStart === 0) {
-                setIsReady(true);
-                console.log(`✅ Cast Shadows first batch loaded, ready to play`);
-              }
-              
-              // Very small delay between batches to prevent overwhelming
-              if (batchEnd < totalFrames) {
-                await new Promise(resolve => setTimeout(resolve, 5));
-              }
-            }
-            
-            console.log(`🎯 All ${totalFrames} Cast Shadows frames preloaded`);
-          };
-
-          preloadAllFrames();
+          setIsReady(true); // Mark as ready immediately since preloading is done globally
         }
       },
       { threshold: 0.1 }

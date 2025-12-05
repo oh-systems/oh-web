@@ -13,6 +13,7 @@ interface InitialLoadSequenceProps {
   duration?: number;
   fps?: number;
   onSequenceComplete?: () => void;
+  onLoadingProgress?: (progress: number) => void;
   priority?: boolean;
 }
 
@@ -24,7 +25,8 @@ export default function InitialLoadSequence({
   startAnimation = false,
   duration = 5,
   fps = 60,
-  onSequenceComplete
+  onSequenceComplete,
+  onLoadingProgress
 }: InitialLoadSequenceProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentFrame, setCurrentFrame] = useState(0);
@@ -67,6 +69,12 @@ export default function InitialLoadSequence({
     img.onload = () => {
       imageCache.current.set(frameIndex, img);
       loadingFrames.current.delete(frameIndex);
+      
+      // Report loading progress
+      if (onLoadingProgress) {
+        const progress = imageCache.current.size / totalFrames;
+        onLoadingProgress(progress);
+      }
       
       if (imageCache.current.size >= Math.min(30, totalFrames)) {
         setIsReady(true);

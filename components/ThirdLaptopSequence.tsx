@@ -8,6 +8,7 @@ import React, {
   useMemo,
 } from "react";
 import { getThirdLaptopImageUrl } from "../lib/models-config";
+import { SequencePreloader } from "../lib/sequence-preloader";
 
 interface ThirdLaptopSequenceProps {
   className?: string;
@@ -75,9 +76,22 @@ export default function ThirdLaptopSequence({
     return currentFrame;
   }, [isScrollDriven, scrollProgress, currentFrame, totalFrames]);
 
-  // Preload frame with optimization
+  // Preload frame - use globally preloaded images when available
   const preloadFrame = useCallback(
     (frameIndex: number) => {
+      // First check if already in global cache
+      const cachedImg = SequencePreloader.getCachedImage('thirdLaptop', frameIndex);
+      if (cachedImg) {
+        imageCache.current.set(frameIndex, cachedImg);
+        if (imageCache.current.size >= Math.min(30, totalFrames)) {
+          setIsReady(true);
+          if (imageCache.current.size >= totalFrames * 0.5) {
+            setLoadingComplete(true);
+          }
+        }
+        return;
+      }
+
       if (
         imageCache.current.has(frameIndex) ||
         loadingFrames.current.has(frameIndex)
@@ -197,50 +211,31 @@ export default function ThirdLaptopSequence({
     return () => cancelAnimationFrame(frame);
   }, [displayFrame, renderFrame, isScrollDriven]);
 
-  // Intersection observer with aggressive preloading (similar to InitialLoadSequence)
+  // Populate local cache from global preloader cache on mount
+  useEffect(() => {
+    for (let i = 0; i < totalFrames; i++) {
+      const cachedImg = SequencePreloader.getCachedImage('thirdLaptop', i);
+      if (cachedImg) {
+        imageCache.current.set(i, cachedImg);
+      }
+    }
+    // If we have frames cached, mark as ready
+    if (imageCache.current.size >= Math.min(30, totalFrames)) {
+      setIsReady(true);
+      if (imageCache.current.size >= totalFrames * 0.5) {
+        setLoadingComplete(true);
+      }
+    }
+  }, [totalFrames]);
+
+  // Simple intersection observer to mark component as in view (preloading handled globally)
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsInView(true);
-
-          // Preload all frames immediately for smooth experience
-          const preloadAllFrames = async () => {
-            console.log(`🚀 Starting preload of all ${totalFrames} Laptop frames...`);
-            const batchSize = 50; // Efficient batch size
-            
-            for (let batchStart = 0; batchStart < totalFrames; batchStart += batchSize) {
-              const batchEnd = Math.min(batchStart + batchSize, totalFrames);
-              const promises = [];
-              
-              // Load batch
-              for (let i = batchStart; i < batchEnd; i++) {
-                promises.push(
-                  new Promise<void>((resolve) => {
-                    preloadFrame(i);
-                    resolve();
-                  })
-                );
-              }
-              
-              await Promise.all(promises);
-              
-              // Set ready after first batch for immediate playback
-              if (batchStart === 0) {
-                setIsReady(true);
-                console.log(`✅ Laptop first batch loaded, ready to play`);
-              }
-              
-              // Very small delay between batches
-              if (batchEnd < totalFrames) {
-                await new Promise(resolve => setTimeout(resolve, 5));
-              }
-            }
-            
-            console.log(`🎯 All ${totalFrames} Laptop frames preloaded`);
-          };
-
-          preloadAllFrames();
+          setIsReady(true); // Mark as ready immediately since preloading is done globally
+          setLoadingComplete(true);
         }
       },
       { threshold: 0.01, rootMargin: "200px" }
