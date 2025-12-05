@@ -109,16 +109,32 @@ export default function ScrollDrivenText({
     // All lines move together as one unit - no stagger
     const adjustedProgress = scrollAnimationProgress;
     
-    // Adjust movement based on stopAtMiddle flag
+    // Adjust movement based on stopAtMiddle flag and two-phase movement
     const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
     let moveDistance;
     
-    if (stopAtMiddle) {
-      // Move up to 2/3 of screen height - from center (50%) to upper third (17% from top)
-      // This requires moving up about 33% of viewport height
-      moveDistance = adjustedProgress * (viewportHeight * 0.5); // Increased to 50% for more upward movement
+    // Two-phase movement for second hero text (when animationDuration is 0.10)
+    if (animationDuration === 0.10) {
+      const quickPhaseEnd = 1.0; // End of quick movement phase (reaches middle at 10% rawProgress)
+      const pausePhaseEnd = 6.0; // MUCH longer pause until 60% rawProgress (6.0 * 0.10 = 0.60)
+      
+      if (adjustedProgress <= quickPhaseEnd) {
+        // Phase 1: Quick movement to middle (from 98% to ~50%)
+        moveDistance = adjustedProgress * (viewportHeight * 0.48); // Move up 48% of screen height
+      } else if (adjustedProgress <= pausePhaseEnd) {
+        // Phase 2: Extended pause at middle position - no movement
+        moveDistance = viewportHeight * 0.48; // Stay at middle longer
+      } else {
+        // Phase 3: Continue moving up (fade starts here too)
+        const continueProgress = (adjustedProgress - pausePhaseEnd) / 2; // Slower continued movement
+        moveDistance = (viewportHeight * 0.48) + (continueProgress * viewportHeight * 0.4);
+      }
+    } else if (stopAtMiddle) {
+      // Original stopAtMiddle behavior for other texts
+      const clampedProgress = Math.min(adjustedProgress, 1);
+      moveDistance = clampedProgress * (viewportHeight * 0.15);
     } else {
-      // Move up to reach near top of screen (40% of viewport height)
+      // Normal movement to top
       moveDistance = adjustedProgress * (viewportHeight * 0.4);
     }
     

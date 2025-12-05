@@ -85,6 +85,8 @@ export default function Home() {
   const [rawProgress, setRawProgress] = useState(0);
   const [descriptiveTextOpacity, setDescriptiveTextOpacity] = useState(0);
   const [secondHeroOpacity, setSecondHeroOpacity] = useState(0);
+  const [secondHeroPosition, setSecondHeroPosition] = useState(98); // Start at 98%
+  const [descriptiveTextPosition, setDescriptiveTextPosition] = useState(116); // Start 18% below second hero
   const [castTextProgress, setCastTextProgress] = useState(0);
   const [firstHeroFadeOut, setFirstHeroFadeOut] = useState(0);
   const [showAbout, setShowAbout] = useState(false);
@@ -391,79 +393,68 @@ export default function Home() {
         setCastAnimationProgress(nextCastAnimationProgress);
       }
 
-      // Calculate first hero text fade out progress - slow and smooth
+      // Calculate first hero text fade out progress - very fast
       if (
-        rawProgress >= TEXT_SEQUENCE.firstHeroEnd - 0.05 &&
-        rawProgress <= TEXT_SEQUENCE.firstHeroEnd + 0.05
+        rawProgress >= TEXT_SEQUENCE.firstHeroEnd - 0.015 &&
+        rawProgress <= TEXT_SEQUENCE.firstHeroEnd + 0.015
       ) {
         const fadeProgress =
-          (rawProgress - (TEXT_SEQUENCE.firstHeroEnd - 0.05)) / 0.1;
+          (rawProgress - (TEXT_SEQUENCE.firstHeroEnd - 0.015)) / 0.03;
         // Apply smooth easing
         const smoothFade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
         setFirstHeroFadeOut(smoothFade);
-      } else if (rawProgress > TEXT_SEQUENCE.firstHeroEnd + 0.05) {
+      } else if (rawProgress > TEXT_SEQUENCE.firstHeroEnd + 0.015) {
         setFirstHeroFadeOut(1);
       } else {
         setFirstHeroFadeOut(0);
       }
 
-      // Calculate second hero text ("THE FUTURE OF...") visibility - ensure complete fade before cast shadows
-      if (
-        rawProgress >= TEXT_SEQUENCE.secondHeroStart &&
-        rawProgress <= TEXT_SEQUENCE.secondHeroEnd
-      ) {
-        const fadeInDuration = 0.08; // 8% for slower fade in
-        const fadeOutStart = TEXT_SEQUENCE.secondHeroEnd - 0.12; // Start fade out 12% before end for slower fade
-
-        if (rawProgress < TEXT_SEQUENCE.secondHeroStart + fadeInDuration) {
-          // Fade in with smooth easing
-          const fadeProgress =
-            (rawProgress - TEXT_SEQUENCE.secondHeroStart) / fadeInDuration;
-          const smoothFade =
-            fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
-          setSecondHeroOpacity(smoothFade);
-        } else if (rawProgress > fadeOutStart) {
-          // Fade out with smooth easing - ensure complete fade by cast shadows start
-          const fadeProgress = (rawProgress - fadeOutStart) / 0.12;
-          const smoothFade =
-            fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
-          setSecondHeroOpacity(Math.max(0, 1 - smoothFade));
-        } else {
-          // Fully visible
-          setSecondHeroOpacity(1);
-        }
+      // Calculate second hero text - direct custom animation control
+      const scrollStartThreshold = 0.08; // Later than first hero text (which starts at 0.02)
+      const moveToMiddleEnd = 0.20; // Move to middle completes at 20% (slower movement - was 16%)
+      const pauseAtMiddleEnd = 0.32; // Reduced pause to 1.5 seconds equivalent (was 0.42)
+      const fadeCompleteEnd = 0.50; // Fade completes earlier due to shorter pause (was 0.60)
+      
+      if (rawProgress < scrollStartThreshold) {
+        // Phase 0: Before scroll starts - stay at original position
+        setSecondHeroPosition(98);
+        setDescriptiveTextPosition(116); // Stay 18% below second hero
+        setSecondHeroOpacity(1);
+        setDescriptiveTextOpacity(1);
+      } else if (rawProgress <= moveToMiddleEnd) {
+        // Phase 1: Moving to middle - interpolate position from 98% to 50%
+        const moveProgress = (rawProgress - scrollStartThreshold) / (moveToMiddleEnd - scrollStartThreshold);
+        const heroPos = 98 - (moveProgress * 48); // 98% to 50%
+        setSecondHeroPosition(heroPos);
+        setDescriptiveTextPosition(heroPos + 18); // Always 18% below second hero
+        setSecondHeroOpacity(1);
+        setDescriptiveTextOpacity(1);
+      } else if (rawProgress <= pauseAtMiddleEnd) {
+        // Phase 2: Pause at middle - stay at 50%
+        setSecondHeroPosition(50);
+        setDescriptiveTextPosition(68); // 18% below middle position
+        setSecondHeroOpacity(1);
+        setDescriptiveTextOpacity(1);
+      } else if (rawProgress <= fadeCompleteEnd) {
+        // Phase 3: Continue moving up while fading - SAME timing as second hero
+        const continueProgress = (rawProgress - pauseAtMiddleEnd) / (fadeCompleteEnd - pauseAtMiddleEnd);
+        const heroPos = 50 - (continueProgress * 30); // Move from 50% to 20%
+        setSecondHeroPosition(heroPos);
+        setDescriptiveTextPosition(heroPos + 18); // Always 18% below second hero
+        const fadeProgress = continueProgress;
+        const smoothFade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
+        const opacity = Math.max(0, 1 - smoothFade);
+        setSecondHeroOpacity(opacity);
+        setDescriptiveTextOpacity(opacity); // EXACT same opacity timing as second hero
       } else {
+        setSecondHeroPosition(20);
+        setDescriptiveTextPosition(38); // 18% below final position
         setSecondHeroOpacity(0);
-      }
-
-      // Calculate descriptive text visibility - ensure complete fade before cast shadows
-      if (
-        rawProgress >= TEXT_SEQUENCE.descriptiveStart &&
-        rawProgress <= TEXT_SEQUENCE.descriptiveEnd
-      ) {
-        const fadeInDuration = 0.08; // 8% for slower fade in
-        const fadeOutStart = TEXT_SEQUENCE.descriptiveEnd - 0.12; // Start fade out 12% before end for slower fade
-
-        if (rawProgress < TEXT_SEQUENCE.descriptiveStart + fadeInDuration) {
-          // Fade in with smooth easing
-          const fadeProgress =
-            (rawProgress - TEXT_SEQUENCE.descriptiveStart) / fadeInDuration;
-          const smoothFade =
-            fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
-          setDescriptiveTextOpacity(smoothFade);
-        } else if (rawProgress > fadeOutStart) {
-          // Fade out with smooth easing - ensure complete fade by cast shadows start
-          const fadeProgress = (rawProgress - fadeOutStart) / 0.12;
-          const smoothFade =
-            fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
-          setDescriptiveTextOpacity(Math.max(0, 1 - smoothFade));
-        } else {
-          // Fully visible
-          setDescriptiveTextOpacity(1);
-        }
-      } else {
         setDescriptiveTextOpacity(0);
       }
+
+      // Descriptive text opacity is now controlled by second hero text logic above
+      // (removed old TEXT_SEQUENCE logic to prevent conflicts)
 
       // Calculate Cast Shadows operating principles progress
       if (
@@ -952,10 +943,13 @@ export default function Home() {
               </div>
             </div>
 
-            {/* First Hero Text - with extra space for upward movement */}
+            {/* First Hero Text - starting in middle of screen */}
             <div
-              className="absolute left-0 top-1/2 transform -translate-y-1/2 pl-16 z-[150]"
-              style={{ paddingTop: "100px" }}
+              className="absolute left-0 pl-16 z-[150]"
+              style={{ 
+                top: "50%",
+                transform: "translateY(-50%)"
+              }}
             >
               {(() => {
                 const opacity = Math.max(0, 1 - firstHeroFadeOut);
@@ -980,7 +974,7 @@ export default function Home() {
                       fontSize={20}
                       lineHeightMultiplier={1.3}
                       scrollProgress={animationProgress}
-                      scrollThreshold={0.05}
+                      scrollThreshold={0.02}
                       animationDuration={0.15}
                     />
                   </div>
@@ -992,11 +986,9 @@ export default function Home() {
             <div
               className="absolute right-16 z-[150]"
               style={{
-                top: "55%",
+                top: `${secondHeroPosition}%`, // Direct position control
                 opacity: secondHeroOpacity,
-                transform: `translateY(-50%) translateY(${
-                  secondHeroOpacity > 0.05 ? 300 * (1 - secondHeroOpacity) : 0
-                }px)`, // Center vertically + fade in from below, but stop transform when nearly invisible
+                transform: "translateY(-50%)", // Center vertically
                 transition: "none", // No CSS transitions for smooth scrubbing
                 visibility: secondHeroOpacity < 0.01 ? "hidden" : "visible", // Hide completely when fully faded
               }}
@@ -1008,9 +1000,9 @@ export default function Home() {
                 textAlign="right"
                 style={{ lineHeight: 0.75 }}
                 lineHeightMultiplier={1.0}
-                scrollProgress={animationProgress}
-                scrollThreshold={TEXT_SEQUENCE.secondHeroStart}
-                animationDuration={0.2}
+                scrollProgress={0} // Don't let ScrollDrivenText handle scroll movement
+                scrollThreshold={999} // Never trigger scroll movement
+                animationDuration={0.15}
                 stopAtMiddle={false}
               />
             </div>
@@ -1019,12 +1011,11 @@ export default function Home() {
             <div
               className="absolute right-16 z-50"
               style={{
-                top: "85%",
-                opacity: descriptiveTextOpacity,
-                transform: `translateY(-50%) translateY(${
-                  300 * (1 - descriptiveTextOpacity)
-                }px)`, // Center vertically + fade in from below
+                top: `${descriptiveTextPosition}%`, // Follow second hero text position
+                opacity: descriptiveTextOpacity, // Same opacity as second hero
+                transform: "translateY(-50%)", // Center vertically
                 transition: "none", // No CSS transitions for smooth scrubbing
+                visibility: descriptiveTextOpacity < 0.01 ? "hidden" : "visible",
               }}
             >
               <ScrollDrivenText
@@ -1039,9 +1030,9 @@ export default function Home() {
                 textAlign="right"
                 style={{}}
                 lineHeightMultiplier={1.0}
-                scrollProgress={animationProgress}
-                scrollThreshold={TEXT_SEQUENCE.descriptiveStart}
-                animationDuration={0.2}
+                scrollProgress={0} // Don't let ScrollDrivenText handle scroll movement
+                scrollThreshold={999} // Never trigger scroll movement - same as second hero
+                animationDuration={0.15} // Same letter animation timing as second hero
                 stopAtMiddle={false}
               />
             </div>
