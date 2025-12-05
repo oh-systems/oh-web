@@ -57,8 +57,8 @@ const TEXT_SEQUENCE = {
   castShadowsStart: 0.25, // Cast Shadows model appears
 
   // Phase 4: Operating principles (all appear together)
-  principlesStart: 0.32, // Start operating principles after Cast Shadows transition
-  principlesEnd: 0.89, // End as Cast Shadows fades
+  principlesStart: 0.27, // Start operating principles right after second hero text fades completely
+  principlesEnd: 0.32, // End much earlier, well before Cast Shadows fades
 
   // Phase 5: Laptop (no text)
   laptopStart: 0.92, // Laptop appears with no text
@@ -412,8 +412,8 @@ export default function Home() {
       // Calculate second hero text - direct custom animation control
       const scrollStartThreshold = 0.08; // Later than first hero text (which starts at 0.02)
       const moveToMiddleEnd = 0.20; // Move to middle completes at 20% (slower movement - was 16%)
-      const pauseAtMiddleEnd = 0.32; // Reduced pause to 1.5 seconds equivalent (was 0.42)
-      const fadeCompleteEnd = 0.50; // Fade completes earlier due to shorter pause (was 0.60)
+      const pauseAtMiddleEnd = 0.22; // Shorter pause
+      const fadeCompleteEnd = 0.27; // Fade completes much sooner, before cast shadows
       
       if (rawProgress < scrollStartThreshold) {
         // Phase 0: Before scroll starts - stay at original position
