@@ -137,7 +137,7 @@ export default function ThirdLaptopSequence({
       if (!canvas) return;
 
       const ctx = canvas.getContext("2d", {
-        alpha: false,
+        alpha: true,
         desynchronized: true,
       });
       if (!ctx) return;
@@ -324,6 +324,7 @@ export default function ThirdLaptopSequence({
         alignItems: "center",
         justifyContent: "center",
         margin: "0 auto",
+        backgroundColor: "transparent", // Ensure transparent background
       }}
     >
       {/* Canvas for optimized rendering */}
@@ -339,6 +340,7 @@ export default function ThirdLaptopSequence({
           willChange: "contents",
           backfaceVisibility: "hidden",
           transform: "translateZ(0)",
+          backgroundColor: "transparent", // Explicitly transparent
         }}
       />
     </div>

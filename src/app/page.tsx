@@ -12,6 +12,7 @@ import {
   ThirdLaptopSequence,
   CastShadowsText,
   CastShadowsDetailsText,
+  TransitionScreen,
   CardDemo,
   Footer,
   GlassCursor,
@@ -985,25 +986,65 @@ export default function Home() {
                 }}
               />
 
-              {/* Third Laptop sequence - no artificial fading, images handle their own transitions */}
+              {/* TransitionScreen - shows before laptop */}
+              {rawProgress >= LAPTOP_SWAP_CONFIG.swapEnd && rawProgress < LAPTOP_SWAP_CONFIG.animationStart && (
+                <div style={{ 
+                  position: "absolute", 
+                  inset: 0, 
+                  zIndex: 150,
+                  backgroundColor: "transparent",
+                  pointerEvents: "none",
+                }}>
+                  <TransitionScreen
+                    progress={
+                      (rawProgress - LAPTOP_SWAP_CONFIG.swapEnd) /
+                      (LAPTOP_SWAP_CONFIG.animationStart - LAPTOP_SWAP_CONFIG.swapEnd)
+                    }
+                    laptopProgress={laptopAnimationProgress}
+                  />
+                </div>
+              )}
+
+              {/* Third Laptop sequence with TransitionScreen as background layer */}
               <div
                 style={{
-                  display: laptopSwapProgress < 0.5 ? "none" : "flex",
+                  display: rawProgress < LAPTOP_SWAP_CONFIG.animationStart ? "none" : "flex",
                   position: "absolute",
-                  inset: 0, // Full-screen positioning
+                  inset: 0,
                   width: "100vw",
                   height: "100vh",
                   alignItems: "center",
                   justifyContent: "center",
-                  pointerEvents: laptopSwapProgress < 0.5 ? "none" : "auto",
+                  pointerEvents: "none",
+                  zIndex: 150,
                 }}
               >
-                <ThirdLaptopSequence
-                  width={viewportDimensions.width}
-                  height={viewportDimensions.height}
-                  scrollProgress={laptopAnimationProgress}
-                  priority={laptopSwapProgress > 0.1} // Only prioritize when starting to show
-                />
+                {/* TransitionScreen as background - inside laptop container */}
+                <div style={{ 
+                  position: "absolute", 
+                  inset: 0, 
+                  zIndex: 1,
+                  backgroundColor: "transparent",
+                  pointerEvents: "none",
+                }}>
+                  <TransitionScreen
+                    progress={
+                      (rawProgress - LAPTOP_SWAP_CONFIG.swapEnd) /
+                      (LAPTOP_SWAP_CONFIG.animationStart - LAPTOP_SWAP_CONFIG.swapEnd)
+                    }
+                    laptopProgress={laptopAnimationProgress}
+                  />
+                </div>
+                
+                {/* Laptop images on top */}
+                <div style={{ position: "relative", zIndex: 10 }}>
+                  <ThirdLaptopSequence
+                    width={viewportDimensions.width}
+                    height={viewportDimensions.height}
+                    scrollProgress={laptopAnimationProgress}
+                    priority={laptopSwapProgress > 0.1}
+                  />
+                </div>
               </div>
             </div>
 
@@ -1103,7 +1144,7 @@ export default function Home() {
             </div>
 
             {/* Cast Shadows Operating Principles Text Sequence */}
-            <div className="absolute inset-0 z-[150] pointer-events-none">
+            <div className="absolute inset-0 z-[110] pointer-events-none">
               <CastShadowsText
                 scrollProgress={castTextProgress}
                 fadeOutProgress={0} // No longer needed since we handle fade separately
@@ -1111,7 +1152,7 @@ export default function Home() {
             </div>
 
             {/* Cast Shadows Details Text Sequence */}
-            <div className="absolute inset-0 z-[150] pointer-events-none">
+            <div className="absolute inset-0 z-[110] pointer-events-none">
               <CastShadowsDetailsText scrollProgress={castAnimationProgress} />
             </div>
 
