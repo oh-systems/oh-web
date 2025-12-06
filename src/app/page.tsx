@@ -61,7 +61,7 @@ const TEXT_SEQUENCE = {
 
   // Phase 4: Operating principles (all appear together)
   principlesStart: 0.27, // Start operating principles right after second hero text fades completely
-  principlesEnd: 0.40, // End later to last longer during Cast Shadows sequence
+  principlesEnd: 0.4, // End later to last longer during Cast Shadows sequence
 
   // Phase 5: Laptop (no text)
   laptopStart: 0.92, // Laptop appears with no text
@@ -987,28 +987,35 @@ export default function Home() {
               />
 
               {/* TransitionScreen - shows before laptop */}
-              {rawProgress >= LAPTOP_SWAP_CONFIG.swapEnd && rawProgress < LAPTOP_SWAP_CONFIG.animationStart && (
-                <div style={{ 
-                  position: "absolute", 
-                  inset: 0, 
-                  zIndex: 150,
-                  backgroundColor: "transparent",
-                  pointerEvents: "none",
-                }}>
-                  <TransitionScreen
-                    progress={
-                      (rawProgress - LAPTOP_SWAP_CONFIG.swapEnd) /
-                      (LAPTOP_SWAP_CONFIG.animationStart - LAPTOP_SWAP_CONFIG.swapEnd)
-                    }
-                    laptopProgress={laptopAnimationProgress}
-                  />
-                </div>
-              )}
+              {rawProgress >= LAPTOP_SWAP_CONFIG.swapEnd &&
+                rawProgress < LAPTOP_SWAP_CONFIG.animationStart && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      zIndex: 150,
+                      backgroundColor: "transparent",
+                      pointerEvents: "none",
+                    }}
+                  >
+                    <TransitionScreen
+                      progress={
+                        (rawProgress - LAPTOP_SWAP_CONFIG.swapEnd) /
+                        (LAPTOP_SWAP_CONFIG.animationStart -
+                          LAPTOP_SWAP_CONFIG.swapEnd)
+                      }
+                      laptopProgress={laptopAnimationProgress}
+                    />
+                  </div>
+                )}
 
               {/* Third Laptop sequence with TransitionScreen as background layer */}
               <div
                 style={{
-                  display: rawProgress < LAPTOP_SWAP_CONFIG.animationStart ? "none" : "flex",
+                  display:
+                    rawProgress < LAPTOP_SWAP_CONFIG.animationStart
+                      ? "none"
+                      : "flex",
                   position: "absolute",
                   inset: 0,
                   width: "100vw",
@@ -1020,22 +1027,25 @@ export default function Home() {
                 }}
               >
                 {/* TransitionScreen as background - inside laptop container */}
-                <div style={{ 
-                  position: "absolute", 
-                  inset: 0, 
-                  zIndex: 1,
-                  backgroundColor: "transparent",
-                  pointerEvents: "none",
-                }}>
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    zIndex: 1,
+                    backgroundColor: "transparent",
+                    pointerEvents: "none",
+                  }}
+                >
                   <TransitionScreen
                     progress={
                       (rawProgress - LAPTOP_SWAP_CONFIG.swapEnd) /
-                      (LAPTOP_SWAP_CONFIG.animationStart - LAPTOP_SWAP_CONFIG.swapEnd)
+                      (LAPTOP_SWAP_CONFIG.animationStart -
+                        LAPTOP_SWAP_CONFIG.swapEnd)
                     }
                     laptopProgress={laptopAnimationProgress}
                   />
                 </div>
-                
+
                 {/* Laptop images on top */}
                 <div style={{ position: "relative", zIndex: 10 }}>
                   <ThirdLaptopSequence
