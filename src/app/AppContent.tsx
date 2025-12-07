@@ -5,6 +5,7 @@ import {
   UnifiedRingLoader,
   PermanentRing,
   InitialLoadSequence,
+  GlassCursor,
 } from "../../components";
 
 // Create context to share loading sequence state and navigation fade
@@ -72,6 +73,9 @@ export default function AppContent({
         setNavigationFadeProgress,
         setPermanentRingVisible,
       }}>
+      {/* White cursor ball - always visible from the start */}
+      <GlassCursor scrollAnimationStarted={transitionComplete} />
+      
       {/* Loading phase: show UnifiedRingLoader until moved to corner - only on first visit */}
       {!transitionComplete && (
         <UnifiedRingLoader

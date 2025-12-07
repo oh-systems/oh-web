@@ -9,7 +9,9 @@ interface GlassCursorProps {
 const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
   const cursorRef = useRef<HTMLDivElement>(null);
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
+  const [realMousePosition, setRealMousePosition] = useState({ x: 0, y: 0 });
   const [isVisible, setIsVisible] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
   const mousePositionRef = useRef({ x: 0, y: 0 });
   const animationFrameRef = useRef<number>(0);
 
@@ -19,23 +21,31 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
       const initialX = window.innerWidth / 2;
       const initialY = window.innerHeight / 2;
       setCursorPosition({ x: initialX, y: initialY });
+      setRealMousePosition({ x: initialX, y: initialY });
       mousePositionRef.current = { x: initialX, y: initialY };
     }
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (!scrollAnimationStarted) return; // Don't track mouse until scroll animation starts
-      
       mousePositionRef.current = { x: e.clientX, y: e.clientY };
+      setRealMousePosition({ x: e.clientX, y: e.clientY }); // Update real position immediately
       if (!isVisible) setIsVisible(true);
+      
+      // Only do interactive detection after scroll animation starts
+      if (scrollAnimationStarted) {
+        // Use elementFromPoint to detect what's under the cursor (since cursor has pointer-events: none)
+        const elementUnderCursor = document.elementFromPoint(e.clientX, e.clientY);
+        if (elementUnderCursor) {
+          const isInteractive = elementUnderCursor.closest('a, button, [role="button"], input, textarea, select, [onclick], [tabindex]') !== null;
+          setIsHovering(isInteractive);
+        }
+      }
     };
 
     const handleMouseLeave = () => {
-      if (!scrollAnimationStarted) return;
       setIsVisible(false);
     };
 
     const handleMouseEnter = () => {
-      if (!scrollAnimationStarted) return;
       setIsVisible(true);
     };
 
@@ -50,12 +60,10 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
     };
   }, [scrollAnimationStarted]);
 
-  // Show cursor when scroll animation starts
+  // Show cursor immediately on mount
   useEffect(() => {
-    if (scrollAnimationStarted) {
-      setIsVisible(true);
-    }
-  }, [scrollAnimationStarted]);
+    setIsVisible(true);
+  }, []);
 
   // Separate effect for animation loop
   useEffect(() => {
@@ -86,40 +94,58 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
     };
   }, [scrollAnimationStarted]);
 
-  // Don't render anything at all until scroll animation actually starts
-  if (!scrollAnimationStarted) {
-    return null;
-  }
-
   return (
-    <div
-      ref={cursorRef}
-      className={`glass-cursor ${isVisible ? 'glass-cursor--visible' : ''}`}
-      style={{
-        left: cursorPosition.x,
-        top: cursorPosition.y,
-      }}
-    >
-      <GlassSurface
-        width={78}
-        height={78}
-        borderRadius={39}
-        borderWidth={0}
-        brightness={50}
-        opacity={0.93}
-        blur={15}
-        displace={0.5}
-        backgroundOpacity={0.08}
-        saturation={1.3}
-        distortionScale={-180}
-        redOffset={0}
-        greenOffset={8}
-        blueOffset={16}
-        className="glass-cursor__surface"
-      >
-        <div className="glass-cursor__content" />
-      </GlassSurface>
-    </div>
+    <>
+      {/* Glass crystal with delayed/smooth movement - only after scroll starts */}
+      {scrollAnimationStarted && (
+        <div
+          ref={cursorRef}
+          className={`glass-cursor ${isVisible ? 'glass-cursor--visible' : ''}`}
+          style={{
+            left: cursorPosition.x,
+            top: cursorPosition.y,
+          }}
+        >
+          <GlassSurface
+            width={78}
+            height={78}
+            borderRadius={39}
+            borderWidth={0}
+            brightness={50}
+            opacity={0.93}
+            blur={15}
+            displace={0.5}
+            backgroundOpacity={0.08}
+            saturation={1.3}
+            distortionScale={-180}
+            redOffset={0}
+            greenOffset={8}
+            blueOffset={16}
+            className="glass-cursor__surface"
+          >
+            <div className="glass-cursor__content" />
+          </GlassSurface>
+        </div>
+      )}
+      
+      {/* Small white circle indicator showing real cursor position - always visible */}
+      <div
+        style={{
+          position: 'fixed',
+          left: realMousePosition.x,
+          top: realMousePosition.y,
+          width: isHovering ? '12px' : '6px',
+          height: isHovering ? '12px' : '6px',
+          borderRadius: '50%',
+          backgroundColor: 'white',
+          transform: 'translate(-50%, -50%)',
+          transition: 'width 0.2s ease-out, height 0.2s ease-out',
+          pointerEvents: 'none',
+          zIndex: 999999999,
+          opacity: 1,
+        }}
+      />
+    </>
   );
 };
 
