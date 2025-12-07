@@ -16,6 +16,7 @@ export default function Sound({
   const [soundMode, setSoundMode] = useState<SoundMode>('all');
   const ambientAudioRef = useRef<HTMLAudioElement | null>(null);
   const effectsAudioRef = useRef<HTMLAudioElement | null>(null);
+  const hasInteractedRef = useRef(false);
 
   // Initialize sound mode from localStorage
   useEffect(() => {
@@ -26,6 +27,30 @@ export default function Sound({
       }
     }
   }, []);
+
+  // Set up a one-time listener for any user interaction to enable audio
+  useEffect(() => {
+    const enableAudio = () => {
+      if (!hasInteractedRef.current) {
+        hasInteractedRef.current = true;
+        // Try to start ambient audio if mode is 'all'
+        if (soundMode === 'all' && ambientAudioRef.current) {
+          ambientAudioRef.current.play().catch(err => {
+            console.log('Audio play prevented:', err);
+          });
+        }
+      }
+    };
+
+    // Listen for first user interaction
+    document.addEventListener('click', enableAudio, { once: true });
+    document.addEventListener('keydown', enableAudio, { once: true });
+
+    return () => {
+      document.removeEventListener('click', enableAudio);
+      document.removeEventListener('keydown', enableAudio);
+    };
+  }, [soundMode]);
 
   // Cycle through sound modes: all -> effects -> none -> all
   const toggleSound = () => {
@@ -50,7 +75,7 @@ export default function Sound({
 
     // Control ambient audio based on mode
     if (ambientAudioRef.current) {
-      if (soundMode === 'all') {
+      if (soundMode === 'all' && hasInteractedRef.current) {
         ambientAudioRef.current.play().catch(err => {
           console.log('Audio play prevented:', err);
         });
