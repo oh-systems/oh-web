@@ -78,18 +78,26 @@ export default function SectionIndicator({
             
             return (
               <div key={`circle-${section.id}`} className="flex flex-col items-center">
-                {/* Circle */}
+                {/* Circle with larger clickable area */}
                 <div
-                  className="rounded-full border transition-colors duration-200 cursor-pointer"
+                  className="cursor-pointer"
                   onClick={() => handleSectionClick(section.id as 'overview' | 'mission' | 'space' | 'information')}
                   style={{
-                    width: '8px',
-                    height: '8px',
-                    borderColor: isActive ? 'white' : '#1E1E1E',
-                    backgroundColor: isActive ? 'white' : 'transparent',
-                    borderWidth: '1px',
+                    padding: '8px',
+                    margin: '-8px',
                   }}
-                />
+                >
+                  <div
+                    className="rounded-full border transition-colors duration-200"
+                    style={{
+                      width: '8px',
+                      height: '8px',
+                      borderColor: isActive ? 'white' : '#1E1E1E',
+                      backgroundColor: isActive ? 'white' : 'transparent',
+                      borderWidth: '1px',
+                    }}
+                  />
+                </div>
                 
                 {/* Connecting Line */}
                 {!isLast && (
