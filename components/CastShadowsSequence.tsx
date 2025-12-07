@@ -35,7 +35,6 @@ export default function CastShadowsSequence({
   duration = 40,
   fps = 30,
   onSequenceComplete,
-
 }: CastShadowsSequenceProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentFrame, setCurrentFrame] = useState(0);
@@ -79,7 +78,10 @@ export default function CastShadowsSequence({
   const preloadFrame = useCallback(
     (frameIndex: number) => {
       // First check if already in global cache
-      const cachedImg = SequencePreloader.getCachedImage('castShadows', frameIndex);
+      const cachedImg = SequencePreloader.getCachedImage(
+        "castShadows",
+        frameIndex
+      );
       if (cachedImg) {
         imageCache.current.set(frameIndex, cachedImg);
         if (imageCache.current.size >= 10) {
@@ -110,25 +112,31 @@ export default function CastShadowsSequence({
 
           // Debug logging for production
           if (process.env.NODE_ENV === "production" && frameIndex <= 5) {
-            console.log(`✅ Frame ${frameIndex} loaded successfully in ${loadTime.toFixed(0)}ms from ${imagePaths[frameIndex]}`);
+            console.log(
+              `✅ Frame ${frameIndex} loaded successfully in ${loadTime.toFixed(
+                0
+              )}ms from ${imagePaths[frameIndex]}`
+            );
           }
 
           // Lower threshold for production readiness
-          if (imageCache.current.size >= 10) { // Reduced for faster startup
+          if (imageCache.current.size >= 10) {
+            // Reduced for faster startup
             setIsReady(true);
           }
           resolve();
         };
 
-      img.onerror = (error) => {
-        console.error(`Failed to load frame ${frameIndex}:`, {
-          url: imagePaths[frameIndex],
-          error: error,
-          isProduction: process.env.NODE_ENV === 'production'
-        });
-        loadingFrames.current.delete(frameIndex);
-        resolve();
-      };        img.src = imagePaths[frameIndex];
+        img.onerror = (error) => {
+          console.error(`Failed to load frame ${frameIndex}:`, {
+            url: imagePaths[frameIndex],
+            error: error,
+            isProduction: process.env.NODE_ENV === "production",
+          });
+          loadingFrames.current.delete(frameIndex);
+          resolve();
+        };
+        img.src = imagePaths[frameIndex];
       });
     },
     [imagePaths]
@@ -165,7 +173,7 @@ export default function CastShadowsSequence({
   // Populate local cache from global preloader cache on mount
   useEffect(() => {
     for (let i = 0; i < totalFrames; i++) {
-      const cachedImg = SequencePreloader.getCachedImage('castShadows', i);
+      const cachedImg = SequencePreloader.getCachedImage("castShadows", i);
       if (cachedImg) {
         imageCache.current.set(i, cachedImg);
       }
