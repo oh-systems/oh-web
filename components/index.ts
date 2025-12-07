@@ -14,6 +14,7 @@ export { default as Card } from './Card';
 export { default as CardDemo } from './CardDemo';
 export { default as GlassSurface } from './GlassSurface';
 export { default as GlassCursor } from './GlassCursor';
+export { default as LaptopText } from './LaptopText';
 
 // Animation Sequences  
 export { default as InitialLoadSequence } from './InitialLoadSequence';

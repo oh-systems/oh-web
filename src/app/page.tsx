@@ -16,6 +16,7 @@ import {
   CardDemo,
   Footer,
   GlassCursor,
+  LaptopText,
 } from "../../components";
 import { GlassSections } from "../../components/GlassSections";
 import { useAppContext } from "./AppContent";
@@ -843,6 +844,9 @@ export default function Home() {
           zIndex: 999999998, // High z-index to ensure visibility
         }}
       />
+
+      {/* Laptop text overlay - at top level for maximum visibility */}
+      <LaptopText progress={laptopAnimationProgress} />
 
       <div
         ref={containerRef}
