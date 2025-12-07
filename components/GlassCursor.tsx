@@ -12,6 +12,7 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
   const [realMousePosition, setRealMousePosition] = useState({ x: 0, y: 0 });
   const [isVisible, setIsVisible] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [crystalOpacity, setCrystalOpacity] = useState(0);
   const mousePositionRef = useRef({ x: 0, y: 0 });
   const animationFrameRef = useRef<number>(0);
 
@@ -65,6 +66,32 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
     setIsVisible(true);
   }, []);
 
+  // Fade in crystal when scroll animation starts
+  useEffect(() => {
+    if (scrollAnimationStarted) {
+      // Gradually fade in the crystal over 3 seconds with scale effect
+      const fadeInDuration = 3000; // 3 seconds
+      const startTime = performance.now();
+      
+      const fadeIn = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / fadeInDuration, 1);
+        
+        // Smooth ease-in-out
+        const easedProgress = progress * progress * (3 - 2 * progress);
+        setCrystalOpacity(easedProgress);
+        
+        if (progress < 1) {
+          requestAnimationFrame(fadeIn);
+        }
+      };
+      
+      requestAnimationFrame(fadeIn);
+    } else {
+      setCrystalOpacity(0);
+    }
+  }, [scrollAnimationStarted]);
+
   // Separate effect for animation loop
   useEffect(() => {
     if (!scrollAnimationStarted) return; // Don't animate until scroll animation starts
@@ -100,10 +127,15 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
       {scrollAnimationStarted && (
         <div
           ref={cursorRef}
-          className={`glass-cursor ${isVisible ? 'glass-cursor--visible' : ''}`}
+          className={`glass-cursor`}
           style={{
             left: cursorPosition.x,
             top: cursorPosition.y,
+            opacity: crystalOpacity,
+            transform: `translate(-50%, -50%) scale(${0.7 + crystalOpacity * 0.3})`,
+            transition: 'none',
+            pointerEvents: 'none',
+            zIndex: 999999999,
           }}
         >
           <GlassSurface
