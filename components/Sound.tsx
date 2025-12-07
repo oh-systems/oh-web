@@ -18,12 +18,16 @@ export default function Sound({
   const effectsAudioRef = useRef<HTMLAudioElement | null>(null);
   const hasInteractedRef = useRef(false);
 
-  // Initialize sound mode from localStorage
+  // Initialize sound mode from localStorage, defaulting to 'all'
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedMode = localStorage.getItem('soundMode') as SoundMode;
       if (savedMode && ['all', 'effects', 'none'].includes(savedMode)) {
         setSoundMode(savedMode);
+      } else {
+        // Set default to 'all' and save it
+        setSoundMode('all');
+        localStorage.setItem('soundMode', 'all');
       }
     }
   }, []);
