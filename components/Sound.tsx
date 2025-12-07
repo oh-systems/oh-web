@@ -85,8 +85,8 @@ export default function Sound({
     }
   }, [soundMode]);
 
-  // Play click sound effect on toggle
-  const handleToggle = () => {
+  // Play click sound effect
+  const playClickSound = () => {
     // Play click sound for effects and all modes
     if (soundMode === 'all' || soundMode === 'effects') {
       const clickAudio = new Audio('/sounds/click.wav');
@@ -95,8 +95,20 @@ export default function Sound({
         console.log('Click sound prevented:', err);
       });
     }
+  };
+
+  // Handle clicking on a specific mode
+  const handleModeClick = (mode: SoundMode, e: React.MouseEvent) => {
+    e.stopPropagation();
     
-    toggleSound();
+    // Only change if clicking a different mode
+    if (mode !== soundMode) {
+      playClickSound();
+      setSoundMode(mode);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('soundMode', mode);
+      }
+    }
   };
 
   return (
@@ -112,10 +124,8 @@ export default function Sound({
         display: 'flex',
         alignItems: 'center',
         gap: '10px',
-        cursor: 'pointer',
         userSelect: 'none',
       }}
-      onClick={handleToggle}
     >
       {/* SOUND Text */}
       <span 
@@ -135,37 +145,43 @@ export default function Sound({
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         {/* Left Circle - All sounds (ambient + effects) */}
         <div
+          onClick={(e) => handleModeClick('all', e)}
           style={{
             width: '10px',
             height: '10px',
             borderRadius: '50%',
             backgroundColor: soundMode === 'all' ? 'white' : 'transparent',
             border: '1px solid white',
-            transition: 'background-color 0.3s ease'
+            transition: 'background-color 0.3s ease',
+            cursor: 'pointer'
           }}
         />
         
         {/* Middle Circle - Effects only */}
         <div
+          onClick={(e) => handleModeClick('effects', e)}
           style={{
             width: '10px',
             height: '10px',
             borderRadius: '50%',
             backgroundColor: soundMode === 'effects' ? 'white' : 'transparent',
             border: '1px solid white',
-            transition: 'background-color 0.3s ease'
+            transition: 'background-color 0.3s ease',
+            cursor: 'pointer'
           }}
         />
         
         {/* Right Circle - No sound */}
         <div
+          onClick={(e) => handleModeClick('none', e)}
           style={{
             width: '10px',
             height: '10px',
             borderRadius: '50%',
             backgroundColor: soundMode === 'none' ? 'white' : 'transparent',
             border: '1px solid white',
-            transition: 'background-color 0.3s ease'
+            transition: 'background-color 0.3s ease',
+            cursor: 'pointer'
           }}
         />
       </div>
