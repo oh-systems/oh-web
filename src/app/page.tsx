@@ -864,39 +864,27 @@ export default function Home() {
         {/* Initial Load State - 3D INITIAL_LOAD model with loading indicator */}
         {!initialLoadComplete && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black">
-            <InitialLoadSequence
-              width={800}
-              height={600}
-              autoPlay={true}
-              startAnimation={true}
-              onSequenceComplete={() => {
-                // Note: we don't set initialLoadComplete here anymore
-                // It's set when both contentVisible AND allSequencesPreloaded are true
+            {/* Only show InitialLoadSequence after a brief delay to prevent flash */}
+            <div
+              style={{
+                opacity: contentVisible ? 1 : 0,
+                transition: "opacity 0.3s ease-in",
               }}
-              onLoadingProgress={() => {
-                // This tracks InitialLoadSequence progress (optional, not used for gating)
-              }}
-              priority={true}
-            />
-
-            {/* Loading Progress Indicator */}
-            <div className="absolute bottom-20 left-0 right-0 flex flex-col items-center gap-4 z-50">
-              <div className="text-white text-sm font-light tracking-wider opacity-70">
-                LOADING EXPERIENCE
-              </div>
-
-              {/* Progress Bar */}
-              <div className="w-64 h-0.5 bg-white/20 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-white/80 transition-all duration-300 ease-out rounded-full"
-                  style={{ width: `${preloadProgress.overall * 100}%` }}
-                />
-              </div>
-
-              {/* Percentage */}
-              <div className="text-white text-xs font-light tracking-widest opacity-50">
-                {Math.round(preloadProgress.overall * 100)}%
-              </div>
+            >
+              <InitialLoadSequence
+                width={800}
+                height={600}
+                autoPlay={true}
+                startAnimation={true}
+                onSequenceComplete={() => {
+                  // Note: we don't set initialLoadComplete here anymore
+                  // It's set when both contentVisible AND allSequencesPreloaded are true
+                }}
+                onLoadingProgress={() => {
+                  // This tracks InitialLoadSequence progress (optional, not used for gating)
+                }}
+                priority={true}
+              />
             </div>
           </div>
         )}
