@@ -1,17 +1,139 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 interface CastShadowsTextProps {
   scrollProgress: number; // 0 to 1 for the Cast Shadows sequence
   fadeOutProgress: number; // 0 to 1 for fading out "THE FUTURE OF..."
 }
 
+// Helper to generate smooth random offset using sine waves
+const getRandomOffset = (time: number, seed: number, range: number) => {
+  return Math.sin(time * 0.0004 + seed) * range; // Slower oscillation for smoother movement
+};
+
 export default function CastShadowsText({
   scrollProgress,
   fadeOutProgress,
 }: CastShadowsTextProps) {
+  const [time, setTime] = useState(0);
+  const [glitchLines, setGlitchLines] = useState<Array<{ id: number; x1: number; y1: number; x2: number; y2: number }>>([]);
+  const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 }); // Start at center
+  const [smoothMousePosition, setSmoothMousePosition] = useState({ x: 50, y: 50 }); // Interpolated position
 
+  // Track mouse position with smooth interpolation
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({
+        x: (e.clientX / window.innerWidth) * 100, // Convert to percentage
+        y: (e.clientY / window.innerHeight) * 100,
+      });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  // Smoothly interpolate mouse position
+  useEffect(() => {
+    let animationFrameId: number;
+    
+    const smoothUpdate = () => {
+      setSmoothMousePosition(prev => ({
+        x: prev.x + (mousePosition.x - prev.x) * 0.1, // Lerp factor: 0.1 for smooth following
+        y: prev.y + (mousePosition.y - prev.y) * 0.1,
+      }));
+      animationFrameId = requestAnimationFrame(smoothUpdate);
+    };
+
+    animationFrameId = requestAnimationFrame(smoothUpdate);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [mousePosition]);
+
+  // Animate time for smooth random movement
+  useEffect(() => {
+    let animationFrameId: number;
+    const startTime = Date.now();
+
+    const animate = () => {
+      setTime(Date.now() - startTime);
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
+  // Generate random glitch lines that appear and disappear
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Randomly decide whether to show glitch lines (30% chance)
+      if (Math.random() > 0.7 && scrollProgress > 0.1 && scrollProgress < 0.85) {
+        const numLines = Math.floor(Math.random() * 3) + 1; // 1-3 lines
+        const newGlitchLines = Array.from({ length: numLines }, (_, i) => ({
+          id: Date.now() + i,
+          x1: Math.random() * 100,
+          y1: Math.random() * 100,
+          x2: Math.random() * 100,
+          y2: Math.random() * 100,
+        }));
+        
+        setGlitchLines(newGlitchLines);
+        
+        // Remove them quickly
+        setTimeout(() => {
+          setGlitchLines([]);
+        }, 50 + Math.random() * 100); // 50-150ms duration
+      }
+    }, 200 + Math.random() * 800); // Random interval between 200-1000ms
+
+    return () => clearInterval(interval);
+  }, [scrollProgress]);
+
+  // Calculate random offsets for each text element with cursor-induced rotation
+  const calculateOffset = (baseX: number, baseY: number, seed: number, range: number) => {
+    // Random component (50% influence)
+    const randomX = getRandomOffset(time, seed, range) * 0.5;
+    const randomY = getRandomOffset(time, seed + 100, range) * 0.5;
+    
+    // Cursor-induced rotation (50% influence)
+    // Calculate angle from cursor to text element using smoothed mouse position
+    const deltaX = baseX - smoothMousePosition.x;
+    const deltaY = baseY - smoothMousePosition.y;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    
+    // Rotate around the element's position based on cursor location
+    const rotationStrength = 2.5; // Increased rotation strength significantly
+    const angle = Math.atan2(deltaY, deltaX);
+    const perpAngle = angle + Math.PI / 2; // Perpendicular for orbital movement
+    
+    const rotationX = Math.cos(perpAngle) * (100 - distance) * rotationStrength * 0.3;
+    const rotationY = Math.sin(perpAngle) * (100 - distance) * rotationStrength * 0.3;
+    
+    return {
+      x: randomX + rotationX,
+      y: randomY + rotationY,
+    };
+  };
+
+  const offsets = {
+    operatingPrinciples: calculateOffset(90, 12, 1, 15),
+    everythingBuilt: calculateOffset(28, 20, 3, 20),
+    interactivity: calculateOffset(60, 32, 5, 25),
+    deployments: calculateOffset(33, 47, 7, 30),
+    modular: calculateOffset(25, 70, 9, 20),
+    aiBuiltIn: calculateOffset(72, 70, 11, 20),
+    latency: calculateOffset(60, 84, 13, 30),
+  };
+
+  // Calculate dynamic line positions based on text offsets
+  const getLinePos = (basePercent: number, offset: number, isHorizontal: boolean) => {
+    const pixelOffset = offset / (isHorizontal ? window.innerWidth : window.innerHeight) * 100;
+    return `${basePercent + pixelOffset}%`;
+  };
 
   // All text elements appear together and fade out together
   const calculateOpacity = () => {
@@ -47,7 +169,6 @@ export default function CastShadowsText({
         width: "100%",
         height: "100%",
         opacity: allTextOpacity,
-        transition: "opacity 0.5s ease-out",
       }}
     >
       <line
@@ -56,41 +177,117 @@ export default function CastShadowsText({
         x2={x2}
         y2={y2}
         stroke="white"
-        strokeWidth="1"
-        opacity="0.5"
+        strokeWidth="1.5"
       />
     </svg>
   );
 
   return (
     <>
-      {/* Connecting Lines */}
+      {/* Connecting Lines - dynamically adjust to text positions */}
       {/* Operating Principles to Interactivity */}
-      {renderLine("86%", "13%", "60%", "30%", "line1")}
+      {renderLine(
+        getLinePos(84, offsets.operatingPrinciples.x, true),
+        getLinePos(13, offsets.operatingPrinciples.y, false),
+        getLinePos(60, offsets.interactivity.x, true),
+        getLinePos(32, offsets.interactivity.y, false),
+        "line1"
+      )}
       
       {/* Everything is built to Interactivity */}
-      {renderLine("28%", "20%", "60%", "30%", "line2")}
+      {renderLine(
+        getLinePos(28, offsets.everythingBuilt.x, true),
+        getLinePos(22, offsets.everythingBuilt.y, false),
+        getLinePos(60, offsets.interactivity.x, true),
+        getLinePos(32, offsets.interactivity.y, false),
+        "line2"
+      )}
       
       {/* Everything is built to Deployments Must */}
-      {renderLine("28%", "20%", "33%", "48%", "line3")}
+      {renderLine(
+        getLinePos(28, offsets.everythingBuilt.x, true),
+        getLinePos(22, offsets.everythingBuilt.y, false),
+        getLinePos(33, offsets.deployments.x, true),
+        getLinePos(50, offsets.deployments.y, false),
+        "line3"
+      )}
       
       {/* Interactivity to Deployments Must */}
-      {renderLine("60%", "30%", "33%", "48%", "line4")}
+      {renderLine(
+        getLinePos(60, offsets.interactivity.x, true),
+        getLinePos(32, offsets.interactivity.y, false),
+        getLinePos(33, offsets.deployments.x, true),
+        getLinePos(50, offsets.deployments.y, false),
+        "line4"
+      )}
       
       {/* Interactivity to Latency Matters */}
-      {renderLine("60%", "30%", "55%", "82%", "line5")}
+      {renderLine(
+        getLinePos(60, offsets.interactivity.x, true),
+        getLinePos(32, offsets.interactivity.y, false),
+        getLinePos(60, offsets.latency.x, true),
+        getLinePos(84, offsets.latency.y, false),
+        "line5"
+      )}
       
       {/* Interactivity to AI is built in */}
-      {renderLine("60%", "30%", "72%", "68%", "line6")}
+      {renderLine(
+        getLinePos(60, offsets.interactivity.x, true),
+        getLinePos(32, offsets.interactivity.y, false),
+        getLinePos(72, offsets.aiBuiltIn.x, true),
+        getLinePos(70, offsets.aiBuiltIn.y, false),
+        "line6"
+      )}
       
       {/* Deployments to All systems are modular */}
-      {renderLine("33%", "48%", "25%", "68%", "line7")}
+      {renderLine(
+        getLinePos(33, offsets.deployments.x, true),
+        getLinePos(50, offsets.deployments.y, false),
+        getLinePos(25, offsets.modular.x, true),
+        getLinePos(70, offsets.modular.y, false),
+        "line7"
+      )}
       
       {/* Deployments to Latency Matters */}
-      {renderLine("33%", "48%", "55%", "82%", "line8")}
+      {renderLine(
+        getLinePos(33, offsets.deployments.x, true),
+        getLinePos(50, offsets.deployments.y, false),
+        getLinePos(60, offsets.latency.x, true),
+        getLinePos(84, offsets.latency.y, false),
+        "line8"
+      )}
       
       {/* Latency Matters to AI is built in */}
-      {renderLine("55%", "82%", "72%", "68%", "line9")}
+      {renderLine(
+        getLinePos(60, offsets.latency.x, true),
+        getLinePos(84, offsets.latency.y, false),
+        getLinePos(72, offsets.aiBuiltIn.x, true),
+        getLinePos(70, offsets.aiBuiltIn.y, false),
+        "line9"
+      )}
+
+      {/* Random glitch lines that appear/disappear */}
+      {glitchLines.map((line) => (
+        <svg
+          key={line.id}
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            width: "100%",
+            height: "100%",
+            opacity: allTextOpacity * 0.7,
+          }}
+        >
+          <line
+            x1={`${line.x1}%`}
+            y1={`${line.y1}%`}
+            x2={`${line.x2}%`}
+            y2={`${line.y2}%`}
+            stroke="white"
+            strokeWidth="2.5"
+            opacity="0.6"
+          />
+        </svg>
+      ))}
 
       {/* "THE FUTURE OF..." fade out overlay */}
       <div
@@ -107,11 +304,11 @@ export default function CastShadowsText({
       <div
         className="absolute text-white"
         style={{
-          top: "10%",
+          top: "12%",
           right: "8%",
           opacity: operatingPrinciplesOpacity,
-          transform: `translateY(${20 * (1 - operatingPrinciplesOpacity)}px)`,
-          transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
+          transform: `translate(${offsets.operatingPrinciples.x}px, ${offsets.operatingPrinciples.y + 20 * (1 - operatingPrinciplesOpacity)}px)`,
+          transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
           fontSize: "32px",
           fontWeight: "normal",
@@ -125,11 +322,11 @@ export default function CastShadowsText({
       <div
         className="absolute text-white"
         style={{
-          top: "18%",
+          top: "20%",
           left: "15%",
           opacity: everythingBuiltOpacity,
-          transform: `translateY(${30 * (1 - everythingBuiltOpacity)}px)`,
-          transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
+          transform: `translate(${offsets.everythingBuilt.x}px, ${offsets.everythingBuilt.y + 30 * (1 - everythingBuiltOpacity)}px)`,
+          transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
           fontSize: "48px",
           fontWeight: "normal",
@@ -143,11 +340,11 @@ export default function CastShadowsText({
       <div
         className="absolute text-white"
         style={{
-          top: "30%",
+          top: "32%",
           left: "40%",
           opacity: interactivityOpacity,
-          transform: `translateY(${25 * (1 - interactivityOpacity)}px)`,
-          transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
+          transform: `translate(${offsets.interactivity.x}px, ${offsets.interactivity.y + 25 * (1 - interactivityOpacity)}px)`,
+          transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
           fontSize: "36px",
           fontWeight: "normal",
@@ -161,11 +358,11 @@ export default function CastShadowsText({
       <div
         className="absolute text-white"
         style={{
-          top: "45%",
+          top: "47%",
           left: "5%",
           opacity: deploymentsOpacity,
-          transform: `translateY(${35 * (1 - deploymentsOpacity)}px)`,
-          transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
+          transform: `translate(${offsets.deployments.x}px, ${offsets.deployments.y + 35 * (1 - deploymentsOpacity)}px)`,
+          transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
           fontSize: "64px",
           fontWeight: "normal",
@@ -180,11 +377,11 @@ export default function CastShadowsText({
       <div
         className="absolute text-white"
         style={{
-          top: "68%",
+          top: "70%",
           left: "10%",
           opacity: modularOpacity,
-          transform: `translateY(${30 * (1 - modularOpacity)}px)`,
-          transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
+          transform: `translate(${offsets.modular.x}px, ${offsets.modular.y + 30 * (1 - modularOpacity)}px)`,
+          transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
           fontSize: "40px",
           fontWeight: "normal",
@@ -198,11 +395,11 @@ export default function CastShadowsText({
       <div
         className="absolute text-white"
         style={{
-          top: "68%",
+          top: "70%",
           left: "62%",
           opacity: aiBuiltInOpacity,
-          transform: `translateY(${30 * (1 - aiBuiltInOpacity)}px)`,
-          transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
+          transform: `translate(${offsets.aiBuiltIn.x}px, ${offsets.aiBuiltIn.y + 30 * (1 - aiBuiltInOpacity)}px)`,
+          transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
           fontSize: "32px",
           fontWeight: "normal",
@@ -216,11 +413,11 @@ export default function CastShadowsText({
       <div
         className="absolute text-white"
         style={{
-          top: "82%",
-          left: "45%",
+          top: "84%",
+          left: "50%",
           opacity: latencyOpacity,
-          transform: `translateY(${40 * (1 - latencyOpacity)}px)`,
-          transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
+          transform: `translate(${offsets.latency.x}px, ${offsets.latency.y + 40 * (1 - latencyOpacity)}px)`,
+          transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
           fontSize: "64px",
           fontWeight: "normal",
