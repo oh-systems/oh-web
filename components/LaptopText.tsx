@@ -7,12 +7,12 @@ interface LaptopTextProps {
 }
 
 export default function LaptopText({ progress }: LaptopTextProps) {
-  // Fade in starts at 10% of laptop animation, completes at 30%
-  const fadeInStart = 0.2;
+  // Fade in starts at 30% of laptop animation, completes at 40%
+  const fadeInStart = 0.3;
   const fadeInEnd = 0.4;
 
   // Fade out starts at 85% of laptop animation, completes at 95%
-  const fadeOutStart = 0.85;
+  const fadeOutStart = 0.90;
   const fadeOutEnd = 0.95;
 
   // Debug: log progress
@@ -21,31 +21,25 @@ export default function LaptopText({ progress }: LaptopTextProps) {
   }
 
   let opacity = 0;
-  let translateY = 20; // Start 20px below, animate to 0
 
   if (progress < fadeInStart) {
     // Before fade in
     opacity = 0;
-    translateY = 20;
   } else if (progress >= fadeInStart && progress <= fadeInEnd) {
     // Fading in
     const fadeProgress = (progress - fadeInStart) / (fadeInEnd - fadeInStart);
     opacity = fadeProgress;
-    translateY = 20 * (1 - fadeProgress);
   } else if (progress > fadeInEnd && progress < fadeOutStart) {
     // Fully visible
     opacity = 1;
-    translateY = 0;
   } else if (progress >= fadeOutStart && progress <= fadeOutEnd) {
     // Fading out
     const fadeProgress =
       (progress - fadeOutStart) / (fadeOutEnd - fadeOutStart);
     opacity = 1 - fadeProgress;
-    translateY = -20 * fadeProgress; // Move up slightly while fading out
   } else {
     // After fade out
     opacity = 0;
-    translateY = -20;
   }
 
   return (
@@ -53,7 +47,6 @@ export default function LaptopText({ progress }: LaptopTextProps) {
       className="fixed inset-0 pointer-events-none"
       style={{
         opacity,
-        transform: `translateY(${translateY}px)`,
         transition: "none",
         zIndex: 300,
       }}
