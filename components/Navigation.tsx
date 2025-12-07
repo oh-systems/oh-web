@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
+import { playClickSound } from '../lib/playClickSound';
 
 interface NavigationProps {
   className?: string;
@@ -16,6 +17,7 @@ export default function Navigation({ className = '', style, onNavClick }: Naviga
   const handleClick = (item: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    playClickSound();
     console.log('Direct click handler:', item);
     onNavClick?.(item.toLowerCase());
   };

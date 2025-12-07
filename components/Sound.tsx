@@ -17,12 +17,25 @@ export default function Sound({
   const ambientAudioRef = useRef<HTMLAudioElement | null>(null);
   const effectsAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Initialize sound mode from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedMode = localStorage.getItem('soundMode') as SoundMode;
+      if (savedMode && ['all', 'effects', 'none'].includes(savedMode)) {
+        setSoundMode(savedMode);
+      }
+    }
+  }, []);
+
   // Cycle through sound modes: all -> effects -> none -> all
   const toggleSound = () => {
     setSoundMode(prev => {
-      if (prev === 'all') return 'effects';
-      if (prev === 'effects') return 'none';
-      return 'all';
+      const newMode = prev === 'all' ? 'effects' : prev === 'effects' ? 'none' : 'all';
+      // Save to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('soundMode', newMode);
+      }
+      return newMode;
     });
   };
 

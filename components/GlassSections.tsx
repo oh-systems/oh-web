@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import GlassSurface from './GlassSurface';
+import { playClickSound } from '../lib/playClickSound';
 
 interface DraggableCardProps {
   children: React.ReactNode;
@@ -107,6 +108,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
         <button
           onClick={(e) => {
             e.stopPropagation();
+            playClickSound();
             onClose();
           }}
           style={{

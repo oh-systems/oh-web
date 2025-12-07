@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { playClickSound } from "../lib/playClickSound";
 
 interface SectionIndicatorProps {
   currentSection: "overview" | "mission" | "space" | "information";
@@ -27,6 +28,7 @@ export default function SectionIndicator({
   const handleSectionClick = (
     sectionId: "overview" | "mission" | "space" | "information"
   ) => {
+    playClickSound();
     onSectionClick?.(sectionId);
   };
 

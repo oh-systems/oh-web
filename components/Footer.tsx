@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import ClosingRing from "./ClosingRing";
 import { useAppContext } from "../src/app/AppContent";
+import { playClickSound } from "../lib/playClickSound";
 
 interface FooterProps {
   className?: string;
@@ -176,6 +177,7 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
             href="https://www.instagram.com/oh.systems/?hl=en" 
             target="_blank"
             rel="noopener noreferrer"
+            onClick={playClickSound}
             style={{ 
               color: "white", 
               textDecoration: "underline",
@@ -190,6 +192,7 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
             href="https://www.linkedin.com/company/oh-systems/" 
             target="_blank"
             rel="noopener noreferrer"
+            onClick={playClickSound}
             style={{ 
               color: "white", 
               textDecoration: "underline",
@@ -221,6 +224,7 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
       >
         <a 
           href="#" 
+          onClick={playClickSound}
           style={{ 
             color: "#484848", 
             textDecoration: "none",
@@ -231,6 +235,7 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
         </a>
         <a 
           href="#" 
+          onClick={playClickSound}
           style={{ 
             color: "#484848", 
             textDecoration: "none",
