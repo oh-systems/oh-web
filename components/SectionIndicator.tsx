@@ -64,7 +64,11 @@ export default function SectionIndicator({
           >
             {/* Label - clickable */}
             <span
-              onClick={() => handleSectionClick(section.id as "overview" | "mission" | "space" | "information")}
+              onClick={() =>
+                handleSectionClick(
+                  section.id as "overview" | "mission" | "space" | "information"
+                )
+              }
               style={{
                 fontFamily: "Be Vietnam, Arial, sans-serif",
                 fontSize: "10px",
@@ -75,6 +79,7 @@ export default function SectionIndicator({
                 minWidth: "95px",
                 textAlign: "right",
                 cursor: "pointer",
+                transition: "color 0.6s ease-in-out",
               }}
             >
               {section.label}
@@ -82,7 +87,11 @@ export default function SectionIndicator({
 
             {/* Circle - clickable */}
             <div
-              onClick={() => handleSectionClick(section.id as "overview" | "mission" | "space" | "information")}
+              onClick={() =>
+                handleSectionClick(
+                  section.id as "overview" | "mission" | "space" | "information"
+                )
+              }
               style={{
                 width: "8px",
                 height: "8px",
@@ -93,7 +102,8 @@ export default function SectionIndicator({
                 borderStyle: "solid",
                 flexShrink: 0,
                 cursor: "pointer",
-                transition: "all 0.2s",
+                transition:
+                  "background-color 0.6s ease-in-out, border-color 0.6s ease-in-out",
               }}
             />
 

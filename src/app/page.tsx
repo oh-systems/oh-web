@@ -89,6 +89,8 @@ export default function Home() {
   const [currentSection, setCurrentSection] = useState<
     "overview" | "mission" | "space" | "information"
   >("overview");
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [transitionProgress, setTransitionProgress] = useState(0);
   const [castAnimationProgress, setCastAnimationProgress] = useState(0);
   const [laptopSwapProgress, setLaptopSwapProgress] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -112,6 +114,20 @@ export default function Home() {
     transitionComplete,
     setNavigationFadeProgress: setContextFadeProgress,
   } = useAppContext();
+
+  // Calculate transition opacity for text (fade out -> fade in)
+  const getTextOpacity = () => {
+    if (!isTransitioning) return 1;
+    
+    // Fade out in first half, fade in in second half
+    if (transitionProgress < 0.5) {
+      return 1 - (transitionProgress * 2); // 0-0.5 -> 1-0
+    } else {
+      return (transitionProgress - 0.5) * 2; // 0.5-1 -> 0-1
+    }
+  };
+
+  const textOpacity = getTextOpacity();
 
   // Refs to access scroll variables from handleSectionClick
   const scrollAccumulatorRef = useRef(0);
@@ -148,44 +164,78 @@ export default function Home() {
   const handleSectionClick = (
     section: "overview" | "mission" | "space" | "information"
   ) => {
-    // Stop auto-play and directly control scroll position
+    // Don't allow clicking during transition
+    if (isTransitioning) return;
+    
+    // If clicking the same section, do nothing
+    if (section === currentSection) return;
+    
+    // Stop auto-play during transition
     isAutoPlayingRef.current = false;
-
-    // Set scroll accumulator based on section boundaries
-    // Sections: overview (0-25%), mission (25-45%), space (45-80%), information (80-100%)
+    
+    // Calculate target scroll position
     const maxScroll = window.innerHeight * 4.5;
-
+    let targetScroll = 0;
+    
     if (section === "overview") {
-      scrollAccumulatorRef.current = maxScroll * 0.0; // 0% - beginning of overview
-      setCurrentSection("overview");
-      setAnimationProgress(0.0);
+      targetScroll = maxScroll * 0.0;
     } else if (section === "mission") {
-      scrollAccumulatorRef.current = maxScroll * 0.22; // 25% - beginning of mission (Cast Shadows)
-      setCurrentSection("mission");
-      setAnimationProgress(0.25);
+      targetScroll = maxScroll * 0.22;
     } else if (section === "space") {
-      scrollAccumulatorRef.current = maxScroll * 0.55; // 45% - beginning of space (Laptop)
-      setCurrentSection("space");
-      setAnimationProgress(0.45);
+      targetScroll = maxScroll * 0.55;
     } else if (section === "information") {
-      scrollAccumulatorRef.current = maxScroll * 0.9; // 90% - footer section (80-100%)
-      setCurrentSection("information");
-      setAnimationProgress(0.9);
+      targetScroll = maxScroll * 0.9;
     }
+    
+    // Start transition
+    setIsTransitioning(true);
+    setTransitionProgress(0);
+    
+    const startScroll = scrollAccumulatorRef.current;
+    const scrollDistance = targetScroll - startScroll;
+    
+    // Animate transition over 800ms
+    const transitionDuration = 800; // ms
+    const startTime = Date.now();
+    
+    const animateTransition = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / transitionDuration, 1);
+      
+      // Use easeInOutCubic for smooth scroll
+      const easeInOutCubic = (t: number) => {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      };
+      
+      const easedProgress = easeInOutCubic(progress);
+      
+      // Animate scroll position
+      scrollAccumulatorRef.current = startScroll + (scrollDistance * easedProgress);
+      targetScrollRef.current = scrollAccumulatorRef.current;
+      
+      // Update auto-play time to match scroll position
+      autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScroll) * 100;
+      
+      // Update animation progress
+      if (updateAnimationProgressRef.current) {
+        updateAnimationProgressRef.current();
+      }
+      
+      setTransitionProgress(progress);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animateTransition);
+      } else {
+        // Transition complete
+        setIsTransitioning(false);
+        setCurrentSection(section);
 
-    // Update target scroll to match for smooth transition
-    targetScrollRef.current = scrollAccumulatorRef.current;
-
-    // Update auto-play time to current position
-    autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScroll) * 100;
-
-    // Force animation update (this will recalculate section but should match what we just set)
-    if (updateAnimationProgressRef.current) {
-      updateAnimationProgressRef.current();
-    }
-
-    // Resume auto-play after 2 seconds
-    scheduleAutoPlayResume();
+        // Resume auto-play after transition
+        scheduleAutoPlayResume();
+      }
+    };
+    
+    requestAnimationFrame(animateTransition);
   };
 
   // Helper function to schedule auto-play resumption
@@ -848,7 +898,9 @@ export default function Home() {
       />
 
       {/* Laptop text overlay - at top level for maximum visibility */}
-      <LaptopText progress={laptopAnimationProgress} />
+      <div style={{ opacity: textOpacity, transition: isTransitioning ? 'opacity 0.4s ease-in-out' : 'none' }}>
+        <LaptopText progress={laptopAnimationProgress} />
+      </div>
 
       <div
         ref={containerRef}
@@ -868,14 +920,15 @@ export default function Home() {
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black">
             {/* Only show InitialLoadSequence after a brief delay to prevent flash */}
             <div
+              className="hidden md:block"
               style={{
                 opacity: contentVisible ? 1 : 0,
                 transition: "opacity 0.3s ease-in",
               }}
             >
               <InitialLoadSequence
-                width={800}
-                height={600}
+                width={viewportDimensions.width}
+                height={viewportDimensions.height}
                 autoPlay={true}
                 startAnimation={true}
                 onSequenceComplete={() => {
@@ -897,6 +950,7 @@ export default function Home() {
             <div className="w-full h-full flex items-center justify-center">
               {/* Initial Scroll sequence - no artificial fading, images handle their own transitions */}
               <div
+                className="hidden md:block"
                 style={{
                   display:
                     rawProgress < MODEL_SWAP_CONFIG.swapStart
@@ -908,8 +962,8 @@ export default function Home() {
                 }}
               >
                 <InitialScrollSequence
-                  width={1000}
-                  height={800}
+                  width={viewportDimensions.width}
+                  height={viewportDimensions.height}
                   scrollProgress={Math.min(
                     rawProgress / MODEL_SWAP_CONFIG.swapStart,
                     1
@@ -937,6 +991,7 @@ export default function Home() {
 
               {/* Cast Shadows sequence - no artificial fading, images handle their own transitions */}
               <div
+                className="hidden md:flex"
                 style={{
                   display:
                     castSwapProgress < 0.5 || laptopSwapProgress > 0.5
@@ -1054,14 +1109,16 @@ export default function Home() {
 
             {/* First Hero Text - starting in middle of screen */}
             <div
-              className="absolute left-0 pl-16 z-[150]"
+              className="absolute left-0 pl-4 md:pl-16 z-[150]"
               style={{
-                top: "50%",
+                top: "30%",
                 transform: "translateY(-50%)",
+                opacity: textOpacity,
+                transition: isTransitioning ? 'opacity 0.4s ease-in-out' : 'none',
               }}
             >
               {(() => {
-                const opacity = Math.max(0, 1 - firstHeroFadeOut);
+                const opacity = Math.max(0, 1 - firstHeroFadeOut) * textOpacity;
                 const shouldHide = firstHeroFadeOut >= 1;
 
                 return (
@@ -1080,11 +1137,13 @@ export default function Home() {
                         "OH exists to redefine e-commerce by turning online shopping into immersive,",
                         "spatial experiences. This is the foundation for a new kind of digital reality.",
                       ]}
-                      fontSize={20}
+                      fontSize={typeof window !== 'undefined' && window.innerWidth < 768 ? 11 : 20}
                       lineHeightMultiplier={1.3}
                       scrollProgress={animationProgress}
                       scrollThreshold={0.02}
                       animationDuration={0.15}
+                      textAlign={typeof window !== 'undefined' && window.innerWidth < 768 ? "center" : "left"}
+                      className={typeof window !== 'undefined' && window.innerWidth < 768 ? "w-full text-center px-2" : ""}
                     />
                   </div>
                 );
@@ -1092,33 +1151,56 @@ export default function Home() {
             </div>
 
             {/* Second Hero Text - "THE FUTURE OF E-COMMERCE, TODAY" (right side) */}
+            {/* Mobile: Show image on left, text on right in a row layout */}
             <div
-              className="absolute right-16 z-[150]"
+              className="absolute z-[150]"
               style={{
-                top: `${secondHeroPosition}%`, // Direct position control
-                opacity: secondHeroOpacity,
-                transform: "translateY(-50%)", // Center vertically
-                transition: "none", // No CSS transitions for smooth scrubbing
-                visibility: secondHeroOpacity < 0.01 ? "hidden" : "visible", // Hide completely when fully faded
+                top: `${secondHeroPosition}%`,
+                opacity: secondHeroOpacity * textOpacity,
+                transform: "translateY(-50%)",
+                transition: isTransitioning ? 'opacity 0.4s ease-in-out' : 'none',
+                visibility: secondHeroOpacity < 0.01 ? "hidden" : "visible",
+                left: typeof window !== 'undefined' && window.innerWidth < 768 ? '50%' : 'auto',
+                right: typeof window !== 'undefined' && window.innerWidth < 768 ? 'auto' : '1rem',
+                width: typeof window !== 'undefined' && window.innerWidth < 768 ? '90%' : 'auto',
+                marginLeft: typeof window !== 'undefined' && window.innerWidth < 768 ? '-45%' : '0',
               }}
             >
-              <ScrollDrivenText
-                heroLines={["THE FUTURE OF", "E-COMMERCE,", "TODAY."]}
-                fontSize={96}
-                className=""
-                textAlign="right"
-                style={{ lineHeight: 0.75 }}
-                lineHeightMultiplier={1.0}
-                scrollProgress={0} // Don't let ScrollDrivenText handle scroll movement
-                scrollThreshold={999} // Never trigger scroll movement
-                animationDuration={0.15}
-                stopAtMiddle={false}
-              />
+              <div className="flex md:block items-center justify-between gap-4">
+                {/* Mobile: Initial scroll middle frame image (left side) */}
+                <div className="block md:hidden flex-shrink-0" style={{ width: '80px', height: '80px' }}>
+                  <img 
+                    src="/OH%20WEB%20OPTIMIZED%20FRAMES/INITIAL%20SCROLL%20WEBP/scroll_q90_0300.webp"
+                    alt=""
+                    style={{
+                      width: '400px',
+                      height: '100vh',
+                      // objectFit: 'contain',
+                    }}
+                  />
+                </div>
+                
+                {/* Text (right side on mobile, normal on desktop) */}
+                <div className="flex-1">
+                  <ScrollDrivenText
+                    heroLines={["THE FUTURE OF", "E-COMMERCE,", "TODAY."]}
+                    fontSize={typeof window !== 'undefined' && window.innerWidth < 768 ? 28 : 96}
+                    className=""
+                    textAlign="right"
+                    style={{ lineHeight: 0.75 }}
+                    lineHeightMultiplier={1.0}
+                    scrollProgress={0}
+                    scrollThreshold={999}
+                    animationDuration={0.15}
+                    stopAtMiddle={false}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Descriptive Text - About Oh (right side, below second hero) */}
             <div
-              className="absolute right-16 z-[150]"
+              className="absolute right-16 z-[150] hidden md:block"
               style={{
                 top: `${descriptiveTextPosition}%`, // Follow second hero text position
                 opacity: descriptiveTextOpacity, // Same opacity as second hero
@@ -1149,10 +1231,34 @@ export default function Home() {
 
             {/* Cast Shadows Operating Principles Text Sequence */}
             <div className="absolute inset-0 z-[110] pointer-events-none">
-              <CastShadowsText
-                scrollProgress={castTextProgress}
-                fadeOutProgress={0} // No longer needed since we handle fade separately
-              />
+              {/* Mobile: Cast Shadows middle frame image */}
+              <div 
+                className="block md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+                style={{
+                  opacity: typeof window !== 'undefined' && window.innerWidth < 768 ? 
+                    (rawProgress > 0.2 && rawProgress < 0.53 ? 1 : 0) : 0,
+                  transition: 'opacity 0.3s ease',
+                  width: '100px',
+                  height: '100px',
+                }}
+              >
+                <img 
+                  src="/OH%20WEB%20OPTIMIZED%20FRAMES/CAST%20SHADOWS%20WEBP%201600%2085/cast_1600_q85_0600.webp"
+                  alt=""
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                  }}
+                />
+              </div>
+              
+              <div style={{ opacity: textOpacity, transition: isTransitioning ? 'opacity 0.4s ease-in-out' : 'none' }}>
+                <CastShadowsText
+                  scrollProgress={castTextProgress}
+                  fadeOutProgress={0} // No longer needed since we handle fade separately
+                />
+              </div>
             </div>
 
             {/* Cast Shadows Details Text Sequence */}
@@ -1169,19 +1275,21 @@ export default function Home() {
 
         {/* Footer - appears when in information section */}
         {currentSection === "information" && (
-          <Footer
-            scrollProgress={(rawProgress - 0.8) / 0.2}
-            onRingCenterComplete={() => {
-              // Lock scroll once ring reaches center
-              if (containerRef.current) {
-                containerRef.current.style.overflow = "hidden";
-                containerRef.current.style.touchAction = "none";
-                // Prevent further scroll accumulation
-                const maxScrollRange = window.innerHeight * 4.5;
-                scrollAccumulatorRef.current = maxScrollRange * 1.0;
-              }
-            }}
-          />
+          <div style={{ opacity: textOpacity, transition: isTransitioning ? 'opacity 0.4s ease-in-out' : 'none' }}>
+            <Footer
+              scrollProgress={(rawProgress - 0.8) / 0.2}
+              onRingCenterComplete={() => {
+                // Lock scroll once ring reaches center
+                if (containerRef.current) {
+                  containerRef.current.style.overflow = "hidden";
+                  containerRef.current.style.touchAction = "none";
+                  // Prevent further scroll accumulation
+                  const maxScrollRange = window.innerHeight * 4.5;
+                  scrollAccumulatorRef.current = maxScrollRange * 1.0;
+                }
+              }}
+            />
+          </div>
         )}
       </div>
 
