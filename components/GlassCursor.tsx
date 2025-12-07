@@ -10,11 +10,13 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
   const cursorRef = useRef<HTMLDivElement>(null);
   const [cursorPosition, setCursorPosition] = useState({ x: -100, y: -100 }); // Start off-screen
   const [realMousePosition, setRealMousePosition] = useState({ x: -100, y: -100 }); // Start off-screen
+  const [smoothWhiteCursor, setSmoothWhiteCursor] = useState({ x: -100, y: -100 }); // Smooth delayed white cursor
   const [isVisible, setIsVisible] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [crystalOpacity, setCrystalOpacity] = useState(0);
   const mousePositionRef = useRef({ x: -100, y: -100 }); // Start off-screen
   const animationFrameRef = useRef<number>(0);
+  const whiteCursorAnimationRef = useRef<number>(0);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -111,6 +113,33 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
     };
   }, [scrollAnimationStarted]);
 
+  // Smooth animation for white cursor with delay
+  useEffect(() => {
+    const animateWhiteCursor = () => {
+      setSmoothWhiteCursor(prevPos => {
+        const targetX = realMousePosition.x;
+        const targetY = realMousePosition.y;
+        
+        // Smooth easing for white cursor - slightly higher for subtle delay
+        const easeAmount = 0.15;
+        const newX = prevPos.x + (targetX - prevPos.x) * easeAmount;
+        const newY = prevPos.y + (targetY - prevPos.y) * easeAmount;
+        
+        return { x: newX, y: newY };
+      });
+      
+      whiteCursorAnimationRef.current = requestAnimationFrame(animateWhiteCursor);
+    };
+    
+    animateWhiteCursor();
+
+    return () => {
+      if (whiteCursorAnimationRef.current) {
+        cancelAnimationFrame(whiteCursorAnimationRef.current);
+      }
+    };
+  }, [realMousePosition]);
+
   return (
     <>
       {/* Glass crystal with delayed/smooth movement - only after scroll starts */}
@@ -154,8 +183,8 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
       <div
         style={{
           position: 'fixed',
-          left: realMousePosition.x,
-          top: realMousePosition.y,
+          left: smoothWhiteCursor.x,
+          top: smoothWhiteCursor.y,
           width: isHovering ? '12px' : '6px',
           height: isHovering ? '12px' : '6px',
           borderRadius: '50%',

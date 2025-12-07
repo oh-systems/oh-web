@@ -118,10 +118,10 @@ export default function Home() {
   // Calculate transition opacity for text (fade out -> fade in)
   const getTextOpacity = () => {
     if (!isTransitioning) return 1;
-    
+
     // Fade out in first half, fade in in second half
     if (transitionProgress < 0.5) {
-      return 1 - (transitionProgress * 2); // 0-0.5 -> 1-0
+      return 1 - transitionProgress * 2; // 0-0.5 -> 1-0
     } else {
       return (transitionProgress - 0.5) * 2; // 0.5-1 -> 0-1
     }
@@ -139,11 +139,6 @@ export default function Home() {
   const updateAnimationProgressRef = useRef<(() => void) | null>(null);
   const autoPlayResumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const targetScrollRef = useRef(0);
-
-  // Handle sound toggle
-  const handleSoundToggle = () => {
-    setSoundEnabled(!soundEnabled);
-  };
 
   // Handle navigation clicks
   const handleNavClick = (item: string) => {
@@ -166,17 +161,17 @@ export default function Home() {
   ) => {
     // Don't allow clicking during transition
     if (isTransitioning) return;
-    
+
     // If clicking the same section, do nothing
     if (section === currentSection) return;
-    
+
     // Stop auto-play during transition
     isAutoPlayingRef.current = false;
-    
+
     // Calculate target scroll position
     const maxScroll = window.innerHeight * 4.5;
     let targetScroll = 0;
-    
+
     if (section === "overview") {
       targetScroll = maxScroll * 0.0;
     } else if (section === "mission") {
@@ -186,43 +181,45 @@ export default function Home() {
     } else if (section === "information") {
       targetScroll = maxScroll * 0.9;
     }
-    
+
     // Start transition
     setIsTransitioning(true);
     setTransitionProgress(0);
-    
+
     const startScroll = scrollAccumulatorRef.current;
     const scrollDistance = targetScroll - startScroll;
-    
+
     // Animate transition over 800ms
     const transitionDuration = 800; // ms
     const startTime = Date.now();
-    
+
     const animateTransition = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / transitionDuration, 1);
-      
+
       // Use easeInOutCubic for smooth scroll
       const easeInOutCubic = (t: number) => {
         return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
       };
-      
+
       const easedProgress = easeInOutCubic(progress);
-      
+
       // Animate scroll position
-      scrollAccumulatorRef.current = startScroll + (scrollDistance * easedProgress);
+      scrollAccumulatorRef.current =
+        startScroll + scrollDistance * easedProgress;
       targetScrollRef.current = scrollAccumulatorRef.current;
-      
+
       // Update auto-play time to match scroll position
-      autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScroll) * 100;
-      
+      autoPlayTimeRef.current =
+        (scrollAccumulatorRef.current / maxScroll) * 100;
+
       // Update animation progress
       if (updateAnimationProgressRef.current) {
         updateAnimationProgressRef.current();
       }
-      
+
       setTransitionProgress(progress);
-      
+
       if (progress < 1) {
         requestAnimationFrame(animateTransition);
       } else {
@@ -234,7 +231,7 @@ export default function Home() {
         scheduleAutoPlayResume();
       }
     };
-    
+
     requestAnimationFrame(animateTransition);
   };
 
@@ -898,7 +895,12 @@ export default function Home() {
       />
 
       {/* Laptop text overlay - at top level for maximum visibility */}
-      <div style={{ opacity: textOpacity, transition: isTransitioning ? 'opacity 0.4s ease-in-out' : 'none' }}>
+      <div
+        style={{
+          opacity: textOpacity,
+          transition: isTransitioning ? "opacity 0.4s ease-in-out" : "none",
+        }}
+      >
         <LaptopText progress={laptopAnimationProgress} />
       </div>
 
@@ -962,8 +964,16 @@ export default function Home() {
                 }}
               >
                 <InitialScrollSequence
-                  width={viewportDimensions.width}
-                  height={viewportDimensions.height}
+                  width={
+                    typeof window !== "undefined" && window.innerWidth > 768
+                      ? 700
+                      : viewportDimensions.width
+                  }
+                  height={
+                    typeof window !== "undefined" && window.innerWidth > 768
+                      ? 881
+                      : viewportDimensions.height
+                  }
                   scrollProgress={Math.min(
                     rawProgress / MODEL_SWAP_CONFIG.swapStart,
                     1
@@ -1114,7 +1124,9 @@ export default function Home() {
                 top: "30%",
                 transform: "translateY(-50%)",
                 opacity: textOpacity,
-                transition: isTransitioning ? 'opacity 0.4s ease-in-out' : 'none',
+                transition: isTransitioning
+                  ? "opacity 0.4s ease-in-out"
+                  : "none",
               }}
             >
               {(() => {
@@ -1137,13 +1149,25 @@ export default function Home() {
                         "OH exists to redefine e-commerce by turning online shopping into immersive,",
                         "spatial experiences. This is the foundation for a new kind of digital reality.",
                       ]}
-                      fontSize={typeof window !== 'undefined' && window.innerWidth < 768 ? 11 : 20}
+                      fontSize={
+                        typeof window !== "undefined" && window.innerWidth < 768
+                          ? 11
+                          : 20
+                      }
                       lineHeightMultiplier={1.3}
                       scrollProgress={animationProgress}
                       scrollThreshold={0.02}
                       animationDuration={0.15}
-                      textAlign={typeof window !== 'undefined' && window.innerWidth < 768 ? "center" : "left"}
-                      className={typeof window !== 'undefined' && window.innerWidth < 768 ? "w-full text-center px-2" : ""}
+                      textAlign={
+                        typeof window !== "undefined" && window.innerWidth < 768
+                          ? "center"
+                          : "left"
+                      }
+                      className={
+                        typeof window !== "undefined" && window.innerWidth < 768
+                          ? "w-full text-center px-2"
+                          : ""
+                      }
                     />
                   </div>
                 );
@@ -1158,33 +1182,54 @@ export default function Home() {
                 top: `${secondHeroPosition}%`,
                 opacity: secondHeroOpacity * textOpacity,
                 transform: "translateY(-50%)",
-                transition: isTransitioning ? 'opacity 0.4s ease-in-out' : 'none',
+                transition: isTransitioning
+                  ? "opacity 0.4s ease-in-out"
+                  : "none",
                 visibility: secondHeroOpacity < 0.01 ? "hidden" : "visible",
-                left: typeof window !== 'undefined' && window.innerWidth < 768 ? '50%' : 'auto',
-                right: typeof window !== 'undefined' && window.innerWidth < 768 ? 'auto' : '1rem',
-                width: typeof window !== 'undefined' && window.innerWidth < 768 ? '90%' : 'auto',
-                marginLeft: typeof window !== 'undefined' && window.innerWidth < 768 ? '-45%' : '0',
+                left:
+                  typeof window !== "undefined" && window.innerWidth < 768
+                    ? "50%"
+                    : "auto",
+                right:
+                  typeof window !== "undefined" && window.innerWidth < 768
+                    ? "auto"
+                    : "1rem",
+                width:
+                  typeof window !== "undefined" && window.innerWidth < 768
+                    ? "90%"
+                    : "auto",
+                marginLeft:
+                  typeof window !== "undefined" && window.innerWidth < 768
+                    ? "-45%"
+                    : "0",
               }}
             >
               <div className="flex md:block items-center justify-between gap-4">
                 {/* Mobile: Initial scroll middle frame image (left side) */}
-                <div className="block md:hidden flex-shrink-0" style={{ width: '80px', height: '80px' }}>
-                  <img 
+                <div
+                  className="block md:hidden flex-shrink-0"
+                  style={{ width: "80px", height: "80px" }}
+                >
+                  <img
                     src="/OH%20WEB%20OPTIMIZED%20FRAMES/INITIAL%20SCROLL%20WEBP/scroll_q90_0300.webp"
                     alt=""
                     style={{
-                      width: '400px',
-                      height: '100vh',
+                      width: "400px",
+                      height: "100vh",
                       // objectFit: 'contain',
                     }}
                   />
                 </div>
-                
+
                 {/* Text (right side on mobile, normal on desktop) */}
                 <div className="flex-1">
                   <ScrollDrivenText
                     heroLines={["THE FUTURE OF", "E-COMMERCE,", "TODAY."]}
-                    fontSize={typeof window !== 'undefined' && window.innerWidth < 768 ? 28 : 96}
+                    fontSize={
+                      typeof window !== "undefined" && window.innerWidth < 768
+                        ? 28
+                        : 96
+                    }
                     className=""
                     textAlign="right"
                     style={{ lineHeight: 0.75 }}
@@ -1232,28 +1277,39 @@ export default function Home() {
             {/* Cast Shadows Operating Principles Text Sequence */}
             <div className="absolute inset-0 z-[110] pointer-events-none">
               {/* Mobile: Cast Shadows middle frame image */}
-              <div 
+              <div
                 className="block md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
                 style={{
-                  opacity: typeof window !== 'undefined' && window.innerWidth < 768 ? 
-                    (rawProgress > 0.2 && rawProgress < 0.53 ? 1 : 0) : 0,
-                  transition: 'opacity 0.3s ease',
-                  width: '100px',
-                  height: '100px',
+                  opacity:
+                    typeof window !== "undefined" && window.innerWidth < 768
+                      ? rawProgress > 0.2 && rawProgress < 0.53
+                        ? 1
+                        : 0
+                      : 0,
+                  transition: "opacity 0.3s ease",
+                  width: "100px",
+                  height: "100px",
                 }}
               >
-                <img 
+                <img
                   src="/OH%20WEB%20OPTIMIZED%20FRAMES/CAST%20SHADOWS%20WEBP%201600%2085/cast_1600_q85_0600.webp"
                   alt=""
                   style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'contain',
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
                   }}
                 />
               </div>
-              
-              <div style={{ opacity: textOpacity, transition: isTransitioning ? 'opacity 0.4s ease-in-out' : 'none' }}>
+
+              <div
+                style={{
+                  opacity: textOpacity,
+                  transition: isTransitioning
+                    ? "opacity 0.4s ease-in-out"
+                    : "none",
+                }}
+              >
                 <CastShadowsText
                   scrollProgress={castTextProgress}
                   fadeOutProgress={0} // No longer needed since we handle fade separately
@@ -1275,7 +1331,12 @@ export default function Home() {
 
         {/* Footer - appears when in information section */}
         {currentSection === "information" && (
-          <div style={{ opacity: textOpacity, transition: isTransitioning ? 'opacity 0.4s ease-in-out' : 'none' }}>
+          <div
+            style={{
+              opacity: textOpacity,
+              transition: isTransitioning ? "opacity 0.4s ease-in-out" : "none",
+            }}
+          >
             <Footer
               scrollProgress={(rawProgress - 0.8) / 0.2}
               onRingCenterComplete={() => {
