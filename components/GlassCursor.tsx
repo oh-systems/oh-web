@@ -8,24 +8,15 @@ interface GlassCursorProps {
 
 const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
   const cursorRef = useRef<HTMLDivElement>(null);
-  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
-  const [realMousePosition, setRealMousePosition] = useState({ x: 0, y: 0 });
+  const [cursorPosition, setCursorPosition] = useState({ x: -100, y: -100 }); // Start off-screen
+  const [realMousePosition, setRealMousePosition] = useState({ x: -100, y: -100 }); // Start off-screen
   const [isVisible, setIsVisible] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [crystalOpacity, setCrystalOpacity] = useState(0);
-  const mousePositionRef = useRef({ x: 0, y: 0 });
+  const mousePositionRef = useRef({ x: -100, y: -100 }); // Start off-screen
   const animationFrameRef = useRef<number>(0);
 
   useEffect(() => {
-    // Initialize cursor position on client mount
-    if (typeof window !== 'undefined') {
-      const initialX = window.innerWidth / 2;
-      const initialY = window.innerHeight / 2;
-      setCursorPosition({ x: initialX, y: initialY });
-      setRealMousePosition({ x: initialX, y: initialY });
-      mousePositionRef.current = { x: initialX, y: initialY };
-    }
-
     const handleMouseMove = (e: MouseEvent) => {
       // Use exact clientX/clientY for pixel-perfect positioning
       const exactX = e.clientX;
@@ -63,12 +54,7 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
       document.removeEventListener('mouseleave', handleMouseLeave);
       document.removeEventListener('mouseenter', handleMouseEnter);
     };
-  }, [scrollAnimationStarted]);
-
-  // Show cursor immediately on mount
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
+  }, [scrollAnimationStarted, isVisible]);
 
   // Fade in crystal when scroll animation starts
   useEffect(() => {

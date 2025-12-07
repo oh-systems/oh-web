@@ -1,4 +1,4 @@
-import { useEffect, useRef, useId } from 'react';
+import { useEffect, useRef, useId, useState } from 'react';
 import './GlassSurface.css';
 
 interface GlassSurfaceProps {
@@ -57,6 +57,9 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
   const greenChannelRef = useRef<SVGFEDisplacementMapElement>(null);
   const blueChannelRef = useRef<SVGFEDisplacementMapElement>(null);
   const gaussianBlurRef = useRef<SVGFEGaussianBlurElement>(null);
+  const [isMounted, setIsMounted] = useState(false);
+  const [useSVGFilter, setUseSVGFilter] = useState(true); // Default to true for Chrome/Edge
+  const [isReady, setIsReady] = useState(false);
 
   const generateDisplacementMap = () => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -87,10 +90,39 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
   };
 
   const updateDisplacementMap = () => {
-    feImageRef.current?.setAttribute('href', generateDisplacementMap());
+    if (!containerRef.current || !feImageRef.current) return;
+    feImageRef.current.setAttribute('href', generateDisplacementMap());
+    
+    // Mark as ready after the displacement map is set
+    if (!isReady) {
+      requestAnimationFrame(() => {
+        setIsReady(true);
+      });
+    }
   };
 
+  // Handle mounting
   useEffect(() => {
+    setIsMounted(true);
+    
+    // Check browser support
+    if (typeof window !== 'undefined') {
+      const isWebkit = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+      const isFirefox = /Firefox/.test(navigator.userAgent);
+      
+      if (isWebkit || isFirefox) {
+        setUseSVGFilter(false);
+      } else {
+        // Double-check backdrop-filter support
+        const div = document.createElement('div');
+        div.style.backdropFilter = `url(#${filterId})`;
+        setUseSVGFilter(div.style.backdropFilter !== '');
+      }
+    }
+  }, [filterId]);
+
+  useEffect(() => {
+    if (!isMounted) return;
     updateDisplacementMap();
     [
       { ref: redChannelRef, offset: redOffset },
@@ -107,6 +139,7 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
     gaussianBlurRef.current?.setAttribute('stdDeviation', displace.toString());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    isMounted,
     width,
     height,
     borderRadius,
@@ -123,12 +156,11 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
     yChannel,
     mixBlendMode
   ]);
-
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !isMounted) return;
 
     const resizeObserver = new ResizeObserver(() => {
-      setTimeout(updateDisplacementMap, 0);
+      requestAnimationFrame(updateDisplacementMap);
     });
 
     resizeObserver.observe(containerRef.current);
@@ -137,40 +169,30 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
       resizeObserver.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isMounted]);
 
   useEffect(() => {
-    setTimeout(updateDisplacementMap, 0);
+    if (!isMounted) return;
+    requestAnimationFrame(updateDisplacementMap);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [width, height]);
-
-  const supportsSVGFilters = () => {
-    const isWebkit = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-    const isFirefox = /Firefox/.test(navigator.userAgent);
-
-    if (isWebkit || isFirefox) {
-      return false;
-    }
-
-    const div = document.createElement('div');
-    div.style.backdropFilter = `url(#${filterId})`;
-    return div.style.backdropFilter !== '';
-  };
+  }, [width, height, isMounted]);
 
   const containerStyle: React.CSSProperties & Record<string, string | number> = {
     ...style,
     width: typeof width === 'number' ? `${width}px` : width,
     height: typeof height === 'number' ? `${height}px` : height,
     borderRadius: `${borderRadius}px`,
-    '--glass-frost': backgroundOpacity,
+    '--glass-frost': Math.max(backgroundOpacity, 0.05), // Ensure minimum visibility
     '--glass-saturation': saturation,
-    '--filter-id': `url(#${filterId})`
+    '--filter-id': `url(#${filterId})`,
+    opacity: isReady ? 1 : 0,
+    transition: 'opacity 0.15s ease-out'
   };
 
   return (
     <div
       ref={containerRef}
-      className={`glass-surface ${supportsSVGFilters() ? 'glass-surface--svg' : 'glass-surface--fallback'} ${className}`}
+      className={`glass-surface ${useSVGFilter ? 'glass-surface--svg' : 'glass-surface--fallback'} ${className}`}
       style={containerStyle}
     >
       <svg className="glass-surface__filter" xmlns="http://www.w3.org/2000/svg">
