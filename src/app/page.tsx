@@ -367,7 +367,7 @@ export default function Home() {
       setAnimationProgress(easedProgress);
 
       // Update current section based on raw progress (always update for correct section indicator)
-      if (rawProgress < 0.25) {
+      if (rawProgress < 0.22) {
         setCurrentSection("overview"); // Initial scroll sequence
       } else if (rawProgress < 0.45) {
         setCurrentSection("mission"); // Cast shadows sequence
@@ -840,8 +840,6 @@ export default function Home() {
 
       {/* Sound Control - bottom left corner */}
       <Sound
-        isEnabled={soundEnabled}
-        onToggle={handleSoundToggle}
         style={{
           opacity: 1, // Always visible once transition completes
           transition: "opacity 0.3s ease-in-out",

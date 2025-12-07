@@ -27,13 +27,17 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
     }
 
     const handleMouseMove = (e: MouseEvent) => {
-      mousePositionRef.current = { x: e.clientX, y: e.clientY };
-      setRealMousePosition({ x: e.clientX, y: e.clientY }); // Update real position immediately
+      // Use exact clientX/clientY for pixel-perfect positioning
+      const exactX = e.clientX;
+      const exactY = e.clientY;
+      
+      mousePositionRef.current = { x: exactX, y: exactY };
+      setRealMousePosition({ x: exactX, y: exactY }); // Update real position immediately with exact values
       if (!isVisible) setIsVisible(true);
       
       // Always do interactive detection (not just after scroll animation starts)
       // Use elementFromPoint to detect what's under the cursor (since cursor has pointer-events: none)
-      const elementUnderCursor = document.elementFromPoint(e.clientX, e.clientY);
+      const elementUnderCursor = document.elementFromPoint(exactX, exactY);
       if (elementUnderCursor) {
         const isInteractive = elementUnderCursor.closest(
           'a, button, [role="button"], input, textarea, select, [onclick], [tabindex], .section-indicator, .sound-container, .sound-toggle, svg, path, circle, rect'

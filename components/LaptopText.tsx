@@ -15,11 +15,6 @@ export default function LaptopText({ progress }: LaptopTextProps) {
   const fadeOutStart = 0.90;
   const fadeOutEnd = 0.95;
 
-  // Debug: log progress
-  if (progress > 0) {
-    console.log("LaptopText progress:", progress);
-  }
-
   let opacity = 0;
 
   if (progress < fadeInStart) {

@@ -1,20 +1,66 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface SoundProps {
   className?: string;
   style?: React.CSSProperties;
-  onToggle?: () => void;
-  isEnabled?: boolean;
 }
+
+type SoundMode = 'all' | 'effects' | 'none';
 
 export default function Sound({ 
   className = '', 
   style,
-  onToggle,
-  isEnabled = true
 }: SoundProps) {
+  const [soundMode, setSoundMode] = useState<SoundMode>('all');
+  const ambientAudioRef = useRef<HTMLAudioElement | null>(null);
+  const effectsAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Cycle through sound modes: all -> effects -> none -> all
+  const toggleSound = () => {
+    setSoundMode(prev => {
+      if (prev === 'all') return 'effects';
+      if (prev === 'effects') return 'none';
+      return 'all';
+    });
+  };
+
+  // Handle audio playback based on mode
+  useEffect(() => {
+    // Initialize audio elements
+    if (typeof window !== 'undefined' && !ambientAudioRef.current) {
+      ambientAudioRef.current = new Audio('/sounds/ambient.mp3');
+      ambientAudioRef.current.loop = true;
+      ambientAudioRef.current.volume = 0.3; // 30% volume for ambient
+    }
+
+    // Control ambient audio based on mode
+    if (ambientAudioRef.current) {
+      if (soundMode === 'all') {
+        ambientAudioRef.current.play().catch(err => {
+          console.log('Audio play prevented:', err);
+        });
+      } else {
+        ambientAudioRef.current.pause();
+      }
+    }
+  }, [soundMode]);
+
+  // Play click sound effect on toggle
+  const handleToggle = () => {
+    // Play click sound for effects and all modes
+    if (soundMode === 'all' || soundMode === 'effects') {
+      const clickAudio = new Audio('/sounds/click.wav');
+      clickAudio.volume = 0.5; // 50% volume for click
+      clickAudio.play().catch(err => {
+        console.log('Click sound prevented:', err);
+      });
+    }
+    
+    toggleSound();
+  };
+
   return (
     <div 
       className={`sound-container ${className}`}
@@ -31,7 +77,7 @@ export default function Sound({
         cursor: 'pointer',
         userSelect: 'none',
       }}
-      onClick={onToggle}
+      onClick={handleToggle}
     >
       {/* SOUND Text */}
       <span 
@@ -47,41 +93,41 @@ export default function Sound({
         SOUND
       </span>
       
-      {/* Sound Indicators */}
+      {/* Sound Indicators - Three circles showing current mode */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        {/* Filled Circle */}
+        {/* Left Circle - All sounds (ambient + effects) */}
         <div
           style={{
             width: '10px',
             height: '10px',
             borderRadius: '50%',
-            backgroundColor: isEnabled ? 'white' : 'transparent',
+            backgroundColor: soundMode === 'all' ? 'white' : 'transparent',
             border: '1px solid white',
             transition: 'background-color 0.3s ease'
           }}
         />
         
-        {/* Outline Circle */}
+        {/* Middle Circle - Effects only */}
         <div
           style={{
             width: '10px',
             height: '10px',
             borderRadius: '50%',
-            backgroundColor: 'transparent',
+            backgroundColor: soundMode === 'effects' ? 'white' : 'transparent',
             border: '1px solid white',
-            opacity: isEnabled ? 1 : 0.5,
-            transition: 'opacity 0.3s ease'
+            transition: 'background-color 0.3s ease'
           }}
         />
         
-        {/* Third Circle - Fully #242424 */}
+        {/* Right Circle - No sound */}
         <div
           style={{
             width: '10px',
             height: '10px',
             borderRadius: '50%',
-            backgroundColor: '#242424',
-            border: 'none',
+            backgroundColor: soundMode === 'none' ? 'white' : 'transparent',
+            border: '1px solid white',
+            transition: 'background-color 0.3s ease'
           }}
         />
       </div>
