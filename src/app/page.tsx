@@ -151,29 +151,33 @@ export default function Home() {
     // Stop auto-play and directly control scroll position
     isAutoPlayingRef.current = false;
 
-    // Set scroll accumulator based on section (0 to window.innerHeight * 4.5 to accommodate laptop animation)
+    // Set scroll accumulator based on section boundaries
+    // Sections: overview (0-25%), mission (25-45%), space (45-80%), information (80-100%)
     const maxScroll = window.innerHeight * 4.5;
 
     if (section === "overview") {
-      scrollAccumulatorRef.current = maxScroll * 0.2; // 20% through (within 0-55% overview range)
+      scrollAccumulatorRef.current = maxScroll * 0.0; // 0% - beginning of overview
       setCurrentSection("overview");
-      setAnimationProgress(0.2);
+      setAnimationProgress(0.0);
     } else if (section === "mission") {
-      scrollAccumulatorRef.current = maxScroll * 0.7; // 70% through (within 55-80% mission range)
+      scrollAccumulatorRef.current = maxScroll * 0.22; // 25% - beginning of mission (Cast Shadows)
       setCurrentSection("mission");
-      setAnimationProgress(0.7);
+      setAnimationProgress(0.25);
     } else if (section === "space") {
-      scrollAccumulatorRef.current = maxScroll * 0.85; // 85% through (within 80-95% space range)
+      scrollAccumulatorRef.current = maxScroll * 0.55; // 45% - beginning of space (Laptop)
       setCurrentSection("space");
-      setAnimationProgress(0.85);
+      setAnimationProgress(0.45);
     } else if (section === "information") {
-      scrollAccumulatorRef.current = maxScroll * 0.98; // 98% through (footer section)
+      scrollAccumulatorRef.current = maxScroll * 0.9; // 90% - footer section (80-100%)
       setCurrentSection("information");
-      setAnimationProgress(0.98);
+      setAnimationProgress(0.9);
     }
 
+    // Update target scroll to match for smooth transition
+    targetScrollRef.current = scrollAccumulatorRef.current;
+
     // Update auto-play time to current position
-    autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScroll) * 80;
+    autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScroll) * 100;
 
     // Force animation update (this will recalculate section but should match what we just set)
     if (updateAnimationProgressRef.current) {
