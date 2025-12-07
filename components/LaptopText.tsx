@@ -50,54 +50,53 @@ export default function LaptopText({ progress }: LaptopTextProps) {
 
   return (
     <div
-      className="fixed inset-0 flex flex-col items-center pointer-events-none"
+      className="fixed inset-0 pointer-events-none"
       style={{
         opacity,
         transform: `translateY(${translateY}px)`,
         transition: "none",
         zIndex: 300,
-        paddingTop: "40vh",
-        justifyContent: "flex-start",
       }}
     >
       {/* SPACE PROTOTYPE title */}
       <h1
-        className="text-[96px] font-normal text-white"
+        className="text-[96px] font-normal text-white absolute left-1/2"
         style={{
           fontFamily: "Helvetica, Arial, sans-serif",
           letterSpacing: "0.02em",
+          top: "40vh",
+          transform: "translateX(-50%)",
+          whiteSpace: "nowrap",
         }}
       >
         SPACE PROTOTYPE
       </h1>
 
-      {/* Links container */}
-      <div
-        className="flex flex-col items-center gap-4 pointer-events-auto"
-        style={{ marginTop: "15rem" }}
+      {/* ENTER EXPERIENCE link */}
+      <a
+        href="/space"
+        className="text-[20px] font-normal text-white hover:opacity-70 transition-opacity absolute left-1/2 pointer-events-auto"
+        style={{
+          fontFamily: "var(--font-be-vietnam-pro), sans-serif",
+          top: "82vh",
+          transform: "translateX(-50%)",
+        }}
       >
-        {/* ENTER EXPERIENCE link */}
-        <a
-          href="/space"
-          className="text-[20px] font-normal text-white hover:opacity-70 transition-opacity mb-8"
-          style={{
-            fontFamily: "var(--font-be-vietnam-pro), sans-serif",
-          }}
-        >
-          ENTER EXPERIENCE
-        </a>
+        ENTER EXPERIENCE
+      </a>
 
-        {/* DOWNLOAD FOR PC link */}
-        <a
-          href="#"
-          className="text-[15px] font-normal text-white hover:opacity-70 transition-opacity"
-          style={{
-            fontFamily: "var(--font-be-vietnam-pro), sans-serif",
-          }}
-        >
-          DOWNLOAD FOR PC
-        </a>
-      </div>
+      {/* DOWNLOAD FOR PC link */}
+      <a
+        href="#"
+        className="text-[15px] font-normal text-white hover:opacity-70 transition-opacity absolute left-1/2 pointer-events-auto"
+        style={{
+          fontFamily: "var(--font-be-vietnam-pro), sans-serif",
+          top: "90vh",
+          transform: "translateX(-50%)",
+        }}
+      >
+        DOWNLOAD FOR PC
+      </a>
     </div>
   );
 }
