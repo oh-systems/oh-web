@@ -48,10 +48,6 @@ export default function LaptopText({ progress }: LaptopTextProps) {
     translateY = -20;
   }
 
-  // Split text into letters for animation
-  const title = "SPACE PROTOTYPE";
-  const titleLetters = title.split("");
-
   return (
     <div
       className="fixed inset-0 flex flex-col items-center pointer-events-none"
@@ -64,7 +60,7 @@ export default function LaptopText({ progress }: LaptopTextProps) {
         justifyContent: "flex-start",
       }}
     >
-      {/* SPACE PROTOTYPE title with letter-by-letter animation */}
+      {/* SPACE PROTOTYPE title */}
       <h1
         className="text-[96px] font-normal text-white"
         style={{
@@ -72,21 +68,10 @@ export default function LaptopText({ progress }: LaptopTextProps) {
           letterSpacing: "0.02em",
         }}
       >
-        {titleLetters.map((letter, index) => (
-          <span
-            key={index}
-            className="slide-up"
-            style={{
-              animationDelay: `${index * 0.03}s`,
-              display: "inline-block",
-            }}
-          >
-            {letter === " " ? "\u00A0" : letter}
-          </span>
-        ))}
+        SPACE PROTOTYPE
       </h1>
 
-      {/* Links container with staggered animation */}
+      {/* Links container */}
       <div
         className="flex flex-col items-center gap-4 pointer-events-auto"
         style={{ marginTop: "15rem" }}
@@ -94,10 +79,9 @@ export default function LaptopText({ progress }: LaptopTextProps) {
         {/* ENTER EXPERIENCE link */}
         <a
           href="/space"
-          className="slide-up text-[20px] font-normal text-white hover:opacity-70 transition-opacity mb-8"
+          className="text-[20px] font-normal text-white hover:opacity-70 transition-opacity mb-8"
           style={{
             fontFamily: "var(--font-be-vietnam-pro), sans-serif",
-            animationDelay: `${titleLetters.length * 0.03 + 0.1}s`,
           }}
         >
           ENTER EXPERIENCE
@@ -106,10 +90,9 @@ export default function LaptopText({ progress }: LaptopTextProps) {
         {/* DOWNLOAD FOR PC link */}
         <a
           href="#"
-          className="slide-up text-[15px] font-normal text-white hover:opacity-70 transition-opacity"
+          className="text-[15px] font-normal text-white hover:opacity-70 transition-opacity"
           style={{
             fontFamily: "var(--font-be-vietnam-pro), sans-serif",
-            animationDelay: `${titleLetters.length * 0.03 + 0.2}s`,
           }}
         >
           DOWNLOAD FOR PC
