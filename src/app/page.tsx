@@ -15,8 +15,8 @@ import {
   TransitionScreen,
   CardDemo,
   Footer,
-  GlassCursor,
   LaptopText,
+  ClosingRing,
 } from "../../components";
 import { GlassSections } from "../../components/GlassSections";
 import { useAppContext } from "./AppContent";
@@ -118,8 +118,17 @@ export default function Home() {
   const getTextOpacity = () => {
     if (!isTransitioning) return 1;
 
-    // During transition, always keep text hidden (fade out immediately, don't fade in until transition complete)
-    return 0;
+    // Fade out slowly during first 30% of phase 1, stay hidden, then fade in at end of phase 2
+    if (transitionProgress < 0.15) {
+      // Fade out during first 30% of phase 1 (0 to 0.15 of total progress)
+      return 1 - transitionProgress / 0.15;
+    } else if (transitionProgress < 0.85) {
+      // Stay hidden during middle of transition
+      return 0;
+    } else {
+      // Fade in during last part of phase 2 (0.85 to 1.0)
+      return (transitionProgress - 0.85) / 0.15;
+    }
   };
 
   const textOpacity = getTextOpacity();
@@ -131,6 +140,7 @@ export default function Home() {
   const lastAutoPlayTimeRef = useRef(0);
   const laptopAnimationProgressRef = useRef(0);
   const castAnimationProgressRef = useRef(0);
+  const rawProgressRef = useRef(0); // Track rawProgress to prevent unnecessary setState
   const updateAnimationProgressRef = useRef<(() => void) | null>(null);
   const autoPlayResumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const targetScrollRef = useRef(0);
@@ -167,120 +177,107 @@ export default function Home() {
     // Start text fade immediately
     setIsTransitioning(true);
     setTransitionProgress(0);
-    
+
     // Preserve navigationFadeProgress during transition (unless animating it backward from information)
     skipNavigationFadeUpdateRef.current = true;
-    
-    console.log(`Transition: ${currentSection} → ${section}, navigationFadeProgress:`, navigationFadeProgress);
-    
+
     const maxScroll = window.innerHeight * 4.5;
     const currentScroll = scrollAccumulatorRef.current;
     const currentProgress = currentScroll / maxScroll;
-    
+
     // Determine target scroll positions for each section boundary
     const sectionBoundaries = {
       overview: { start: 0, end: 0.18 },
       mission: { start: 0.18, end: 0.45 },
       space: { start: 0.55, end: 0.8 }, // Start after cast shadows ends (0.533) and buffer (0.55)
-      information: { start: 0.8, end: 1.0 }
+      information: { start: 0.8, end: 1.0 },
     };
-    
+
     // Find which section we're currently in
     const currentBoundary = sectionBoundaries[currentSection];
     const targetBoundary = sectionBoundaries[section];
-    
+
     // Determine if target section is before or after current section
     const sectionOrder = ["overview", "mission", "space", "information"];
     const currentIndex = sectionOrder.indexOf(currentSection);
     const targetIndex = sectionOrder.indexOf(section);
     const isMovingForward = targetIndex > currentIndex;
-    
+
     // Phase 1: Animate to boundary based on direction
     // If moving forward, animate to end of current section
     // If moving backward, animate to start of current section
-    const exitProgress = isMovingForward ? currentBoundary.end : currentBoundary.start;
+    const exitProgress = isMovingForward
+      ? currentBoundary.end
+      : currentBoundary.start;
     const exitScroll = exitProgress * maxScroll;
-    
-    const phase1Duration = 2500; // Much slower to see full animations
+
+    const phase1Duration = 500; // Faster for testing
     const phase1Start = Date.now();
     const phase1StartScroll = currentScroll;
     const phase1Distance = exitScroll - phase1StartScroll;
-    
+
     const animatePhase1 = () => {
       const elapsed = Date.now() - phase1Start;
       const progress = Math.min(elapsed / phase1Duration, 1);
-      
+
       // Use easeInOutCubic for smoother, more complete-feeling animation
       const easeInOutCubic = (t: number) => {
         return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
       };
-      
+
       const easedProgress = easeInOutCubic(progress);
-      
+
       // Animate to boundary
-      scrollAccumulatorRef.current = phase1StartScroll + (phase1Distance * easedProgress);
+      scrollAccumulatorRef.current =
+        phase1StartScroll + phase1Distance * easedProgress;
       targetScrollRef.current = scrollAccumulatorRef.current;
-      autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScroll) * 100;
-      
-      console.log('Phase 1 animating:', {
-        progress: progress.toFixed(3),
-        scrollProgress: (scrollAccumulatorRef.current / maxScroll).toFixed(3),
-        isMovingForward,
-        exitProgress
-      });
-      
+      autoPlayTimeRef.current =
+        (scrollAccumulatorRef.current / maxScroll) * 100;
+
       if (updateAnimationProgressRef.current) {
         updateAnimationProgressRef.current();
       }
-      
-      // Special handling: If leaving information section, animate ring back to corner
-      if (currentSection === "information") {
-        // Reverse the navigationFadeProgress from 1 to 0 as we animate
-        const ringProgress = 1 - easedProgress; // Starts at 1, goes to 0
-        setNavigationFadeProgress(ringProgress);
-      }
-      
+
       // Update transition progress (0-0.5 for phase 1)
       setTransitionProgress(progress * 0.5);
-      
+
       if (progress < 1) {
         requestAnimationFrame(animatePhase1);
       } else {
         // Phase 1 complete, jump to target section start
-        console.log('Phase 1 complete, starting Phase 2');
         startPhase2();
       }
     };
-    
+
     const startPhase2 = () => {
       // Jump to the beginning of the target section
       const targetStartScroll = targetBoundary.start * maxScroll;
       scrollAccumulatorRef.current = targetStartScroll;
       targetScrollRef.current = targetStartScroll;
       autoPlayTimeRef.current = (targetStartScroll / maxScroll) * 100;
-      
+
       if (updateAnimationProgressRef.current) {
         updateAnimationProgressRef.current();
       }
-      
+
       // Phase 2: Fade in new content
-      const phase2Duration = 1500; // Much slower fade in
+      const phase2Duration = 300; // Faster fade in for testing
       const phase2Start = Date.now();
-      
+
       const animatePhase2 = () => {
         const elapsed = Date.now() - phase2Start;
         const progress = Math.min(elapsed / phase2Duration, 1);
-        
+
         // Use ease out for natural fade in
         const easeOut = (t: number) => {
           return 1 - Math.pow(1 - t, 3);
         };
-        
+
         const easedProgress = easeOut(progress);
-        
+
         // Update transition progress (0.5-1.0 for phase 2)
-        setTransitionProgress(0.5 + (easedProgress * 0.5));
-        
+        setTransitionProgress(0.5 + easedProgress * 0.5);
+
         if (progress < 1) {
           requestAnimationFrame(animatePhase2);
         } else {
@@ -291,10 +288,10 @@ export default function Home() {
           scheduleAutoPlayResume();
         }
       };
-      
+
       requestAnimationFrame(animatePhase2);
     };
-    
+
     requestAnimationFrame(animatePhase1);
   };
 
@@ -467,7 +464,12 @@ export default function Home() {
       }
 
       const rawProgress = scrollAccumulatorRef.current / maxScrollRange;
-      setRawProgress(rawProgress);
+
+      // Only update state if the value actually changed to prevent render loops
+      if (Math.abs(rawProgress - rawProgressRef.current) > 0.001) {
+        rawProgressRef.current = rawProgress;
+        setRawProgress(rawProgress);
+      }
 
       // Apply smooth easing for more natural animation feel
       const clampedProgress = Math.min(rawProgress, 1.5); // Allow progress up to 1.5 for laptop animation
@@ -984,6 +986,11 @@ export default function Home() {
       >
         {/* Permanent Ring fade is now handled in AppContent.tsx - we apply fade to that ring */}
 
+        {/* Closing Ring for transitions from information section */}
+        {isTransitioning && currentSection === "information" && (
+          <ClosingRing shouldReturnToCorner={true} />
+        )}
+
         {/* Initial Load State - 3D INITIAL_LOAD model with loading indicator */}
         {!initialLoadComplete && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black">
@@ -1385,7 +1392,10 @@ export default function Home() {
             </div>
 
             {/* Cast Shadows Details Text Sequence */}
-            <div className="absolute inset-0 z-[110] pointer-events-none" style={{ opacity: textOpacity }}>
+            <div
+              className="absolute inset-0 z-[110] pointer-events-none"
+              style={{ opacity: textOpacity }}
+            >
               <CastShadowsDetailsText scrollProgress={castAnimationProgress} />
             </div>
 

@@ -12,10 +12,13 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
     x: -100,
     y: -100,
   });
+  const [isHovering, setIsHovering] = useState(false);
   const [crystalOpacity, setCrystalOpacity] = useState(0);
   const mousePositionRef = useRef({ x: -100, y: -100 });
   const realMousePositionRef = useRef({ x: -100, y: -100 });
+  const cursorPositionRef = useRef({ x: -100, y: -100 }); // Track crystal cursor in ref
   const smoothWhiteCursorRef = useRef({ x: -100, y: -100 }); // Track in ref too
+  const isHoveringRef = useRef(false);
   const animationFrameRef = useRef<number>(0);
   const whiteCursorAnimationRef = useRef<number>(0);
 
@@ -26,6 +29,21 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
 
       mousePositionRef.current = { x: exactX, y: exactY };
       realMousePositionRef.current = { x: exactX, y: exactY };
+
+      // Check if hovering over interactive element
+      const elementUnderCursor = document.elementFromPoint(exactX, exactY);
+      if (elementUnderCursor) {
+        const isInteractive =
+          elementUnderCursor.closest(
+            'a, button, [role="button"], input, textarea, select, [onclick], [tabindex], .section-indicator, .sound-container, .sound-toggle, svg, path, circle, rect'
+          ) !== null;
+
+        // Only update state if the value actually changed
+        if (isHoveringRef.current !== isInteractive) {
+          isHoveringRef.current = isInteractive;
+          setIsHovering(isInteractive);
+        }
+      }
     };
 
     document.addEventListener("mousemove", handleMouseMove);
@@ -66,17 +84,26 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
     if (!scrollAnimationStarted) return; // Don't animate until scroll animation starts
 
     const animate = () => {
-      setCursorPosition((prevPos) => {
-        const targetX = mousePositionRef.current.x;
-        const targetY = mousePositionRef.current.y;
+      const targetX = mousePositionRef.current.x;
+      const targetY = mousePositionRef.current.y;
 
-        // Smooth easing - lower values = more lag/trailing effect
-        const easeAmount = 0.025;
-        const newX = prevPos.x + (targetX - prevPos.x) * easeAmount;
-        const newY = prevPos.y + (targetY - prevPos.y) * easeAmount;
+      // Smooth easing - lower values = more lag/trailing effect
+      const easeAmount = 0.025;
+      const newX =
+        cursorPositionRef.current.x +
+        (targetX - cursorPositionRef.current.x) * easeAmount;
+      const newY =
+        cursorPositionRef.current.y +
+        (targetY - cursorPositionRef.current.y) * easeAmount;
 
-        return { x: newX, y: newY };
-      });
+      // Only update if there's a meaningful change (> 0.1px)
+      if (
+        Math.abs(newX - cursorPositionRef.current.x) > 0.1 ||
+        Math.abs(newY - cursorPositionRef.current.y) > 0.1
+      ) {
+        cursorPositionRef.current = { x: newX, y: newY };
+        setCursorPosition({ x: newX, y: newY });
+      }
 
       animationFrameRef.current = requestAnimationFrame(animate);
     };
@@ -98,16 +125,24 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
 
       // Smooth easing for white cursor - slightly higher for subtle delay
       const easeAmount = 0.1;
-      const newX = smoothWhiteCursorRef.current.x + (targetX - smoothWhiteCursorRef.current.x) * easeAmount;
-      const newY = smoothWhiteCursorRef.current.y + (targetY - smoothWhiteCursorRef.current.y) * easeAmount;
+      const newX =
+        smoothWhiteCursorRef.current.x +
+        (targetX - smoothWhiteCursorRef.current.x) * easeAmount;
+      const newY =
+        smoothWhiteCursorRef.current.y +
+        (targetY - smoothWhiteCursorRef.current.y) * easeAmount;
 
       // Only update if there's a meaningful change (> 0.1px)
-      if (Math.abs(newX - smoothWhiteCursorRef.current.x) > 0.1 || Math.abs(newY - smoothWhiteCursorRef.current.y) > 0.1) {
+      if (
+        Math.abs(newX - smoothWhiteCursorRef.current.x) > 0.1 ||
+        Math.abs(newY - smoothWhiteCursorRef.current.y) > 0.1
+      ) {
         smoothWhiteCursorRef.current = { x: newX, y: newY };
         setSmoothWhiteCursor({ x: newX, y: newY });
       }
 
-      whiteCursorAnimationRef.current = requestAnimationFrame(animateWhiteCursor);
+      whiteCursorAnimationRef.current =
+        requestAnimationFrame(animateWhiteCursor);
     };
 
     animateWhiteCursor();
@@ -165,11 +200,12 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
           position: "fixed",
           left: smoothWhiteCursor.x,
           top: smoothWhiteCursor.y,
-          width: "6px",
-          height: "6px",
+          width: isHovering ? "12px" : "6px",
+          height: isHovering ? "12px" : "6px",
           borderRadius: "50%",
           backgroundColor: "white",
           transform: "translate(-50%, -50%)",
+          transition: "width 0.2s ease-out, height 0.2s ease-out",
           pointerEvents: "none",
           zIndex: 999999999,
           opacity: 1,
