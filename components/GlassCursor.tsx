@@ -21,6 +21,7 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
   const isHoveringRef = useRef(false);
   const animationFrameRef = useRef<number>(0);
   const whiteCursorAnimationRef = useRef<number>(0);
+  const hoverCheckTimeoutRef = useRef<number>(0);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -30,26 +31,36 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
       mousePositionRef.current = { x: exactX, y: exactY };
       realMousePositionRef.current = { x: exactX, y: exactY };
 
-      // Check if hovering over interactive element
-      const elementUnderCursor = document.elementFromPoint(exactX, exactY);
-      if (elementUnderCursor) {
-        const isInteractive =
-          elementUnderCursor.closest(
-            'a, button, [role="button"], input, textarea, select, [onclick], [tabindex], .section-indicator, .sound-container, .sound-toggle, svg, path, circle, rect'
-          ) !== null;
+      // Throttle hover detection to every 100ms instead of every mousemove
+      if (hoverCheckTimeoutRef.current) return;
 
-        // Only update state if the value actually changed
-        if (isHoveringRef.current !== isInteractive) {
-          isHoveringRef.current = isInteractive;
-          setIsHovering(isInteractive);
+      hoverCheckTimeoutRef.current = window.setTimeout(() => {
+        hoverCheckTimeoutRef.current = 0;
+
+        // Check if hovering over interactive element
+        const elementUnderCursor = document.elementFromPoint(exactX, exactY);
+        if (elementUnderCursor) {
+          const isInteractive =
+            elementUnderCursor.closest(
+              'a, button, [role="button"], input, textarea, select, [onclick], [tabindex], .section-indicator, .sound-container, .sound-toggle, svg, path, circle, rect'
+            ) !== null;
+
+          // Only update state if the value actually changed
+          if (isHoveringRef.current !== isInteractive) {
+            isHoveringRef.current = isInteractive;
+            setIsHovering(isInteractive);
+          }
         }
-      }
+      }, 100);
     };
 
-    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mousemove", handleMouseMove, { passive: true });
 
     return () => {
       document.removeEventListener("mousemove", handleMouseMove);
+      if (hoverCheckTimeoutRef.current) {
+        clearTimeout(hoverCheckTimeoutRef.current);
+      }
     };
   }, []);
 
