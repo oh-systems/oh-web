@@ -211,6 +211,71 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
   isVisible,
   onClose,
 }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    message: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.email) {
+      alert('Please enter your email');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitStatus('idle');
+
+    try {
+      const response = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          access_key: process.env.NEXT_PUBLIC_WEB3FORMS_KEY,
+          name: formData.name,
+          phone: formData.phone,
+          email: formData.email,
+          message: formData.message,
+          subject: 'New Contact Form Submission from OH Web'
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSubmitStatus('success');
+        setFormData({ name: '', phone: '', email: '', message: '' });
+        playClickSound();
+        
+        setTimeout(() => {
+          setSubmitStatus('idle');
+          if (onClose) onClose();
+        }, 2000);
+      } else {
+        setSubmitStatus('error');
+      }
+    } catch (error) {
+      console.error('Form submission error:', error);
+      setSubmitStatus('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div
       style={{
@@ -230,6 +295,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
       >
       <div style={{ paddingTop: "60px" }}>
         <h2
+          id="contact-form-title"
           style={{
             fontSize: "20px",
             fontWeight: "400",
@@ -263,20 +329,31 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
             color: white !important;
             opacity: 1;
           }
+          .contact-form input:focus,
+          .contact-form textarea:focus {
+            border-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+          }
         `}</style>
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            console.log("Form submitted");
-          }}
+          onSubmit={handleSubmit}
           className="contact-form"
+          aria-labelledby="contact-form-title"
+          noValidate
         >
           <div
             style={{ display: "flex", flexDirection: "column", gap: "12px" }}
           >
             <input
               type="text"
+              name="name"
+              id="contact-name"
               placeholder="Name"
+              value={formData.name}
+              onChange={handleChange}
+              disabled={isSubmitting}
+              aria-label="Your name"
+              autoComplete="name"
               style={{
                 fontFamily: "Helvetica, Arial, sans-serif",
                 fontSize: "12px",
@@ -288,11 +365,19 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
                 outline: "none",
                 width: "100%",
                 boxSizing: "border-box",
+                opacity: isSubmitting ? 0.5 : 1,
               }}
             />
             <input
               type="tel"
+              name="phone"
+              id="contact-phone"
               placeholder="Phone Number"
+              value={formData.phone}
+              onChange={handleChange}
+              disabled={isSubmitting}
+              aria-label="Your phone number"
+              autoComplete="tel"
               style={{
                 fontFamily: "Helvetica, Arial, sans-serif",
                 fontSize: "12px",
@@ -304,11 +389,21 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
                 outline: "none",
                 width: "100%",
                 boxSizing: "border-box",
+                opacity: isSubmitting ? 0.5 : 1,
               }}
             />
             <input
               type="email"
+              name="email"
+              id="contact-email"
               placeholder="Email"
+              value={formData.email}
+              onChange={handleChange}
+              disabled={isSubmitting}
+              required
+              aria-label="Your email address"
+              aria-required="true"
+              autoComplete="email"
               style={{
                 fontFamily: "Helvetica, Arial, sans-serif",
                 fontSize: "12px",
@@ -320,11 +415,18 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
                 outline: "none",
                 width: "100%",
                 boxSizing: "border-box",
+                opacity: isSubmitting ? 0.5 : 1,
               }}
             />
             <textarea
+              name="message"
+              id="contact-message"
               placeholder="Message"
               rows={3}
+              value={formData.message}
+              onChange={handleChange}
+              disabled={isSubmitting}
+              aria-label="Your message"
               style={{
                 fontFamily: "Helvetica, Arial, sans-serif",
                 fontSize: "12px",
@@ -338,10 +440,13 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
                 minHeight: "60px",
                 width: "100%",
                 boxSizing: "border-box",
+                opacity: isSubmitting ? 0.5 : 1,
               }}
             />
             <button
               type="submit"
+              disabled={isSubmitting}
+              aria-label={isSubmitting ? 'Sending message...' : 'Send message'}
               style={{
                 fontFamily: "Helvetica, Arial, sans-serif",
                 fontSize: "12px",
@@ -349,27 +454,42 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
                 padding: "10px 24px",
                 borderRadius: "20px",
                 border: "1px solid white",
-                backgroundColor: "transparent",
+                backgroundColor: submitStatus === 'success' ? 'rgba(0, 255, 0, 0.2)' : submitStatus === 'error' ? 'rgba(255, 0, 0, 0.2)' : "transparent",
                 color: "white",
-                cursor: "pointer",
+                cursor: isSubmitting ? "not-allowed" : "pointer",
                 transition: "all 0.2s ease",
                 marginTop: "8px",
                 width: "100%",
                 boxSizing: "border-box",
                 textAlign: "left",
+                opacity: isSubmitting ? 0.5 : 1,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor =
-                  "rgba(255, 255, 255, 0.1)";
-                e.currentTarget.style.transform = "translateY(-1px)";
+                if (!isSubmitting) {
+                  e.currentTarget.style.backgroundColor =
+                    "rgba(255, 255, 255, 0.1)";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-                e.currentTarget.style.transform = "translateY(0)";
+                if (!isSubmitting && submitStatus === 'idle') {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }
               }}
             >
-              Send
+              {isSubmitting ? 'Sending...' : submitStatus === 'success' ? 'Sent!' : submitStatus === 'error' ? 'Error - Try Again' : 'Send'}
             </button>
+            {submitStatus === 'success' && (
+              <p role="status" aria-live="polite" style={{ color: 'rgba(0, 255, 0, 0.8)', fontSize: '11px', margin: '4px 0 0 0', textAlign: 'center' }}>
+                Message sent successfully!
+              </p>
+            )}
+            {submitStatus === 'error' && (
+              <p role="alert" aria-live="assertive" style={{ color: 'rgba(255, 0, 0, 0.8)', fontSize: '11px', margin: '4px 0 0 0', textAlign: 'center' }}>
+                Failed to send. Please try again.
+              </p>
+            )}
           </div>
         </form>
       </div>
