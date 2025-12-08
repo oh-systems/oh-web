@@ -28,7 +28,7 @@ class SequencePreloader {
   };
 
   async preloadAllSequences(onProgress?: ProgressCallback): Promise<void> {
-    console.log('🚀 Starting preload of all sequences...');
+    console.log('🚀 Starting progressive preload strategy...');
     
     const totalFrames = 
       SEQUENCE_CONFIG.initialScroll.totalFrames +
@@ -47,20 +47,38 @@ class SequencePreloader {
       }
     };
 
-    // Preload all sequences in parallel with batch processing
+    // ========== PRIORITY 1: First 60 frames of Initial Scroll ==========
+    // Load critical frames first so user sees motion immediately
+    console.log('⚡ Priority 1: Loading first 60 frames of Initial Scroll...');
+    await this.preloadSequence(
+      'initialScroll',
+      getInitialScrollImageUrl,
+      60, // Just first 60 frames
+      (loaded, total) => updateProgress('initialScroll', loaded, SEQUENCE_CONFIG.initialScroll.totalFrames),
+      0 // Start from frame 0
+    );
+    console.log('✅ Priority 1 complete - user can start seeing motion!');
+
+    // ========== PRIORITY 2: Rest of sequences in parallel ==========
+    // Load everything else in background while user engages with first 60 frames
+    console.log('📦 Priority 2: Loading remaining frames in parallel...');
     await Promise.all([
+      // Finish Initial Scroll (frames 61-600)
       this.preloadSequence(
         'initialScroll',
         getInitialScrollImageUrl,
         SEQUENCE_CONFIG.initialScroll.totalFrames,
-        (loaded, total) => updateProgress('initialScroll', loaded, total)
+        (loaded, total) => updateProgress('initialScroll', loaded, total),
+        60 // Start from frame 60
       ),
+      // Cast Shadows - full sequence
       this.preloadSequence(
         'castShadows',
         getCastShadowsImageUrl,
         SEQUENCE_CONFIG.castShadows.totalFrames,
         (loaded, total) => updateProgress('castShadows', loaded, total)
       ),
+      // Third Laptop - full sequence
       this.preloadSequence(
         'thirdLaptop',
         getThirdLaptopImageUrl,
@@ -76,16 +94,20 @@ class SequencePreloader {
     name: string,
     getUrl: (frameNumber: number) => string,
     totalFrames: number,
-    onProgress: (loaded: number, total: number) => void
+    onProgress: (loaded: number, total: number) => void,
+    startFrame: number = 0
   ): Promise<void> {
-    console.log(`📦 Preloading ${name}: ${totalFrames} frames`);
+    console.log(`📦 Preloading ${name}: frames ${startFrame + 1}-${totalFrames}`);
     
-    const batchSize = 50;
-    let loaded = 0;
+    // Adaptive batch size based on network speed (detected via timing)
+    let batchSize = 50;
+    let loaded = startFrame;
 
-    for (let batchStart = 0; batchStart < totalFrames; batchStart += batchSize) {
+    for (let batchStart = startFrame; batchStart < totalFrames; batchStart += batchSize) {
       const batchEnd = Math.min(batchStart + batchSize, totalFrames);
       const promises: Promise<void>[] = [];
+      
+      const batchStartTime = performance.now();
 
       for (let i = batchStart; i < batchEnd; i++) {
         promises.push(this.preloadFrame(`${name}-${i}`, getUrl(i + 1)));
@@ -94,8 +116,18 @@ class SequencePreloader {
       await Promise.all(promises);
       loaded = batchEnd;
       onProgress(loaded, totalFrames);
+      
+      // Adaptive batch sizing: if batch took > 3s, reduce size for slower connections
+      const batchDuration = performance.now() - batchStartTime;
+      if (batchDuration > 3000 && batchSize > 20) {
+        batchSize = Math.max(20, Math.floor(batchSize * 0.7));
+        console.log(`🐌 Slow connection detected, reducing batch size to ${batchSize}`);
+      } else if (batchDuration < 1000 && batchSize < 100) {
+        batchSize = Math.min(100, Math.floor(batchSize * 1.3));
+        console.log(`⚡ Fast connection detected, increasing batch size to ${batchSize}`);
+      }
 
-      // Small delay between batches
+      // Small delay between batches to avoid overwhelming the browser
       if (batchEnd < totalFrames) {
         await new Promise(resolve => setTimeout(resolve, 5));
       }
@@ -112,8 +144,18 @@ class SequencePreloader {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
+      
+      // Performance hints for browser
+      img.decoding = 'async'; // Decode off main thread
+      img.loading = 'eager'; // Load immediately (not lazy)
 
-      img.onload = () => {
+      img.onload = async () => {
+        // Pre-decode the image for smoother rendering
+        try {
+          await img.decode();
+        } catch (e) {
+          // Decode failed, but image still loaded
+        }
         SequencePreloader.imageCache.set(key, img);
         resolve();
       };
