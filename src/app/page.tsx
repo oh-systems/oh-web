@@ -470,11 +470,9 @@ export default function Home() {
 
       const rawProgress = scrollAccumulatorRef.current / maxScrollRange;
 
-      // Only update state if the value actually changed to prevent render loops
-      if (Math.abs(rawProgress - rawProgressRef.current) > 0.001) {
-        rawProgressRef.current = rawProgress;
-        setRawProgress(rawProgress);
-      }
+      // Update rawProgress state for tracking
+      rawProgressRef.current = rawProgress;
+      setRawProgress(rawProgress);
 
       // Apply smooth easing for more natural animation feel
       const clampedProgress = Math.min(rawProgress, 1.5); // Allow progress up to 1.5 for laptop animation

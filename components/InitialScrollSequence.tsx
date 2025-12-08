@@ -72,7 +72,7 @@ export default function InitialScrollSequence({
       const frame = Math.floor(scrollProgress * (totalFrames - 1));
       return Math.max(0, Math.min(frame, totalFrames - 1));
     } else {
-      return Math.max(0, Math.min(currentTimeFrame, totalFrames - 1));
+      return Math.max(0, Math.min(Math.floor(currentTimeFrame), totalFrames - 1));
     }
   }, [scrollProgress, totalFrames, isScrollDriven, currentTimeFrame]);
 
@@ -166,19 +166,19 @@ export default function InitialScrollSequence({
     const deltaTime = now - lastUpdateTimeRef.current;
     const frameInterval = 1000 / effectiveFPS;
 
-    if (deltaTime >= frameInterval) {
-      setCurrentTimeFrame((prevFrame) => {
-        const nextFrame = prevFrame + 1;
-        if (nextFrame >= totalFrames) {
-          setIsPlaying(false);
-          return totalFrames - 1;
-        }
-        return nextFrame;
-      });
+    // Calculate exact frame position based on elapsed time
+    const frameIncrement = deltaTime / frameInterval;
+    
+    setCurrentTimeFrame((prevFrame) => {
+      const nextFrame = prevFrame + frameIncrement;
+      if (nextFrame >= totalFrames) {
+        setIsPlaying(false);
+        return totalFrames - 1;
+      }
+      return nextFrame;
+    });
 
-      lastUpdateTimeRef.current = now - (deltaTime % frameInterval);
-    }
-
+    lastUpdateTimeRef.current = now;
     animationFrameRef.current = requestAnimationFrame(animate);
   }, [isPlaying, effectiveFPS, totalFrames]);
 
@@ -210,29 +210,29 @@ export default function InitialScrollSequence({
     };
   }, [isPlaying, animate]);
 
-  // Render current frame with RAF and 30fps throttling - match other sequences
-  const lastRenderTime = useRef<number>(0);
+  // Render current frame with RAF - smooth rendering for both modes
+  const isScrollDrivenRef = useRef(isScrollDriven);
+  
+  // Update ref when isScrollDriven changes
   useEffect(() => {
-    const frame = requestAnimationFrame((currentTime) => {
-      const deltaTime = currentTime - lastRenderTime.current;
-      const frameInterval = 1000 / 30; // 30fps throttle
-
-      if (deltaTime >= frameInterval || lastRenderTime.current === 0) {
-        // Priority rendering: if current frame is not loaded, try to render any nearby loaded frame
-        const img = imageCache.current.get(currentFrame);
-        if (img && img.complete) {
-          renderFrame(currentFrame);
-        } else {
-          // Fallback: try rendering a nearby loaded frame to prevent blank canvas
-          for (let i = 1; i <= 3; i++) {
-            const fallbackFrame = currentFrame - i;
-            if (fallbackFrame >= 0 && imageCache.current.has(fallbackFrame)) {
-              renderFrame(fallbackFrame);
-              break;
-            }
+    isScrollDrivenRef.current = isScrollDriven;
+  }, [isScrollDriven]);
+  
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      // Render immediately for smooth playback
+      const img = imageCache.current.get(currentFrame);
+      if (img && img.complete) {
+        renderFrame(currentFrame);
+      } else {
+        // Fallback: try rendering a nearby loaded frame to prevent blank canvas
+        for (let i = 1; i <= 3; i++) {
+          const fallbackFrame = currentFrame - i;
+          if (fallbackFrame >= 0 && imageCache.current.has(fallbackFrame)) {
+            renderFrame(fallbackFrame);
+            break;
           }
         }
-        lastRenderTime.current = currentTime;
       }
     });
     return () => cancelAnimationFrame(frame);
