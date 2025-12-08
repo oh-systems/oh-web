@@ -93,7 +93,6 @@ export default function Home() {
   const [transitionProgress, setTransitionProgress] = useState(0);
   const [castAnimationProgress, setCastAnimationProgress] = useState(0);
   const [laptopSwapProgress, setLaptopSwapProgress] = useState(0);
-  const [soundEnabled, setSoundEnabled] = useState(true);
   const [laptopAnimationProgress, setLaptopAnimationProgress] = useState(0);
   const [rawProgress, setRawProgress] = useState(0);
   const [descriptiveTextOpacity, setDescriptiveTextOpacity] = useState(0);
@@ -119,12 +118,8 @@ export default function Home() {
   const getTextOpacity = () => {
     if (!isTransitioning) return 1;
 
-    // Fade out in first half, fade in in second half
-    if (transitionProgress < 0.5) {
-      return 1 - transitionProgress * 2; // 0-0.5 -> 1-0
-    } else {
-      return (transitionProgress - 0.5) * 2; // 0.5-1 -> 0-1
-    }
+    // During transition, always keep text hidden (fade out immediately, don't fade in until transition complete)
+    return 0;
   };
 
   const textOpacity = getTextOpacity();
@@ -139,6 +134,7 @@ export default function Home() {
   const updateAnimationProgressRef = useRef<(() => void) | null>(null);
   const autoPlayResumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const targetScrollRef = useRef(0);
+  const skipNavigationFadeUpdateRef = useRef(false); // Skip auto nav fade updates during transitions
 
   // Handle navigation clicks
   const handleNavClick = (item: string) => {
@@ -168,71 +164,138 @@ export default function Home() {
     // Stop auto-play during transition
     isAutoPlayingRef.current = false;
 
-    // Calculate target scroll position
-    const maxScroll = window.innerHeight * 4.5;
-    let targetScroll = 0;
-
-    if (section === "overview") {
-      targetScroll = maxScroll * 0.0;
-    } else if (section === "mission") {
-      targetScroll = maxScroll * 0.22;
-    } else if (section === "space") {
-      targetScroll = maxScroll * 0.55;
-    } else if (section === "information") {
-      targetScroll = maxScroll * 0.9;
-    }
-
-    // Start transition
+    // Start text fade immediately
     setIsTransitioning(true);
     setTransitionProgress(0);
-
-    const startScroll = scrollAccumulatorRef.current;
-    const scrollDistance = targetScroll - startScroll;
-
-    // Animate transition over 800ms
-    const transitionDuration = 800; // ms
-    const startTime = Date.now();
-
-    const animateTransition = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / transitionDuration, 1);
-
-      // Use easeInOutCubic for smooth scroll
+    
+    // Preserve navigationFadeProgress during transition (unless animating it backward from information)
+    skipNavigationFadeUpdateRef.current = true;
+    
+    console.log(`Transition: ${currentSection} → ${section}, navigationFadeProgress:`, navigationFadeProgress);
+    
+    const maxScroll = window.innerHeight * 4.5;
+    const currentScroll = scrollAccumulatorRef.current;
+    const currentProgress = currentScroll / maxScroll;
+    
+    // Determine target scroll positions for each section boundary
+    const sectionBoundaries = {
+      overview: { start: 0, end: 0.18 },
+      mission: { start: 0.18, end: 0.45 },
+      space: { start: 0.55, end: 0.8 }, // Start after cast shadows ends (0.533) and buffer (0.55)
+      information: { start: 0.8, end: 1.0 }
+    };
+    
+    // Find which section we're currently in
+    const currentBoundary = sectionBoundaries[currentSection];
+    const targetBoundary = sectionBoundaries[section];
+    
+    // Determine if target section is before or after current section
+    const sectionOrder = ["overview", "mission", "space", "information"];
+    const currentIndex = sectionOrder.indexOf(currentSection);
+    const targetIndex = sectionOrder.indexOf(section);
+    const isMovingForward = targetIndex > currentIndex;
+    
+    // Phase 1: Animate to boundary based on direction
+    // If moving forward, animate to end of current section
+    // If moving backward, animate to start of current section
+    const exitProgress = isMovingForward ? currentBoundary.end : currentBoundary.start;
+    const exitScroll = exitProgress * maxScroll;
+    
+    const phase1Duration = 2500; // Much slower to see full animations
+    const phase1Start = Date.now();
+    const phase1StartScroll = currentScroll;
+    const phase1Distance = exitScroll - phase1StartScroll;
+    
+    const animatePhase1 = () => {
+      const elapsed = Date.now() - phase1Start;
+      const progress = Math.min(elapsed / phase1Duration, 1);
+      
+      // Use easeInOutCubic for smoother, more complete-feeling animation
       const easeInOutCubic = (t: number) => {
         return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
       };
-
+      
       const easedProgress = easeInOutCubic(progress);
-
-      // Animate scroll position
-      scrollAccumulatorRef.current =
-        startScroll + scrollDistance * easedProgress;
+      
+      // Animate to boundary
+      scrollAccumulatorRef.current = phase1StartScroll + (phase1Distance * easedProgress);
       targetScrollRef.current = scrollAccumulatorRef.current;
-
-      // Update auto-play time to match scroll position
-      autoPlayTimeRef.current =
-        (scrollAccumulatorRef.current / maxScroll) * 100;
-
-      // Update animation progress
+      autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScroll) * 100;
+      
+      console.log('Phase 1 animating:', {
+        progress: progress.toFixed(3),
+        scrollProgress: (scrollAccumulatorRef.current / maxScroll).toFixed(3),
+        isMovingForward,
+        exitProgress
+      });
+      
       if (updateAnimationProgressRef.current) {
         updateAnimationProgressRef.current();
       }
-
-      setTransitionProgress(progress);
-
+      
+      // Special handling: If leaving information section, animate ring back to corner
+      if (currentSection === "information") {
+        // Reverse the navigationFadeProgress from 1 to 0 as we animate
+        const ringProgress = 1 - easedProgress; // Starts at 1, goes to 0
+        setNavigationFadeProgress(ringProgress);
+      }
+      
+      // Update transition progress (0-0.5 for phase 1)
+      setTransitionProgress(progress * 0.5);
+      
       if (progress < 1) {
-        requestAnimationFrame(animateTransition);
+        requestAnimationFrame(animatePhase1);
       } else {
-        // Transition complete
-        setIsTransitioning(false);
-        setCurrentSection(section);
-
-        // Resume auto-play after transition
-        scheduleAutoPlayResume();
+        // Phase 1 complete, jump to target section start
+        console.log('Phase 1 complete, starting Phase 2');
+        startPhase2();
       }
     };
-
-    requestAnimationFrame(animateTransition);
+    
+    const startPhase2 = () => {
+      // Jump to the beginning of the target section
+      const targetStartScroll = targetBoundary.start * maxScroll;
+      scrollAccumulatorRef.current = targetStartScroll;
+      targetScrollRef.current = targetStartScroll;
+      autoPlayTimeRef.current = (targetStartScroll / maxScroll) * 100;
+      
+      if (updateAnimationProgressRef.current) {
+        updateAnimationProgressRef.current();
+      }
+      
+      // Phase 2: Fade in new content
+      const phase2Duration = 1500; // Much slower fade in
+      const phase2Start = Date.now();
+      
+      const animatePhase2 = () => {
+        const elapsed = Date.now() - phase2Start;
+        const progress = Math.min(elapsed / phase2Duration, 1);
+        
+        // Use ease out for natural fade in
+        const easeOut = (t: number) => {
+          return 1 - Math.pow(1 - t, 3);
+        };
+        
+        const easedProgress = easeOut(progress);
+        
+        // Update transition progress (0.5-1.0 for phase 2)
+        setTransitionProgress(0.5 + (easedProgress * 0.5));
+        
+        if (progress < 1) {
+          requestAnimationFrame(animatePhase2);
+        } else {
+          // Transition complete
+          skipNavigationFadeUpdateRef.current = false; // Re-enable automatic navigation fade updates
+          setIsTransitioning(false);
+          setCurrentSection(section);
+          scheduleAutoPlayResume();
+        }
+      };
+      
+      requestAnimationFrame(animatePhase2);
+    };
+    
+    requestAnimationFrame(animatePhase1);
   };
 
   // Helper function to schedule auto-play resumption
@@ -413,33 +476,37 @@ export default function Home() {
 
       setAnimationProgress(easedProgress);
 
-      // Update current section based on raw progress (always update for correct section indicator)
-      if (rawProgress < 0.22) {
-        setCurrentSection("overview"); // Initial scroll sequence
-      } else if (rawProgress < 0.45) {
-        setCurrentSection("mission"); // Cast shadows sequence
-      } else if (rawProgress < 0.8) {
-        setCurrentSection("space"); // Laptop sequence
-      } else {
-        setCurrentSection("information"); // Footer section
+      // Update current section based on raw progress (only if not transitioning)
+      if (!isTransitioning) {
+        if (rawProgress < 0.18) {
+          setCurrentSection("overview"); // Initial scroll sequence
+        } else if (rawProgress < 0.45) {
+          setCurrentSection("mission"); // Cast shadows sequence
+        } else if (rawProgress < 0.8) {
+          setCurrentSection("space"); // Laptop sequence
+        } else {
+          setCurrentSection("information"); // Footer section
+        }
       }
 
       // Calculate fade progress for navigation and ring (Stage 1)
-      if (rawProgress >= STAGE_1_CONFIG.fadeStartProgress) {
-        const fadeProgress = Math.min(
-          (rawProgress - STAGE_1_CONFIG.fadeStartProgress) /
-            STAGE_1_CONFIG.fadeDuration,
-          1
-        );
+      if (!skipNavigationFadeUpdateRef.current) {
+        if (rawProgress >= STAGE_1_CONFIG.fadeStartProgress) {
+          const fadeProgress = Math.min(
+            (rawProgress - STAGE_1_CONFIG.fadeStartProgress) /
+              STAGE_1_CONFIG.fadeDuration,
+            1
+          );
 
-        // Apply easing to fade for smooth transition
-        const easedFadeProgress =
-          fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
+          // Apply easing to fade for smooth transition
+          const easedFadeProgress =
+            fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
 
-        setNavigationFadeProgress(easedFadeProgress);
-      } else {
-        // Reset fade progress when scrolling back
-        setNavigationFadeProgress(0);
+          setNavigationFadeProgress(easedFadeProgress);
+        } else {
+          // Reset fade progress when scrolling back
+          setNavigationFadeProgress(0);
+        }
       }
 
       // Calculate model swap progress (Stage 2: Initial Scroll -> Cast Shadows)
@@ -1248,7 +1315,7 @@ export default function Home() {
               className="absolute right-16 z-[150] hidden md:block"
               style={{
                 top: `${descriptiveTextPosition}%`, // Follow second hero text position
-                opacity: descriptiveTextOpacity, // Same opacity as second hero
+                opacity: descriptiveTextOpacity * textOpacity, // Multiply by textOpacity to hide during transitions
                 transform: "translateY(-50%)", // Center vertically
                 transition: "none", // No CSS transitions for smooth scrubbing
                 visibility:
@@ -1318,7 +1385,7 @@ export default function Home() {
             </div>
 
             {/* Cast Shadows Details Text Sequence */}
-            <div className="absolute inset-0 z-[110] pointer-events-none">
+            <div className="absolute inset-0 z-[110] pointer-events-none" style={{ opacity: textOpacity }}>
               <CastShadowsDetailsText scrollProgress={castAnimationProgress} />
             </div>
 
@@ -1329,8 +1396,8 @@ export default function Home() {
         {/* Card Demo Component - for visual display */}
         <CardDemo activeCard={activeCard} />
 
-        {/* Footer - appears when in information section */}
-        {currentSection === "information" && (
+        {/* Footer - appears when in information section and not transitioning away */}
+        {currentSection === "information" && !isTransitioning && (
           <div
             style={{
               opacity: textOpacity,
