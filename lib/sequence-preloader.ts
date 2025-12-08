@@ -28,7 +28,7 @@ class SequencePreloader {
   };
 
   async preloadAllSequences(onProgress?: ProgressCallback): Promise<void> {
-    console.log('🚀 Starting ultra-fast progressive preload...');
+    console.log('🚀 Starting preload of all sequences...');
     
     const totalFrames = 
       SEQUENCE_CONFIG.initialScroll.totalFrames +
@@ -47,40 +47,14 @@ class SequencePreloader {
       }
     };
 
-    // ========== PRIORITY 1: Only 10 key frames for instant start ==========
-    // Load just enough frames to show motion (every 60th frame = 10 frames for 600 total)
-    console.log('⚡ Priority 1: Loading 10 key frames for instant start...');
-    const keyFrames = [0, 60, 120, 180, 240, 300, 360, 420, 480, 540];
-    for (const frameIdx of keyFrames) {
-      const url = getInitialScrollImageUrl(frameIdx + 1);
-      const key = `initialScroll-${frameIdx}`;
-      await this.preloadFrame(key, url);
-      updateProgress('initialScroll', frameIdx + 1, SEQUENCE_CONFIG.initialScroll.totalFrames);
-    }
-    console.log('✅ Priority 1 complete - 10 key frames loaded in ~1-2 seconds!');
-
-    // ========== PRIORITY 2: Fill in missing frames between key frames ==========
-    console.log('📦 Priority 2: Loading intermediate frames...');
-    const intermediatePromises: Promise<void>[] = [];
-    for (let i = 0; i < SEQUENCE_CONFIG.initialScroll.totalFrames; i++) {
-      if (!keyFrames.includes(i)) {
-        const url = getInitialScrollImageUrl(i + 1);
-        const key = `initialScroll-${i}`;
-        intermediatePromises.push(
-          this.preloadFrame(key, url)
-            .then(() => updateProgress('initialScroll', i + 1, SEQUENCE_CONFIG.initialScroll.totalFrames))
-        );
-      }
-    }
-    
-    // Don't wait for all intermediates - load them in background
-    Promise.all(intermediatePromises).then(() => {
-      console.log('✅ Initial Scroll fully loaded');
-    });
-
-    // ========== PRIORITY 3: Other sequences in parallel ==========
-    console.log('📦 Priority 3: Loading other sequences in background...');
-    Promise.all([
+    // Preload all sequences in parallel with batch processing
+    await Promise.all([
+      this.preloadSequence(
+        'initialScroll',
+        getInitialScrollImageUrl,
+        SEQUENCE_CONFIG.initialScroll.totalFrames,
+        (loaded, total) => updateProgress('initialScroll', loaded, total)
+      ),
       this.preloadSequence(
         'castShadows',
         getCastShadowsImageUrl,
@@ -93,29 +67,25 @@ class SequencePreloader {
         SEQUENCE_CONFIG.thirdLaptop.totalFrames,
         (loaded, total) => updateProgress('thirdLaptop', loaded, total)
       ),
-    ]).then(() => {
-      console.log('🎯 All sequences preloaded successfully!');
-    });
+    ]);
+
+    console.log('🎯 All sequences preloaded successfully!');
   }
 
   private async preloadSequence(
     name: string,
     getUrl: (frameNumber: number) => string,
     totalFrames: number,
-    onProgress: (loaded: number, total: number) => void,
-    startFrame: number = 0
+    onProgress: (loaded: number, total: number) => void
   ): Promise<void> {
-    console.log(`📦 Preloading ${name}: frames ${startFrame + 1}-${totalFrames}`);
+    console.log(`📦 Preloading ${name}: ${totalFrames} frames`);
     
-    // Adaptive batch size based on network speed (detected via timing)
-    let batchSize = 50;
-    let loaded = startFrame;
+    const batchSize = 50;
+    let loaded = 0;
 
-    for (let batchStart = startFrame; batchStart < totalFrames; batchStart += batchSize) {
+    for (let batchStart = 0; batchStart < totalFrames; batchStart += batchSize) {
       const batchEnd = Math.min(batchStart + batchSize, totalFrames);
       const promises: Promise<void>[] = [];
-      
-      const batchStartTime = performance.now();
 
       for (let i = batchStart; i < batchEnd; i++) {
         promises.push(this.preloadFrame(`${name}-${i}`, getUrl(i + 1)));
@@ -124,18 +94,8 @@ class SequencePreloader {
       await Promise.all(promises);
       loaded = batchEnd;
       onProgress(loaded, totalFrames);
-      
-      // Adaptive batch sizing: if batch took > 3s, reduce size for slower connections
-      const batchDuration = performance.now() - batchStartTime;
-      if (batchDuration > 3000 && batchSize > 20) {
-        batchSize = Math.max(20, Math.floor(batchSize * 0.7));
-        console.log(`🐌 Slow connection detected, reducing batch size to ${batchSize}`);
-      } else if (batchDuration < 1000 && batchSize < 100) {
-        batchSize = Math.min(100, Math.floor(batchSize * 1.3));
-        console.log(`⚡ Fast connection detected, increasing batch size to ${batchSize}`);
-      }
 
-      // Small delay between batches to avoid overwhelming the browser
+      // Small delay between batches
       if (batchEnd < totalFrames) {
         await new Promise(resolve => setTimeout(resolve, 5));
       }
@@ -152,18 +112,8 @@ class SequencePreloader {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      
-      // Performance hints for browser
-      img.decoding = 'async'; // Decode off main thread
-      img.loading = 'eager'; // Load immediately (not lazy)
 
-      img.onload = async () => {
-        // Pre-decode the image for smoother rendering
-        try {
-          await img.decode();
-        } catch (e) {
-          // Decode failed, but image still loaded
-        }
+      img.onload = () => {
         SequencePreloader.imageCache.set(key, img);
         resolve();
       };
