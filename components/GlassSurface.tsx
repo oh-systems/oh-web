@@ -93,11 +93,9 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
     if (!containerRef.current || !feImageRef.current) return;
     feImageRef.current.setAttribute('href', generateDisplacementMap());
     
-    // Mark as ready after the displacement map is set
+    // Mark as ready immediately after setting the displacement map
     if (!isReady) {
-      requestAnimationFrame(() => {
-        setIsReady(true);
-      });
+      setIsReady(true);
     }
   };
 
@@ -112,6 +110,7 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
       
       if (isWebkit || isFirefox) {
         setUseSVGFilter(false);
+        setIsReady(true); // Set ready immediately for fallback mode
       } else {
         // Double-check backdrop-filter support
         const div = document.createElement('div');
