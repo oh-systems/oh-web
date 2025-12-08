@@ -130,9 +130,12 @@ export default function Sound({
         gap: '10px',
         userSelect: 'none',
       }}
+      role="group"
+      aria-label="Sound controls"
     >
       {/* SOUND Text */}
       <span 
+        id="sound-label"
         style={{
           fontFamily: 'Be Vietnam, Arial, sans-serif',
           fontSize: '14px',
@@ -146,10 +149,18 @@ export default function Sound({
       </span>
       
       {/* Sound Indicators - Three circles showing current mode */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div 
+        style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+        role="radiogroup"
+        aria-labelledby="sound-label"
+      >
         {/* Left Circle - All sounds (ambient + effects) */}
-        <div
+        <button
           onClick={(e) => handleModeClick('all', e)}
+          role="radio"
+          aria-checked={soundMode === 'all'}
+          aria-label="All sounds (ambient and effects)"
+          tabIndex={0}
           style={{
             width: '10px',
             height: '10px',
@@ -157,13 +168,25 @@ export default function Sound({
             backgroundColor: soundMode === 'all' ? 'white' : 'transparent',
             border: '1px solid white',
             transition: 'background-color 0.3s ease',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            padding: 0,
+            outline: 'none',
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.boxShadow = '0 0 0 2px rgba(255, 255, 255, 0.5)';
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.boxShadow = 'none';
           }}
         />
         
         {/* Middle Circle - Effects only */}
-        <div
+        <button
           onClick={(e) => handleModeClick('effects', e)}
+          role="radio"
+          aria-checked={soundMode === 'effects'}
+          aria-label="Effects only (no ambient sound)"
+          tabIndex={0}
           style={{
             width: '10px',
             height: '10px',
@@ -171,13 +194,25 @@ export default function Sound({
             backgroundColor: soundMode === 'effects' ? 'white' : 'transparent',
             border: '1px solid white',
             transition: 'background-color 0.3s ease',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            padding: 0,
+            outline: 'none',
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.boxShadow = '0 0 0 2px rgba(255, 255, 255, 0.5)';
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.boxShadow = 'none';
           }}
         />
         
         {/* Right Circle - No sound */}
-        <div
+        <button
           onClick={(e) => handleModeClick('none', e)}
+          role="radio"
+          aria-checked={soundMode === 'none'}
+          aria-label="No sound (muted)"
+          tabIndex={0}
           style={{
             width: '10px',
             height: '10px',
@@ -185,7 +220,15 @@ export default function Sound({
             backgroundColor: soundMode === 'none' ? 'white' : 'transparent',
             border: '1px solid white',
             transition: 'background-color 0.3s ease',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            padding: 0,
+            outline: 'none',
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.boxShadow = '0 0 0 2px rgba(255, 255, 255, 0.5)';
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.boxShadow = 'none';
           }}
         />
       </div>
