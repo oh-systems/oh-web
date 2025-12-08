@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 
 interface CastShadowsTextProps {
   scrollProgress: number; // 0 to 1 for the Cast Shadows sequence
@@ -18,19 +18,19 @@ export default function CastShadowsText({
 }: CastShadowsTextProps) {
   const [time, setTime] = useState(0);
   const [glitchLines, setGlitchLines] = useState<Array<{ id: number; x1: number; y1: number; x2: number; y2: number }>>([]);
-  const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 }); // Start at center
+  const mousePositionRef = useRef({ x: 50, y: 50 }); // Use ref instead of state
   const [smoothMousePosition, setSmoothMousePosition] = useState({ x: 50, y: 50 }); // Interpolated position
 
-  // Track mouse position with smooth interpolation
+  // Track mouse position using ref to avoid re-renders
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({
+      mousePositionRef.current = {
         x: (e.clientX / window.innerWidth) * 100, // Convert to percentage
         y: (e.clientY / window.innerHeight) * 100,
-      });
+      };
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
@@ -40,15 +40,15 @@ export default function CastShadowsText({
     
     const smoothUpdate = () => {
       setSmoothMousePosition(prev => ({
-        x: prev.x + (mousePosition.x - prev.x) * 0.1, // Lerp factor: 0.1 for smooth following
-        y: prev.y + (mousePosition.y - prev.y) * 0.1,
+        x: prev.x + (mousePositionRef.current.x - prev.x) * 0.1, // Lerp factor: 0.1 for smooth following
+        y: prev.y + (mousePositionRef.current.y - prev.y) * 0.1,
       }));
       animationFrameId = requestAnimationFrame(smoothUpdate);
     };
 
     animationFrameId = requestAnimationFrame(smoothUpdate);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [mousePosition]);
+  }, []);
 
   // Animate time for smooth random movement
   useEffect(() => {

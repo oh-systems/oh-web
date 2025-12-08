@@ -7,17 +7,14 @@ interface GlassCursorProps {
 }
 
 const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
-  const [cursorPosition, setCursorPosition] = useState({ x: -100, y: -100 });
-  const [smoothWhiteCursor, setSmoothWhiteCursor] = useState({
-    x: -100,
-    y: -100,
-  });
   const [isHovering, setIsHovering] = useState(false);
   const [crystalOpacity, setCrystalOpacity] = useState(0);
   const mousePositionRef = useRef({ x: -100, y: -100 });
   const realMousePositionRef = useRef({ x: -100, y: -100 });
   const cursorPositionRef = useRef({ x: -100, y: -100 }); // Track crystal cursor in ref
   const smoothWhiteCursorRef = useRef({ x: -100, y: -100 }); // Track in ref too
+  const glassCursorElementRef = useRef<HTMLDivElement>(null); // Ref to glass cursor DOM element
+  const whiteCursorElementRef = useRef<HTMLDivElement>(null); // Ref to white cursor DOM element
   const isHoveringRef = useRef(false);
   const animationFrameRef = useRef<number>(0);
   const whiteCursorAnimationRef = useRef<number>(0);
@@ -67,12 +64,20 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
   // Fade in crystal when scroll animation starts
   useEffect(() => {
     if (scrollAnimationStarted) {
-      // Gradually fade in the crystal over 3 seconds with scale effect
+      // Delay to ensure GlassSurface is fully ready before fading in
+      const initialDelay = 200; // 200ms delay to ensure SVG filter is loaded
       const fadeInDuration = 3000; // 3 seconds
-      const startTime = performance.now();
+      const startTime = performance.now() + initialDelay;
 
       const fadeIn = (currentTime: number) => {
         const elapsed = currentTime - startTime;
+        
+        if (elapsed < 0) {
+          // Still in initial delay period
+          requestAnimationFrame(fadeIn);
+          return;
+        }
+        
         const progress = Math.min(elapsed / fadeInDuration, 1);
 
         // Smooth ease-in-out
@@ -90,7 +95,7 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
     }
   }, [scrollAnimationStarted]);
 
-  // Separate effect for animation loop
+  // Separate effect for animation loop - using direct DOM manipulation
   useEffect(() => {
     if (!scrollAnimationStarted) return; // Don't animate until scroll animation starts
 
@@ -107,13 +112,13 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
         cursorPositionRef.current.y +
         (targetY - cursorPositionRef.current.y) * easeAmount;
 
-      // Only update if there's a meaningful change (> 0.1px)
-      if (
-        Math.abs(newX - cursorPositionRef.current.x) > 0.1 ||
-        Math.abs(newY - cursorPositionRef.current.y) > 0.1
-      ) {
-        cursorPositionRef.current = { x: newX, y: newY };
-        setCursorPosition({ x: newX, y: newY });
+      // Always update the ref
+      cursorPositionRef.current = { x: newX, y: newY };
+      
+      // Update DOM directly instead of using state - avoids re-render issues
+      if (glassCursorElementRef.current) {
+        glassCursorElementRef.current.style.left = `${newX}px`;
+        glassCursorElementRef.current.style.top = `${newY}px`;
       }
 
       animationFrameRef.current = requestAnimationFrame(animate);
@@ -128,7 +133,7 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
     };
   }, [scrollAnimationStarted]);
 
-  // Smooth animation for white cursor with delay
+  // Smooth animation for white cursor with delay - using direct DOM manipulation
   useEffect(() => {
     const animateWhiteCursor = () => {
       const targetX = realMousePositionRef.current.x;
@@ -143,20 +148,20 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
         smoothWhiteCursorRef.current.y +
         (targetY - smoothWhiteCursorRef.current.y) * easeAmount;
 
-      // Only update if there's a meaningful change (> 0.1px)
-      if (
-        Math.abs(newX - smoothWhiteCursorRef.current.x) > 0.1 ||
-        Math.abs(newY - smoothWhiteCursorRef.current.y) > 0.1
-      ) {
-        smoothWhiteCursorRef.current = { x: newX, y: newY };
-        setSmoothWhiteCursor({ x: newX, y: newY });
+      // Always update the ref
+      smoothWhiteCursorRef.current = { x: newX, y: newY };
+      
+      // Update DOM directly instead of using state - avoids re-render issues
+      if (whiteCursorElementRef.current) {
+        whiteCursorElementRef.current.style.left = `${newX}px`;
+        whiteCursorElementRef.current.style.top = `${newY}px`;
       }
 
       whiteCursorAnimationRef.current =
         requestAnimationFrame(animateWhiteCursor);
     };
 
-    animateWhiteCursor();
+    whiteCursorAnimationRef.current = requestAnimationFrame(animateWhiteCursor);
 
     return () => {
       if (whiteCursorAnimationRef.current) {
@@ -170,10 +175,12 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
       {/* Glass crystal with delayed/smooth movement - only after scroll starts */}
       {scrollAnimationStarted && (
         <div
+          ref={glassCursorElementRef}
           className={`glass-cursor`}
           style={{
-            left: cursorPosition.x,
-            top: cursorPosition.y,
+            position: "fixed",
+            left: -100, // Initial position, will be updated by animation
+            top: -100,
             opacity: crystalOpacity,
             transform: `translate(-50%, -50%) scale(${
               0.7 + crystalOpacity * 0.3
@@ -207,10 +214,11 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
 
       {/* Small white circle indicator showing real cursor position - always visible */}
       <div
+        ref={whiteCursorElementRef}
         style={{
           position: "fixed",
-          left: smoothWhiteCursor.x,
-          top: smoothWhiteCursor.y,
+          left: -100, // Initial position, will be updated by animation
+          top: -100,
           width: isHovering ? "12px" : "6px",
           height: isHovering ? "12px" : "6px",
           borderRadius: "50%",

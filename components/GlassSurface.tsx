@@ -90,7 +90,11 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
   };
 
   const updateDisplacementMap = () => {
-    if (!containerRef.current || !feImageRef.current) return;
+    if (!containerRef.current || !feImageRef.current) {
+      // If refs aren't ready, try again on next frame
+      requestAnimationFrame(updateDisplacementMap);
+      return;
+    }
     feImageRef.current.setAttribute('href', generateDisplacementMap());
     
     // Mark as ready immediately after setting the displacement map
@@ -115,9 +119,22 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
         // Double-check backdrop-filter support
         const div = document.createElement('div');
         div.style.backdropFilter = `url(#${filterId})`;
-        setUseSVGFilter(div.style.backdropFilter !== '');
+        const hasSupport = div.style.backdropFilter !== '';
+        setUseSVGFilter(hasSupport);
+        
+        // For non-SVG browsers, also set ready immediately
+        if (!hasSupport) {
+          setIsReady(true);
+        }
       }
     }
+    
+    // Initial displacement map update with delay to ensure refs are ready
+    const initTimer = setTimeout(() => {
+      updateDisplacementMap();
+    }, 50);
+    
+    return () => clearTimeout(initTimer);
   }, [filterId]);
 
   useEffect(() => {
