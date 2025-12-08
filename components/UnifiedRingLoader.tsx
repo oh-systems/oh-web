@@ -73,6 +73,13 @@ export default function UnifiedRingLoader({
           opacity: fadeProgress,
         }}
       />
+      
+      {/* Loading text with percentage */}
+      {!isLoadingComplete && (
+        <div className="loading-text" style={{ opacity: fadeProgress }}>
+          LOADING EXPERIENCE: {Math.round(loadingProgress * 100)}%
+        </div>
+      )}
 
       <style jsx>{`
         .unified-ring-container {

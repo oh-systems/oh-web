@@ -35,12 +35,19 @@ class SequencePreloader {
       SEQUENCE_CONFIG.castShadows.totalFrames +
       SEQUENCE_CONFIG.thirdLaptop.totalFrames;
 
-    let loadedFrames = 0;
+    const sequenceProgress = {
+      initialScroll: 0,
+      castShadows: 0,
+      thirdLaptop: 0,
+    };
 
     const updateProgress = (sequence: keyof Omit<PreloadProgress, 'overall'>, loaded: number, total: number) => {
+      sequenceProgress[sequence] = loaded;
       this.progressState[sequence] = loaded / total;
-      loadedFrames++;
-      this.progressState.overall = loadedFrames / totalFrames;
+      
+      // Calculate overall progress based on actual frames loaded from all sequences
+      const totalLoaded = sequenceProgress.initialScroll + sequenceProgress.castShadows + sequenceProgress.thirdLaptop;
+      this.progressState.overall = totalLoaded / totalFrames;
       
       if (onProgress) {
         onProgress({ ...this.progressState });
