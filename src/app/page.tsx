@@ -112,6 +112,8 @@ export default function Home() {
     contentVisible,
     transitionComplete,
     setNavigationFadeProgress: setContextFadeProgress,
+    setLoadingProgress,
+    setIsLoadingComplete,
   } = useAppContext();
 
   // Calculate transition opacity for text (fade out -> fade in)
@@ -345,6 +347,7 @@ export default function Home() {
       try {
         await preloader.preloadAllSequences((progress: PreloadProgress) => {
           setPreloadProgress(progress);
+          setLoadingProgress(progress.overall); // Report to AppContext for ring loader
           console.log(
             `📊 Preload progress: ${(progress.overall * 100).toFixed(1)}%`
           );
@@ -352,15 +355,17 @@ export default function Home() {
 
         console.log("✅ All sequences preloaded!");
         setAllSequencesPreloaded(true);
+        setIsLoadingComplete(true); // Signal to ring loader that loading is complete
       } catch (error) {
         console.error("❌ Error preloading sequences:", error);
         // Still allow the app to continue even if preloading fails
         setAllSequencesPreloaded(true);
+        setIsLoadingComplete(true);
       }
     };
 
     startPreloading();
-  }, []);
+  }, [setLoadingProgress, setIsLoadingComplete]);
 
   // Update initialLoadComplete when content becomes visible AND all sequences are preloaded
   useEffect(() => {
@@ -1195,7 +1200,7 @@ export default function Home() {
             <div
               className="absolute left-0 pl-4 md:pl-16 z-[150]"
               style={{
-                top: "30%",
+                top: "50%",
                 transform: "translateY(-50%)",
                 opacity: textOpacity,
                 transition: isTransitioning

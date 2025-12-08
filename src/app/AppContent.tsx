@@ -17,10 +17,16 @@ const AppContext = createContext({
   ringMovedToCorner: false,
   navigationFadeProgress: 0,
   permanentRingVisible: true,
+  loadingProgress: 0,
+  isLoadingComplete: false,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setNavigationFadeProgress: (progress: number) => {},
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   setPermanentRingVisible: (visible: boolean) => {},
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  setLoadingProgress: (progress: number) => {},
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  setIsLoadingComplete: (complete: boolean) => {},
 });
 
 export const useAppContext = () => useContext(AppContext);
@@ -37,9 +43,11 @@ export default function AppContent({
   const [ringMovedToCorner, setRingMovedToCorner] = useState(false);
   const [navigationFadeProgress, setNavigationFadeProgress] = useState(0);
   const [permanentRingVisible, setPermanentRingVisible] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [isLoadingComplete, setIsLoadingComplete] = useState(false);
 
   const handleRingCenterComplete = () => {
-    // Ring has completed morphing in center, now show initial load
+    // Ring has completed morphing in center (loading is done), now show initial load
     setRingInCenter(true);
     setShowInitialLoad(true);
   };
@@ -70,8 +78,12 @@ export default function AppContent({
         ringMovedToCorner,
         navigationFadeProgress,
         permanentRingVisible,
+        loadingProgress,
+        isLoadingComplete,
         setNavigationFadeProgress,
         setPermanentRingVisible,
+        setLoadingProgress,
+        setIsLoadingComplete,
       }}>
       {/* White cursor ball - always visible from the start */}
       <GlassCursor scrollAnimationStarted={transitionComplete} />
@@ -82,6 +94,8 @@ export default function AppContent({
           onCenterComplete={handleRingCenterComplete}
           moveToCorner={ringMovedToCorner}
           onCornerComplete={handleRingMovedToCorner}
+          loadingProgress={loadingProgress}
+          isLoadingComplete={isLoadingComplete}
         />
       )}
 

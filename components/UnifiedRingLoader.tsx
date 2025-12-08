@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from "react";
 
 interface UnifiedRingLoaderProps {
   onContentShow?: () => void;
@@ -8,25 +8,28 @@ interface UnifiedRingLoaderProps {
   onCenterComplete?: () => void;
   moveToCorner?: boolean;
   onCornerComplete?: () => void;
+  loadingProgress?: number; // 0 to 1
+  isLoadingComplete?: boolean;
 }
 
-export default function UnifiedRingLoader({ 
-  onContentShow, 
-  onTransitionComplete, 
+export default function UnifiedRingLoader({
+  onContentShow,
+  onTransitionComplete,
   onCenterComplete,
   moveToCorner = false,
-  onCornerComplete 
+  onCornerComplete,
+  loadingProgress = 0,
+  isLoadingComplete = false,
 }: UnifiedRingLoaderProps) {
-  const [transitionProgress, setTransitionProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [fadeProgress, setFadeProgress] = useState(0);
-  
+
   // Use refs to store callbacks and prevent re-running the effect
   const onContentShowRef = useRef(onContentShow);
   const onTransitionCompleteRef = useRef(onTransitionComplete);
   const onCenterCompleteRef = useRef(onCenterComplete);
   const onCornerCompleteRef = useRef(onCornerComplete);
-  
+
   // Update refs when callbacks change
   useEffect(() => {
     onContentShowRef.current = onContentShow;
@@ -35,48 +38,24 @@ export default function UnifiedRingLoader({
     onCornerCompleteRef.current = onCornerComplete;
   }, [onContentShow, onTransitionComplete, onCenterComplete, onCornerComplete]);
 
+  // Simple fade in effect
   useEffect(() => {
-    let animationId: number;
-    let hasStarted = false; // Prevent double execution
-    
-    // Start times for different phases
-    const fadeStartTime = Date.now() + 2000; // Start fade at 2s
-    const morphStartTime = Date.now() + 5000; // Start morph at 5s
-    const fadeDuration = 2000; // 2 second fade
-    const morphDuration = 5000; // 5 second morph
-
-    const animate = () => {
-      if (!hasStarted) hasStarted = true;
-      
-      const now = Date.now();
-      
-      // Phase 1: Fade in progress (2-4 seconds)
-      const fadeElapsed = Math.max(0, now - fadeStartTime);
-      const fadeProgressValue = Math.min(fadeElapsed / fadeDuration, 1);
-      setFadeProgress(fadeProgressValue);
-      
-      // Phase 2: Morph progress (5-10 seconds)
-      const morphElapsed = Math.max(0, now - morphStartTime);
-      const morphProgressValue = Math.min(morphElapsed / morphDuration, 1);
-      const easedMorphProgress = 1 - Math.pow(1 - morphProgressValue, 3);
-      setTransitionProgress(easedMorphProgress);
-
-      if (morphProgressValue < 1) {
-        animationId = requestAnimationFrame(animate);
-      } else {
-        // Animation complete - ring is now in center, ready for initial load
-        setIsComplete(true);
-        if (onCenterCompleteRef.current) onCenterCompleteRef.current();
-      }
-    };
-
-    animationId = requestAnimationFrame(animate);
-
-    return () => {
-      if (animationId) cancelAnimationFrame(animationId);
-    };
+    const timer = setTimeout(() => setFadeProgress(1), 100);
+    return () => clearTimeout(timer);
   }, []);
 
+  // Handle loading complete
+  useEffect(() => {
+    if (isLoadingComplete) {
+      const timer = setTimeout(() => {
+        setIsComplete(true);
+        if (onCenterCompleteRef.current) onCenterCompleteRef.current();
+      }, 2000); // 2 second transition
+      return () => clearTimeout(timer);
+    }
+  }, [isLoadingComplete]);
+
+  // Handle move to corner
   useEffect(() => {
     if (moveToCorner && isComplete) {
       setTimeout(() => {
@@ -85,66 +64,16 @@ export default function UnifiedRingLoader({
     }
   }, [moveToCorner, isComplete]);
 
-  // Calculate position and size based on whether moving to corner
-  const getTransformStyle = () => {
-    if (!moveToCorner || !isComplete) {
-      // Stay in center
-      return {
-        position: 'absolute' as const,
-        left: '50vw',
-        top: '50vh',
-        transform: `translate(-50%, -50%) scale(${scale})`
-      };
-    }
-    
-    // Transitioning to corner
-    return {
-      position: 'absolute' as const,
-      left: '50px', // Final corner position
-      top: '16px', // Match PermanentRing position exactly
-      width: '30px',
-      height: '30px',
-      transform: 'translate(0, 0)',
-      transition: 'all 3s cubic-bezier(0.4, 0.0, 0.2, 1)',
-      border: '3px solid white' // Match PermanentRing border exactly
-    };
-  };
-
-  // Interpolate all values based on progress
-  const size = 600 - (transitionProgress * 324); // 600px -> 276px (smaller initial size)
-  const blur = 60 * (1 - transitionProgress); // 60px -> 0px (reduced blur for performance)
-  const scale = size / 600; // Calculate scale factor instead of recalculating size
-  
-  // Create a strong gradient background for initial state that fades as ring becomes defined
-  const gradientOpacity = (1 - transitionProgress) * 0.8;
-  
-  // Calculate final opacity combining fade-in and transition
-  const finalOpacity = fadeProgress * (0.6 + (transitionProgress * 0.4));
-
-  // Get transform style based on current state
-  const transformStyle = getTransformStyle();
-  
   return (
-    <div className={`unified-ring-container ${isComplete ? 'completed' : ''}`}>
-      {/* Ring with gradual fade-in and morphing transition */}
-      <div 
-        className="unified-ring"
+    <div className={`unified-ring-container ${isComplete ? "completed" : ""}`}>
+      {/* Ring with CSS animation for pulsing */}
+      <div
+        className={`unified-ring ${!isLoadingComplete ? 'pulsing' : 'settling'} ${moveToCorner && isComplete ? 'moving-corner' : ''}`}
         style={{
-          width: moveToCorner && isComplete ? '30px' : '600px', // Dynamic size
-          height: moveToCorner && isComplete ? '30px' : '600px',
-          ...transformStyle,
-          filter: blur > 0 ? `blur(${blur}px)` : 'none',
-          opacity: finalOpacity,
-          border: moveToCorner && isComplete ? '3px solid white' : '56px solid rgba(255, 255, 255, 1)',
-          boxShadow: transitionProgress >= 0.95 || (moveToCorner && isComplete)
-            ? 'none' 
-            : `
-              0 0 180px 60px rgba(255, 255, 255, ${gradientOpacity * 0.4}),
-              0 0 360px 120px rgba(255, 255, 255, ${gradientOpacity * 0.2})
-            `
+          opacity: fadeProgress,
         }}
       />
-      
+
       <style jsx>{`
         .unified-ring-container {
           position: fixed;
@@ -156,21 +85,98 @@ export default function UnifiedRingLoader({
           z-index: 9999;
           pointer-events: none;
           transition: background-color 1s ease;
-          transform: none;
-          margin: 0;
-          padding: 0;
         }
-        
+
         .unified-ring-container.completed {
           background-color: transparent;
         }
-        
+
         .unified-ring {
+          position: absolute;
+          left: 50vw;
+          top: 50vh;
+          width: 600px;
+          height: 600px;
+          border: 56px solid white;
           border-radius: 50%;
           background: transparent;
-          z-index: 1;
-          will-change: transform, filter, opacity;
-          transform-origin: center center;
+          transform: translate(-50%, -50%);
+          transition: opacity 1s ease;
+        }
+
+        /* Pulsing animation using CSS - much more performant */
+        .unified-ring.pulsing {
+          animation: pulse 3s ease-in-out infinite;
+        }
+
+        /* Settling animation when loading completes */
+        .unified-ring.settling {
+          animation: settle 2s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+          animation-fill-mode: forwards;
+        }
+
+        /* Moving to corner - starts from settled size and transitions over 3s */
+        .unified-ring.moving-corner {
+          animation: moveToCorner 3s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+        }
+
+        @keyframes pulse {
+          0%, 100% {
+            filter: blur(55px);
+            transform: translate(-50%, -50%) scale(0.98);
+          }
+          50% {
+            filter: blur(35px);
+            transform: translate(-50%, -50%) scale(1);
+          }
+        }
+
+        @keyframes settle {
+          from {
+            width: 600px;
+            height: 600px;
+            border-width: 56px;
+            filter: blur(45px);
+          }
+          to {
+            width: 280px;
+            height: 280px;
+            border-width: 30px;
+            filter: blur(0px);
+          }
+        }
+
+        @keyframes moveToCorner {
+          from {
+            width: 280px;
+            height: 280px;
+            border-width: 30px;
+            left: 50vw;
+            top: 50vh;
+            transform: translate(-50%, -50%);
+            filter: blur(0px);
+          }
+          to {
+            width: 30px;
+            height: 30px;
+            border-width: 3px;
+            left: 50px;
+            top: 16px;
+            transform: translate(0, 0);
+            filter: blur(0px);
+          }
+        }
+
+        .loading-text {
+          position: absolute;
+          left: 50vw;
+          top: calc(50vh + 400px);
+          transform: translateX(-50%);
+          color: white;
+          font-size: 18px;
+          font-weight: 300;
+          letter-spacing: 0.1em;
+          font-family: system-ui, -apple-system, sans-serif;
         }
       `}</style>
     </div>
