@@ -229,7 +229,7 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
             borderWidth={0}
             brightness={50}
             opacity={0.93}
-            blur={15}
+            blur={30}
             displace={0.5}
             backgroundOpacity={0.08}
             saturation={1.3}
