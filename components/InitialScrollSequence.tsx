@@ -210,22 +210,29 @@ export default function InitialScrollSequence({
     };
   }, [isPlaying, animate]);
 
-  // Render current frame with RAF for smooth updates - optimized for production
+  // Render current frame with RAF and 30fps throttling - match other sequences
+  const lastRenderTime = useRef<number>(0);
   useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      // Priority rendering: if current frame is not loaded, try to render any nearby loaded frame
-      const img = imageCache.current.get(currentFrame);
-      if (img && img.complete) {
-        renderFrame(currentFrame);
-      } else {
-        // Fallback: try rendering a nearby loaded frame to prevent blank canvas
-        for (let i = 1; i <= 3; i++) {
-          const fallbackFrame = currentFrame - i;
-          if (fallbackFrame >= 0 && imageCache.current.has(fallbackFrame)) {
-            renderFrame(fallbackFrame);
-            break;
+    const frame = requestAnimationFrame((currentTime) => {
+      const deltaTime = currentTime - lastRenderTime.current;
+      const frameInterval = 1000 / 30; // 30fps throttle
+
+      if (deltaTime >= frameInterval || lastRenderTime.current === 0) {
+        // Priority rendering: if current frame is not loaded, try to render any nearby loaded frame
+        const img = imageCache.current.get(currentFrame);
+        if (img && img.complete) {
+          renderFrame(currentFrame);
+        } else {
+          // Fallback: try rendering a nearby loaded frame to prevent blank canvas
+          for (let i = 1; i <= 3; i++) {
+            const fallbackFrame = currentFrame - i;
+            if (fallbackFrame >= 0 && imageCache.current.has(fallbackFrame)) {
+              renderFrame(fallbackFrame);
+              break;
+            }
           }
         }
+        lastRenderTime.current = currentTime;
       }
     });
     return () => cancelAnimationFrame(frame);

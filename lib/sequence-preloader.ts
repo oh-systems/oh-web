@@ -28,7 +28,7 @@ class SequencePreloader {
   };
 
   async preloadAllSequences(onProgress?: ProgressCallback): Promise<void> {
-    console.log('🚀 Starting progressive preload strategy...');
+    console.log('🚀 Starting ultra-fast progressive preload...');
     
     const totalFrames = 
       SEQUENCE_CONFIG.initialScroll.totalFrames +
@@ -47,47 +47,55 @@ class SequencePreloader {
       }
     };
 
-    // ========== PRIORITY 1: First 60 frames of Initial Scroll ==========
-    // Load critical frames first so user sees motion immediately
-    console.log('⚡ Priority 1: Loading first 60 frames of Initial Scroll...');
-    await this.preloadSequence(
-      'initialScroll',
-      getInitialScrollImageUrl,
-      60, // Just first 60 frames
-      (loaded, total) => updateProgress('initialScroll', loaded, SEQUENCE_CONFIG.initialScroll.totalFrames),
-      0 // Start from frame 0
-    );
-    console.log('✅ Priority 1 complete - user can start seeing motion!');
+    // ========== PRIORITY 1: Only 10 key frames for instant start ==========
+    // Load just enough frames to show motion (every 60th frame = 10 frames for 600 total)
+    console.log('⚡ Priority 1: Loading 10 key frames for instant start...');
+    const keyFrames = [0, 60, 120, 180, 240, 300, 360, 420, 480, 540];
+    for (const frameIdx of keyFrames) {
+      const url = getInitialScrollImageUrl(frameIdx + 1);
+      const key = `initialScroll-${frameIdx}`;
+      await this.preloadFrame(key, url);
+      updateProgress('initialScroll', frameIdx + 1, SEQUENCE_CONFIG.initialScroll.totalFrames);
+    }
+    console.log('✅ Priority 1 complete - 10 key frames loaded in ~1-2 seconds!');
 
-    // ========== PRIORITY 2: Rest of sequences in parallel ==========
-    // Load everything else in background while user engages with first 60 frames
-    console.log('📦 Priority 2: Loading remaining frames in parallel...');
-    await Promise.all([
-      // Finish Initial Scroll (frames 61-600)
-      this.preloadSequence(
-        'initialScroll',
-        getInitialScrollImageUrl,
-        SEQUENCE_CONFIG.initialScroll.totalFrames,
-        (loaded, total) => updateProgress('initialScroll', loaded, total),
-        60 // Start from frame 60
-      ),
-      // Cast Shadows - full sequence
+    // ========== PRIORITY 2: Fill in missing frames between key frames ==========
+    console.log('📦 Priority 2: Loading intermediate frames...');
+    const intermediatePromises: Promise<void>[] = [];
+    for (let i = 0; i < SEQUENCE_CONFIG.initialScroll.totalFrames; i++) {
+      if (!keyFrames.includes(i)) {
+        const url = getInitialScrollImageUrl(i + 1);
+        const key = `initialScroll-${i}`;
+        intermediatePromises.push(
+          this.preloadFrame(key, url)
+            .then(() => updateProgress('initialScroll', i + 1, SEQUENCE_CONFIG.initialScroll.totalFrames))
+        );
+      }
+    }
+    
+    // Don't wait for all intermediates - load them in background
+    Promise.all(intermediatePromises).then(() => {
+      console.log('✅ Initial Scroll fully loaded');
+    });
+
+    // ========== PRIORITY 3: Other sequences in parallel ==========
+    console.log('📦 Priority 3: Loading other sequences in background...');
+    Promise.all([
       this.preloadSequence(
         'castShadows',
         getCastShadowsImageUrl,
         SEQUENCE_CONFIG.castShadows.totalFrames,
         (loaded, total) => updateProgress('castShadows', loaded, total)
       ),
-      // Third Laptop - full sequence
       this.preloadSequence(
         'thirdLaptop',
         getThirdLaptopImageUrl,
         SEQUENCE_CONFIG.thirdLaptop.totalFrames,
         (loaded, total) => updateProgress('thirdLaptop', loaded, total)
       ),
-    ]);
-
-    console.log('🎯 All sequences preloaded successfully!');
+    ]).then(() => {
+      console.log('🎯 All sequences preloaded successfully!');
+    });
   }
 
   private async preloadSequence(
