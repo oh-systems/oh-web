@@ -185,7 +185,6 @@ export default function Home() {
 
     const maxScroll = window.innerHeight * 4.5;
     const currentScroll = scrollAccumulatorRef.current;
-    const currentProgress = currentScroll / maxScroll;
 
     // Determine target scroll positions for each section boundary
     const sectionBoundaries = {
@@ -697,7 +696,9 @@ export default function Home() {
         return;
       }
 
-      e.preventDefault(); // Prevent page scroll
+      if (e.cancelable) {
+        e.preventDefault();
+      }
 
       // Manual scroll takes over from auto-play
       isAutoPlayingRef.current = false;
