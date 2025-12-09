@@ -8,14 +8,13 @@ interface GlassCursorProps {
 
 const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
   const [isHovering, setIsHovering] = useState(false);
-  const [crystalOpacity, setCrystalOpacity] = useState(0);
   const [whiteCursorOpacity, setWhiteCursorOpacity] = useState(0);
   const mousePositionRef = useRef({ x: -100, y: -100 });
   const realMousePositionRef = useRef({ x: -100, y: -100 });
-  const cursorPositionRef = useRef({ x: -100, y: -100 }); // Track crystal cursor in ref
-  const smoothWhiteCursorRef = useRef({ x: -100, y: -100 }); // Track in ref too
-  const glassCursorElementRef = useRef<HTMLDivElement>(null); // Ref to glass cursor DOM element
-  const whiteCursorElementRef = useRef<HTMLDivElement>(null); // Ref to white cursor DOM element
+  const cursorPositionRef = useRef({ x: -100, y: -100 });
+  const smoothWhiteCursorRef = useRef({ x: -100, y: -100 });
+  const glassCursorElementRef = useRef<HTMLDivElement>(null);
+  const whiteCursorElementRef = useRef<HTMLDivElement>(null);
   const isHoveringRef = useRef(false);
   const animationFrameRef = useRef<number>(0);
   const whiteCursorAnimationRef = useRef<number>(0);
@@ -64,14 +63,13 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
 
   // Fade in white cursor on initial load
   useEffect(() => {
-    const fadeInDuration = 3000; // 3 seconds - slower fade
+    const fadeInDuration = 3000;
     const startTime = performance.now();
 
     const fadeIn = (currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / fadeInDuration, 1);
 
-      // Smooth ease-in-out
       const easedProgress = progress * progress * (3 - 2 * progress);
       setWhiteCursorOpacity(easedProgress);
 
@@ -83,49 +81,12 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
     requestAnimationFrame(fadeIn);
   }, []);
 
-  // Fade in crystal when scroll animation starts
+  // Animation loop for crystal cursor
   useEffect(() => {
-    if (scrollAnimationStarted) {
-      // Delay to ensure GlassSurface is fully ready before fading in
-      const initialDelay = 200; // 200ms delay to ensure SVG filter is loaded
-      const fadeInDuration = 3000; // 3 seconds
-      const startTime = performance.now() + initialDelay;
-
-      const fadeIn = (currentTime: number) => {
-        const elapsed = currentTime - startTime;
-
-        if (elapsed < 0) {
-          // Still in initial delay period
-          requestAnimationFrame(fadeIn);
-          return;
-        }
-
-        const progress = Math.min(elapsed / fadeInDuration, 1);
-
-        // Smooth ease-in-out
-        const easedProgress = progress * progress * (3 - 2 * progress);
-        setCrystalOpacity(easedProgress);
-
-        if (progress < 1) {
-          requestAnimationFrame(fadeIn);
-        }
-      };
-
-      requestAnimationFrame(fadeIn);
-    } else {
-      setCrystalOpacity(0);
-    }
-  }, [scrollAnimationStarted]);
-
-  // Separate effect for animation loop - using direct DOM manipulation
-  useEffect(() => {
-    if (!scrollAnimationStarted) return; // Don't animate until scroll animation starts
-
     const animate = () => {
       const targetX = mousePositionRef.current.x;
       const targetY = mousePositionRef.current.y;
 
-      // Smooth easing - lower values = more lag/trailing effect
       const easeAmount = 0.025;
       const newX =
         cursorPositionRef.current.x +
@@ -134,10 +95,8 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
         cursorPositionRef.current.y +
         (targetY - cursorPositionRef.current.y) * easeAmount;
 
-      // Always update the ref
       cursorPositionRef.current = { x: newX, y: newY };
 
-      // Update DOM directly instead of using state - avoids re-render issues
       if (glassCursorElementRef.current) {
         glassCursorElementRef.current.style.left = `${newX}px`;
         glassCursorElementRef.current.style.top = `${newY}px`;
@@ -153,11 +112,10 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [scrollAnimationStarted]);
+  }, []);
 
-  // Smooth animation for white cursor with delay - using direct DOM manipulation
+  // Animation loop for white cursor
   useEffect(() => {
-    // Initialize cursor position immediately to mouse position on mount
     if (whiteCursorElementRef.current) {
       smoothWhiteCursorRef.current = {
         x: realMousePositionRef.current.x,
@@ -171,7 +129,6 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
       const targetX = realMousePositionRef.current.x;
       const targetY = realMousePositionRef.current.y;
 
-      // Smooth easing for white cursor - slightly higher for subtle delay
       const easeAmount = 0.1;
       const newX =
         smoothWhiteCursorRef.current.x +
@@ -180,10 +137,8 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
         smoothWhiteCursorRef.current.y +
         (targetY - smoothWhiteCursorRef.current.y) * easeAmount;
 
-      // Always update the ref
       smoothWhiteCursorRef.current = { x: newX, y: newY };
 
-      // Update DOM directly instead of using state - avoids re-render issues
       if (whiteCursorElementRef.current) {
         whiteCursorElementRef.current.style.left = `${newX}px`;
         whiteCursorElementRef.current.style.top = `${newY}px`;
@@ -200,56 +155,52 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
         cancelAnimationFrame(whiteCursorAnimationRef.current);
       }
     };
-  }, []); // Empty dependency array - runs once and uses ref
+  }, []);
 
   return (
     <>
-      {/* Glass crystal with delayed/smooth movement - only after scroll starts */}
-      {scrollAnimationStarted && (
-        <div
-          ref={glassCursorElementRef}
-          className={`glass-cursor`}
-          style={{
-            position: "fixed",
-            left: -100, // Initial position, will be updated by animation
-            top: -100,
-            opacity: crystalOpacity,
-            transform: `translate(-50%, -50%) scale(${
-              0.7 + crystalOpacity * 0.3
-            })`,
-            transition: "none",
-            pointerEvents: "none",
-            zIndex: 999999999,
-          }}
+      {/* Glass crystal with delayed/smooth movement - always visible */}
+      <div
+        ref={glassCursorElementRef}
+        className={`glass-cursor`}
+        style={{
+          position: "fixed",
+          left: -100,
+          top: -100,
+          opacity: 1,
+          transform: "translate(-50%, -50%)",
+          transition: "none",
+          pointerEvents: "none",
+          zIndex: 999999999,
+        }}
+      >
+        <GlassSurface
+          width={78}
+          height={78}
+          borderRadius={39}
+          borderWidth={0}
+          brightness={50}
+          opacity={0.93}
+          blur={30}
+          displace={0.5}
+          backgroundOpacity={0.08}
+          saturation={1.3}
+          distortionScale={-180}
+          redOffset={0}
+          greenOffset={8}
+          blueOffset={16}
+          className="glass-cursor__surface"
         >
-          <GlassSurface
-            width={78}
-            height={78}
-            borderRadius={39}
-            borderWidth={0}
-            brightness={50}
-            opacity={0.93}
-            blur={30}
-            displace={0.5}
-            backgroundOpacity={0.08}
-            saturation={1.3}
-            distortionScale={-180}
-            redOffset={0}
-            greenOffset={8}
-            blueOffset={16}
-            className="glass-cursor__surface"
-          >
-            <div className="glass-cursor__content" />
-          </GlassSurface>
-        </div>
-      )}
+          <div className="glass-cursor__content" />
+        </GlassSurface>
+      </div>
 
       {/* Small white circle indicator showing real cursor position - always visible */}
       <div
         ref={whiteCursorElementRef}
         style={{
           position: "fixed",
-          left: -100, // Initial position, will be updated by animation
+          left: -100,
           top: -100,
           width: isHovering ? "12px" : "6px",
           height: isHovering ? "12px" : "6px",
