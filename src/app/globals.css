@@ -38,14 +38,6 @@ body {
   color: #ffffff !important;
 }
 
-/* Active/pressed state for clickable elements */
-button:active,
-a:active,
-[role="button"]:active,
-[tabindex]:active {
-  background-color: rgba(128, 128, 128, 0.2) !important;
-}
-
 /* Always hide default cursor - only show GlassCursor */
 html,
 body,
