@@ -1,8 +1,30 @@
+"use client";
+
 export default function SpacePage() {
   return (
-    <div className="mx-auto max-w-4xl py-12">
-      <h1 className="text-2xl font-semibold mb-4">Space</h1>
-      <p className="text-lg text-gray-600">This is a simple dummy Space page. Add your content here.</p>
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        backgroundColor: "#000000",
+        overflow: "hidden",
+      }}
+    >
+      <iframe
+        src="https://share.arcware.cloud/v1/share-0f37f899-cf1e-4d94-817a-ec1edad2e1f5"
+        title="OH Space Experience"
+        style={{
+          width: "100%",
+          height: "100%",
+          border: "none",
+          display: "block",
+        }}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; xr-spatial-tracking"
+        allowFullScreen
+      />
     </div>
   );
 }

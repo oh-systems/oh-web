@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
-import AppContent from "./AppContent";
+import ConditionalAppContent from "./ConditionalAppContent";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,7 +35,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${beVietnamPro.variable} antialiased`}
       >
-        <AppContent>{children}</AppContent>
+        <ConditionalAppContent>{children}</ConditionalAppContent>
       </body>
     </html>
   );
