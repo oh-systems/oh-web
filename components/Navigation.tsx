@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, { useEffect, useRef } from 'react';
-import { playClickSound } from '../lib/playClickSound';
+import React, { useEffect, useRef } from "react";
+import { playClickSound } from "../lib/playClickSound";
 
 interface NavigationProps {
   className?: string;
@@ -9,38 +9,47 @@ interface NavigationProps {
   onNavClick?: (item: string) => void;
 }
 
-const NAV_ITEMS = ['ABOUT', 'SPACE', 'CONTACT'];
+const NAV_ITEMS = ["ABOUT", "SPACE", "CONTACT"];
 
-export default function Navigation({ className = '', style, onNavClick }: NavigationProps) {
+export default function Navigation({
+  className = "",
+  style,
+  onNavClick,
+}: NavigationProps) {
   const navRef = useRef<HTMLDivElement>(null);
 
   const handleClick = (item: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     playClickSound();
-    console.log('Direct click handler:', item);
+
+    if (item === "SPACE") {
+      window.location.href = "/space";
+      return;
+    }
+
     onNavClick?.(item.toLowerCase());
   };
 
   // Split text into individual letters and animate them with slide-up effect
   useEffect(() => {
     if (navRef.current) {
-      const buttons = navRef.current.querySelectorAll('button');
-      
+      const buttons = navRef.current.querySelectorAll("button");
+
       buttons.forEach((button, buttonIndex) => {
-        const text = button.textContent || '';
-        
+        const text = button.textContent || "";
+
         // Button is already hidden with visibility in CSS
-        
-        button.innerHTML = '';
-        
+
+        button.innerHTML = "";
+
         // All buttons animate simultaneously - no delays between buttons
         const baseDelay = 0; // Remove button delay so all animate together
-        
+
         // Create spans for each letter
-        text.split('').forEach((char, charIndex) => {
+        text.split("").forEach((char, charIndex) => {
           // Create container for each letter with overflow hidden
-          const letterContainer = document.createElement('div');
+          const letterContainer = document.createElement("div");
           letterContainer.style.cssText = `
             display: inline-block;
             overflow: hidden;
@@ -48,10 +57,10 @@ export default function Navigation({ className = '', style, onNavClick }: Naviga
             vertical-align: top;
             position: relative;
           `;
-          
+
           // Create the actual letter span that will animate
-          const letterSpan = document.createElement('span');
-          letterSpan.textContent = char === ' ' ? '\u00A0' : char;
+          const letterSpan = document.createElement("span");
+          letterSpan.textContent = char === " " ? "\u00A0" : char;
           letterSpan.style.cssText = `
             display: block;
             transform: translateY(100%);
@@ -59,23 +68,23 @@ export default function Navigation({ className = '', style, onNavClick }: Naviga
             animation: letterSlideUp 1.2s ease-out forwards;
             animation-delay: ${baseDelay}ms;
           `;
-          
+
           letterContainer.appendChild(letterSpan);
           button.appendChild(letterContainer);
         });
-        
+
         // Show the button now that letters are ready
-        (button as HTMLElement).style.visibility = 'visible';
+        (button as HTMLElement).style.visibility = "visible";
       });
     }
   }, []);
 
   return (
-    <div 
+    <div
       ref={navRef}
       className={`navigation-container fixed top-4 ${className}`}
       style={{
-        right: '40px',
+        right: "40px",
         ...style,
       }}
     >
@@ -85,26 +94,25 @@ export default function Navigation({ className = '', style, onNavClick }: Naviga
             key={item}
             onClick={(e) => handleClick(item, e)}
             onMouseDown={(e) => {
-              console.log('Mouse down on:', item);
+              console.log("Mouse down on:", item);
               e.preventDefault();
             }}
             className="text-white hover:opacity-70 transition-opacity duration-200 bg-transparent border-none cursor-pointer nav-button"
             style={{
               ...{
-                fontFamily: 'Helvetica, Arial, sans-serif',
-                fontSize: '20px',
-                fontWeight: '400',
-                padding: '8px 16px',
-                minHeight: '40px',
-                minWidth: '80px',
-                pointerEvents: 'auto',
-                position: 'relative',
+                fontFamily: "Helvetica, Arial, sans-serif",
+                fontSize: "20px",
+                fontWeight: "400",
+                padding: "8px 16px",
+                minHeight: "40px",
+                minWidth: "80px",
+                pointerEvents: "auto",
+                position: "relative",
                 zIndex: 99999,
-                backgroundColor: 'transparent',
-                visibility: 'hidden', // Hide initially to prevent flash
+                backgroundColor: "transparent",
+                visibility: "hidden", // Hide initially to prevent flash
               },
             }}
-
           >
             {item}
           </button>
