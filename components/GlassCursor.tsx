@@ -181,14 +181,14 @@ const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
           borderWidth={0}
           brightness={50}
           opacity={0.93}
-          blur={30}
-          displace={0.5}
+          blur={40}
+          displace={0.7}
           backgroundOpacity={0.08}
-          saturation={1.3}
+          saturation={1.5}
           distortionScale={-180}
           redOffset={0}
-          greenOffset={8}
-          blueOffset={16}
+          greenOffset={10}
+          blueOffset={20}
           className="glass-cursor__surface"
         >
           <div className="glass-cursor__content" />
