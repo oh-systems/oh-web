@@ -86,7 +86,7 @@ export default function AppContent({
         setIsLoadingComplete,
       }}>
       {/* White cursor ball - always visible from the start */}
-      <GlassCursor scrollAnimationStarted={transitionComplete} />
+      <GlassCursor />
       
       {/* Loading phase: show UnifiedRingLoader until moved to corner - only on first visit */}
       {!transitionComplete && (
