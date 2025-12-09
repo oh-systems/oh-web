@@ -703,6 +703,10 @@ export default function Home() {
       // Manual scroll takes over from auto-play
       isAutoPlayingRef.current = false;
 
+      // Detect if this is a mouse wheel (larger deltaY values) or trackpad (smaller, smoother values)
+      // Mouse wheels typically report deltaY in multiples of 100, trackpads are much smaller
+      const isMouseWheel = Math.abs(e.deltaY) > 50;
+
       // Optimized scroll speed limiting with adaptive sensitivity
       const currentProgress =
         scrollAccumulatorRef.current / (window.innerHeight * 4.5);
@@ -711,14 +715,27 @@ export default function Home() {
       const inLaptopRange = currentProgress >= 0.45 && currentProgress < 0.8;
       const inFooterRange = currentProgress >= 0.8;
 
-      // Adaptive scroll sensitivity - increased for faster transitions
-      let scrollMultiplier = 0.3; // Increased for faster scrolling between sections
-      if (inCastShadowsRange) {
-        scrollMultiplier = 0.08; // Increased from 0.02 for faster cast shadows
-      } else if (inLaptopRange) {
-        scrollMultiplier = 0.15; // Increased from 0.06 for faster laptop transitions
-      } else if (inFooterRange) {
-        scrollMultiplier = 0.4; // Fast scrolling in footer for quick transitions
+      // Adaptive scroll sensitivity - with device-specific adjustments
+      let scrollMultiplier = 0.3; // Base for trackpad
+      if (isMouseWheel) {
+        // Mouse wheel needs much higher multipliers due to larger deltaY values
+        scrollMultiplier = 1.5;
+        if (inCastShadowsRange) {
+          scrollMultiplier = 0.4; // Slower in cast shadows for control
+        } else if (inLaptopRange) {
+          scrollMultiplier = 0.8; // Medium speed for laptop
+        } else if (inFooterRange) {
+          scrollMultiplier = 2.0; // Fast in footer
+        }
+      } else {
+        // Trackpad multipliers (original values work well)
+        if (inCastShadowsRange) {
+          scrollMultiplier = 0.08;
+        } else if (inLaptopRange) {
+          scrollMultiplier = 0.15;
+        } else if (inFooterRange) {
+          scrollMultiplier = 0.4;
+        }
       }
 
       const scrollDelta = Math.max(

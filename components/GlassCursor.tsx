@@ -2,11 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import GlassSurface from "./GlassSurface";
 import "./GlassCursor.css";
 
-interface GlassCursorProps {
-  scrollAnimationStarted?: boolean;
-}
-
-const GlassCursor = ({ scrollAnimationStarted = false }: GlassCursorProps) => {
+const GlassCursor = () => {
   const [isHovering, setIsHovering] = useState(false);
   const [whiteCursorOpacity, setWhiteCursorOpacity] = useState(0);
   const mousePositionRef = useRef({ x: -100, y: -100 });

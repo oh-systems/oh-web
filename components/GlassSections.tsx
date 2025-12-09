@@ -87,7 +87,7 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
         top: `${position.y}px`,
         cursor: isDragging ? "grabbing" : "grab",
         userSelect: "none",
-        zIndex: 50000,
+        zIndex: 999999,
         transition: isDragging ? "none" : "all 0.2s ease",
       }}
     >
