@@ -717,15 +717,21 @@ export default function Home() {
 
       // Adaptive scroll sensitivity - with device-specific adjustments
       let scrollMultiplier = 0.3; // Base for trackpad
+      let maxScrollDelta = 3; // Default cap for trackpad
+      
       if (isMouseWheel) {
-        // Mouse wheel needs much higher multipliers due to larger deltaY values
-        scrollMultiplier = 1.5;
+        // Mouse wheel needs much higher multipliers and caps due to larger deltaY values
+        maxScrollDelta = 15; // Much higher cap for mouse wheel
+        scrollMultiplier = 0.08; // Start with lower multiplier since we're removing the cap bottleneck
         if (inCastShadowsRange) {
-          scrollMultiplier = 0.4; // Slower in cast shadows for control
+          scrollMultiplier = 0.02; // Slower in cast shadows for control
+          maxScrollDelta = 8;
         } else if (inLaptopRange) {
-          scrollMultiplier = 0.8; // Medium speed for laptop
+          scrollMultiplier = 0.04; // Medium speed for laptop
+          maxScrollDelta = 12;
         } else if (inFooterRange) {
-          scrollMultiplier = 2.0; // Fast in footer
+          scrollMultiplier = 0.1; // Fast in footer
+          maxScrollDelta = 20;
         }
       } else {
         // Trackpad multipliers (original values work well)
@@ -739,8 +745,8 @@ export default function Home() {
       }
 
       const scrollDelta = Math.max(
-        -3,
-        Math.min(3, e.deltaY * scrollMultiplier)
+        -maxScrollDelta,
+        Math.min(maxScrollDelta, e.deltaY * scrollMultiplier)
       );
 
       // Direct update without extra interpolation - limit to 100% progress
@@ -758,7 +764,13 @@ export default function Home() {
       );
       let lerpFactor = 0.2; // Base lerp factor
 
-      if (inCastShadowsRange) {
+      // Mouse wheel needs more responsive lerp to feel snappy
+      if (isMouseWheel) {
+        lerpFactor = 0.5; // Much more responsive for mouse wheel
+        if (scrollSpeed > 50) {
+          lerpFactor = 0.3; // Still responsive for big movements
+        }
+      } else if (inCastShadowsRange) {
         // Cast Shadows needs smooth movement without lag-induced oscillation
         if (scrollSpeed < 3) {
           lerpFactor = 0.7; // Very responsive for tiny movements
