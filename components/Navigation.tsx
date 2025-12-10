@@ -82,7 +82,7 @@ export default function Navigation({
   return (
     <div
       ref={navRef}
-      className={`navigation-container fixed top-4 ${className}`}
+      className={`navigation-container fixed top-4 hidden md:flex ${className}`}
       style={{
         right: "40px",
         ...style,
@@ -101,7 +101,7 @@ export default function Navigation({
             style={{
               ...{
                 fontFamily: "Helvetica, Arial, sans-serif",
-                fontSize: "20px",
+                fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? "14px" : "20px",
                 fontWeight: "400",
                 padding: "8px 16px",
                 minHeight: "40px",

@@ -111,6 +111,15 @@ export default function UnifiedRingLoader({
           transition: opacity 1s ease;
         }
 
+        /* Mobile: Start with much smaller ring */
+        @media (max-width: 768px) {
+          .unified-ring {
+            width: 200px;
+            height: 200px;
+            border: 20px solid white;
+          }
+        }
+
         /* Pulsing animation using CSS - much more performant */
         .unified-ring.pulsing {
           animation: pulse 3s ease-in-out infinite;
@@ -153,6 +162,24 @@ export default function UnifiedRingLoader({
           }
         }
 
+        /* Mobile settle animation */
+        @media (max-width: 768px) {
+          @keyframes settle {
+            from {
+              width: 200px;
+              height: 200px;
+              border-width: 20px;
+              filter: blur(35px);
+            }
+            to {
+              width: 120px;
+              height: 120px;
+              border-width: 12px;
+              filter: blur(0px);
+            }
+          }
+        }
+
         @keyframes moveToCorner {
           from {
             width: 280px;
@@ -174,6 +201,30 @@ export default function UnifiedRingLoader({
           }
         }
 
+        /* Mobile move to corner animation */
+        @media (max-width: 768px) {
+          @keyframes moveToCorner {
+            from {
+              width: 120px;
+              height: 120px;
+              border-width: 12px;
+              left: 50vw;
+              top: 50vh;
+              transform: translate(-50%, -50%);
+              filter: blur(0px);
+            }
+            to {
+              width: 24px;
+              height: 24px;
+              border-width: 2.5px;
+              left: 20px;
+              top: 16px;
+              transform: translate(0, 0);
+              filter: blur(0px);
+            }
+          }
+        }
+
         .loading-text {
           position: absolute;
           left: 50vw;
@@ -184,6 +235,14 @@ export default function UnifiedRingLoader({
           font-weight: 300;
           letter-spacing: 0.1em;
           font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        /* Mobile loading text positioning */
+        @media (max-width: 768px) {
+          .loading-text {
+            top: calc(50vh + 150px);
+            font-size: 14px;
+          }
         }
       `}</style>
     </div>

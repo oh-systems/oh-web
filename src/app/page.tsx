@@ -3,6 +3,7 @@
 import { useState, useLayoutEffect, useRef, useEffect } from "react";
 import {
   Navigation,
+  MobileMenu,
   SectionIndicator,
   Sound,
   ScrollDrivenText,
@@ -718,7 +719,7 @@ export default function Home() {
       // Adaptive scroll sensitivity - with device-specific adjustments
       let scrollMultiplier = 0.3; // Base for trackpad
       let maxScrollDelta = 3; // Default cap for trackpad
-      
+
       if (isMouseWheel) {
         // Mouse wheel needs much higher multipliers and caps due to larger deltaY values
         maxScrollDelta = 15; // Much higher cap for mouse wheel
@@ -977,6 +978,9 @@ export default function Home() {
         }}
       />
 
+      {/* Mobile Menu (hamburger) */}
+      <MobileMenu onNavClick={handleNavClick} />
+
       {/* Section Indicator - vertical navigation on left side */}
       <SectionIndicator
         currentSection={currentSection}
@@ -1068,6 +1072,7 @@ export default function Home() {
                   position: "absolute",
                   pointerEvents:
                     rawProgress < MODEL_SWAP_CONFIG.swapStart ? "auto" : "none",
+                  top: typeof window !== "undefined" && window.innerWidth < 768 ? "-15%" : "0",
                 }}
               >
                 <InitialScrollSequence
@@ -1108,7 +1113,6 @@ export default function Home() {
 
               {/* Cast Shadows sequence - no artificial fading, images handle their own transitions */}
               <div
-                className="hidden md:flex"
                 style={{
                   display:
                     castSwapProgress < 0.5 || laptopSwapProgress > 0.5
@@ -1124,15 +1128,21 @@ export default function Home() {
                     castSwapProgress < 0.5 || laptopSwapProgress > 0.5
                       ? "none"
                       : "auto",
+                  overflow: typeof window !== 'undefined' && window.innerWidth < 768 ? "hidden" : "visible",
                 }}
               >
-                <CastShadowsSequence
-                  width={viewportDimensions.width}
-                  height={viewportDimensions.height}
-                  scrollProgress={castAnimationProgress}
-                  priority={castSwapProgress > 0.1}
-                  fps={30}
-                />
+                <div style={{
+                  transform: typeof window !== 'undefined' && window.innerWidth < 768 ? "scaleX(3) scaleY(1)" : "scale(1)",
+                  transformOrigin: "center center",
+                }}>
+                  <CastShadowsSequence
+                    width={viewportDimensions.width}
+                    height={viewportDimensions.height}
+                    scrollProgress={castAnimationProgress}
+                    priority={castSwapProgress > 0.1}
+                    fps={30}
+                  />
+                </div>
               </div>
 
               {/* Black buffer overlay between Cast Shadows and Third Laptop */}
@@ -1213,7 +1223,12 @@ export default function Home() {
                 </div>
 
                 {/* Laptop images on top */}
-                <div style={{ position: "relative", zIndex: 10 }}>
+                <div style={{ 
+                  position: "relative", 
+                  zIndex: 10,
+                  transform: typeof window !== 'undefined' && window.innerWidth < 768 ? "scale(1.3)" : "scale(1)",
+                  transformOrigin: "center center",
+                }}>
                   <ThirdLaptopSequence
                     width={viewportDimensions.width}
                     height={viewportDimensions.height}
@@ -1228,12 +1243,16 @@ export default function Home() {
             <div
               className="absolute left-0 pl-4 md:pl-16 z-[150]"
               style={{
-                top: "50%",
+                top: typeof window !== "undefined" && window.innerWidth < 768 ? "35%" : "50%",
                 transform: "translateY(-50%)",
                 opacity: textOpacity,
                 transition: isTransitioning
                   ? "opacity 0.4s ease-in-out"
                   : "none",
+                maxWidth:
+                  typeof window !== "undefined" && window.innerWidth < 768
+                    ? "80%"
+                    : "none",
               }}
             >
               {(() => {
@@ -1265,16 +1284,7 @@ export default function Home() {
                       scrollProgress={animationProgress}
                       scrollThreshold={0.02}
                       animationDuration={0.15}
-                      textAlign={
-                        typeof window !== "undefined" && window.innerWidth < 768
-                          ? "center"
-                          : "left"
-                      }
-                      className={
-                        typeof window !== "undefined" && window.innerWidth < 768
-                          ? "w-full text-center px-2"
-                          : ""
-                      }
+                      textAlign="left"
                     />
                   </div>
                 );
@@ -1282,7 +1292,6 @@ export default function Home() {
             </div>
 
             {/* Second Hero Text - "THE FUTURE OF E-COMMERCE, TODAY" (right side) */}
-            {/* Mobile: Show image on left, text on right in a row layout */}
             <div
               className="absolute z-[150]"
               style={{
@@ -1311,43 +1320,22 @@ export default function Home() {
                     : "0",
               }}
             >
-              <div className="flex md:block items-center justify-between gap-4">
-                {/* Mobile: Initial scroll middle frame image (left side) */}
-                <div
-                  className="block md:hidden flex-shrink-0"
-                  style={{ width: "80px", height: "80px" }}
-                >
-                  <img
-                    src="/OH%20WEB%20OPTIMIZED%20FRAMES/INITIAL%20SCROLL%20WEBP/scroll_q90_0300.webp"
-                    alt=""
-                    style={{
-                      width: "400px",
-                      height: "100vh",
-                      // objectFit: 'contain',
-                    }}
-                  />
-                </div>
-
-                {/* Text (right side on mobile, normal on desktop) */}
-                <div className="flex-1">
-                  <ScrollDrivenText
-                    heroLines={["THE FUTURE OF", "E-COMMERCE,", "TODAY."]}
-                    fontSize={
-                      typeof window !== "undefined" && window.innerWidth < 768
-                        ? 28
-                        : 96
-                    }
-                    className=""
-                    textAlign="right"
-                    style={{ lineHeight: 0.75 }}
-                    lineHeightMultiplier={1.0}
-                    scrollProgress={0}
-                    scrollThreshold={999}
-                    animationDuration={0.15}
-                    stopAtMiddle={false}
-                  />
-                </div>
-              </div>
+              <ScrollDrivenText
+                heroLines={["THE FUTURE OF", "E-COMMERCE,", "TODAY."]}
+                fontSize={
+                  typeof window !== "undefined" && window.innerWidth < 768
+                    ? 36
+                    : 96
+                }
+                className=""
+                textAlign="right"
+                style={{ lineHeight: 0.75 }}
+                lineHeightMultiplier={1.0}
+                scrollProgress={0}
+                scrollThreshold={999}
+                animationDuration={0.15}
+                stopAtMiddle={false}
+              />
             </div>
 
             {/* Descriptive Text - About Oh (right side, below second hero) */}
@@ -1383,32 +1371,6 @@ export default function Home() {
 
             {/* Cast Shadows Operating Principles Text Sequence */}
             <div className="absolute inset-0 z-[110] pointer-events-none">
-              {/* Mobile: Cast Shadows middle frame image */}
-              <div
-                className="block md:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-                style={{
-                  opacity:
-                    typeof window !== "undefined" && window.innerWidth < 768
-                      ? rawProgress > 0.2 && rawProgress < 0.53
-                        ? 1
-                        : 0
-                      : 0,
-                  transition: "opacity 0.3s ease",
-                  width: "100px",
-                  height: "100px",
-                }}
-              >
-                <img
-                  src="/OH%20WEB%20OPTIMIZED%20FRAMES/CAST%20SHADOWS%20WEBP%201600%2085/cast_1600_q85_0600.webp"
-                  alt=""
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "contain",
-                  }}
-                />
-              </div>
-
               <div
                 style={{
                   opacity: textOpacity,

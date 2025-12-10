@@ -32,17 +32,16 @@ export default function CastShadowsDetailsText({
     <>
       {/* Top Left - Physical Integrations */}
       <div
-        className="absolute text-white"
+        className="absolute text-white text-[10px] md:text-[16px]"
         style={{
-          top: "50px",
-          left: "50px",
+          top: typeof window !== 'undefined' && window.innerWidth < 768 ? "20px" : "50px",
+          left: typeof window !== 'undefined' && window.innerWidth < 768 ? "20px" : "50px",
           opacity: textOpacity,
           transform: `translateY(${20 * (1 - textOpacity)}px)`,
           transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
-          fontSize: "16px",
           lineHeight: "1.6",
-          maxWidth: "600px",
+          maxWidth: typeof window !== 'undefined' && window.innerWidth < 768 ? "45%" : "600px",
         }}
       >
         <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
@@ -75,17 +74,16 @@ export default function CastShadowsDetailsText({
 
       {/* Bottom Right - Digital Systems */}
       <div
-        className="absolute text-white"
+        className="absolute text-white text-[10px] md:text-[16px]"
         style={{
-          bottom: "50px",
-          right: "50px",
+          bottom: typeof window !== 'undefined' && window.innerWidth < 768 ? "20px" : "50px",
+          right: typeof window !== 'undefined' && window.innerWidth < 768 ? "20px" : "50px",
           opacity: textOpacity,
           transform: `translateY(${-20 * (1 - textOpacity)}px)`,
           transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
-          fontSize: "16px",
           lineHeight: "1.6",
-          maxWidth: "600px",
+          maxWidth: typeof window !== 'undefined' && window.innerWidth < 768 ? "45%" : "600px",
           textAlign: "right",
         }}
       >

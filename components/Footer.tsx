@@ -155,6 +155,7 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
             aria-label="Your email for newsletter subscription"
             aria-required="true"
             autoComplete="email"
+            className="text-[8px] md:text-[10px]"
             style={{
               width: "320px",
               background: "transparent",
@@ -163,7 +164,6 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
               outline: "none",
               padding: "8px 0",
               fontFamily: "Be Vietnam Pro, Arial, sans-serif",
-              fontSize: "10px",
               fontWeight: "400",
               color: "white",
               opacity: isSubmitting ? 0.5 : 1,
@@ -177,13 +177,13 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
             type="submit"
             disabled={isSubmitting}
             aria-label={isSubmitting ? 'Subscribing...' : 'Subscribe to newsletter'}
+            className="text-[8px] md:text-[10px]"
             style={{
               marginTop: "8px",
               background: "none",
               border: "none",
               padding: 0,
               fontFamily: "Be Vietnam Pro, Arial, sans-serif",
-              fontSize: "10px",
               fontWeight: "400",
               color: submitStatus === 'success' ? 'rgba(0, 255, 0, 0.8)' : submitStatus === 'error' ? 'rgba(255, 0, 0, 0.8)' : "white",
               cursor: isSubmitting ? "not-allowed" : "pointer",
@@ -213,12 +213,12 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
 
       {/* Bottom Left - Copyright */}
       <div
+        className="text-[12px] md:text-[15px]"
         style={{
           position: "absolute",
           bottom: "20px",
           left: "40px",
           fontFamily: "Be Vietnam Pro, Arial, sans-serif",
-          fontSize: "15px",
           fontWeight: "400",
           color: "white",
           opacity: textOpacity,
@@ -245,8 +245,8 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
       >
         {/* SOCIALS Label */}
         <div
+          className="text-[12px] md:text-[15px]"
           style={{
-            fontSize: "15px",
             fontWeight: "400",
             color: "#484848",
           }}
@@ -266,11 +266,11 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
             target="_blank"
             rel="noopener noreferrer"
             onClick={playClickSound}
+            className="text-[12px] md:text-[15px]"
             style={{ 
               color: "white", 
               textDecoration: "underline",
               cursor: "pointer",
-              fontSize: "15px",
               fontWeight: "400",
             }}
           >
@@ -281,11 +281,11 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
             target="_blank"
             rel="noopener noreferrer"
             onClick={playClickSound}
+            className="text-[12px] md:text-[15px]"
             style={{ 
               color: "white", 
               textDecoration: "underline",
               cursor: "pointer",
-              fontSize: "15px",
               fontWeight: "400",
             }}
           >
@@ -296,12 +296,12 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
 
       {/* Bottom Right - Legal Links */}
       <div
+        className="text-[8px] md:text-[10px]"
         style={{
           position: "absolute",
           bottom: "20px",
           right: "40px",
           fontFamily: "Be Vietnam Pro, Arial, sans-serif",
-          fontSize: "10px",
           fontWeight: "400",
           color: "#484848",
           display: "flex",

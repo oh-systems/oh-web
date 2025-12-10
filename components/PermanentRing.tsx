@@ -61,6 +61,17 @@ export default function PermanentRing({ visible, className = '', style }: Perman
         className={`permanent-ring ${visible ? 'visible' : ''}`}
         style={ringStyle}
       />
+
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .permanent-ring {
+            left: 20px !important;
+            width: 24px !important;
+            height: 24px !important;
+            border-width: 2.5px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

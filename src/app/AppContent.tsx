@@ -111,8 +111,8 @@ export default function AppContent({
           }}
         >
           <InitialLoadSequence
-            width={800}
-            height={800}
+            width={typeof window !== 'undefined' && window.innerWidth <= 768 ? 400 : 800}
+            height={typeof window !== 'undefined' && window.innerWidth <= 768 ? 400 : 800}
             autoPlay={true}
             startAnimation={true}
             duration={6} // Longer transition for better pacing

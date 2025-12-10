@@ -48,7 +48,7 @@ export default function LaptopText({ progress }: LaptopTextProps) {
     >
       {/* SPACE PROTOTYPE title */}
       <h1
-        className="text-[96px] font-normal text-white absolute left-1/2"
+        className="text-[36px] md:text-[96px] font-normal text-white absolute left-1/2"
         style={{
           fontFamily: "Helvetica, Arial, sans-serif",
           letterSpacing: "0.02em",
@@ -63,7 +63,7 @@ export default function LaptopText({ progress }: LaptopTextProps) {
       {/* ENTER EXPERIENCE link */}
       <a
         href="/space"
-        className="text-[20px] font-normal text-white hover:opacity-70 transition-opacity absolute left-1/2 pointer-events-auto"
+        className="text-[14px] md:text-[20px] font-normal text-white hover:opacity-70 transition-opacity absolute left-1/2 pointer-events-auto"
         style={{
           fontFamily: "var(--font-be-vietnam-pro), sans-serif",
           top: "82vh",
@@ -76,7 +76,7 @@ export default function LaptopText({ progress }: LaptopTextProps) {
       {/* DOWNLOAD FOR PC link */}
       <a
         href="#"
-        className="text-[15px] font-normal text-white hover:opacity-70 transition-opacity absolute left-1/2 pointer-events-auto"
+        className="text-[12px] md:text-[15px] font-normal text-white hover:opacity-70 transition-opacity absolute left-1/2 pointer-events-auto"
         style={{
           fontFamily: "var(--font-be-vietnam-pro), sans-serif",
           top: "90vh",

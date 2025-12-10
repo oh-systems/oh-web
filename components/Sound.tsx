@@ -122,7 +122,7 @@ export default function Sound({
         ...style,
         position: 'fixed',
         top: '93vh',
-        left: '6vw',
+        left: typeof window !== 'undefined' && window.innerWidth < 768 ? '20vw' : '6vw',
         transform: 'translate(-50%, -50%)',
         zIndex: 999999999,
         display: 'flex',

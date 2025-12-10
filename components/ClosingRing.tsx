@@ -12,12 +12,24 @@ interface ClosingRingProps {
 export default function ClosingRing({ className = "", style, onAnimationComplete, shouldReturnToCorner = false }: ClosingRingProps) {
   const [isAnimating, setIsAnimating] = useState(false);
   const [isReturningToCorner, setIsReturningToCorner] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
   const onAnimationCompleteRef = useRef(onAnimationComplete);
   
   useEffect(() => {
     onAnimationCompleteRef.current = onAnimationComplete;
   }, [onAnimationComplete]);
+
+  // Detect mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     if (shouldReturnToCorner) {
@@ -41,25 +53,25 @@ export default function ClosingRing({ className = "", style, onAnimationComplete
       // Returning to corner position (permanent ring size)
       return {
         position: 'absolute' as const,
-        left: '50px', // PermanentRing position
-        top: '16px', // PermanentRing position
-        width: '30px', // PermanentRing size
-        height: '30px',
-        border: '3px solid white', // PermanentRing border
+        left: isMobile ? '20px' : '50px', // Mobile: 20px, Desktop: 50px
+        top: '16px',
+        width: isMobile ? '24px' : '30px', // Mobile: 24px, Desktop: 30px
+        height: isMobile ? '24px' : '30px',
+        border: isMobile ? '2.5px solid white' : '3px solid white', // Mobile: 2.5px, Desktop: 3px
         transform: 'translate(0, 0)',
         transition: 'all 2s cubic-bezier(0.4, 0.0, 0.2, 1)', // Smooth return transition
       };
     }
     
     if (!isAnimating) {
-      // Start position: exactly like PermanentRing (30px with 3px border)
+      // Start position: exactly like PermanentRing
       return {
         position: 'absolute' as const,
-        left: '50px', // PermanentRing position
-        top: '16px', // PermanentRing position
-        width: '30px', // Exact PermanentRing size
-        height: '30px',
-        border: '3px solid white', // Exact PermanentRing border
+        left: isMobile ? '20px' : '50px',
+        top: '16px',
+        width: isMobile ? '24px' : '30px',
+        height: isMobile ? '24px' : '30px',
+        border: isMobile ? '2.5px solid white' : '3px solid white',
         transform: 'translate(0, 0)',
         transition: 'none',
       };
@@ -70,9 +82,9 @@ export default function ClosingRing({ className = "", style, onAnimationComplete
       position: 'absolute' as const,
       left: '50vw', // Center position like UnifiedRingLoader
       top: '50vh', // Center position like UnifiedRingLoader
-      width: '276px', // UnifiedRingLoader final size
-      height: '276px',
-      border: '30px solid rgba(255, 255, 255, 1)', // UnifiedRingLoader border
+      width: isMobile ? '120px' : '276px', // Mobile: 120px, Desktop: 276px
+      height: isMobile ? '120px' : '276px',
+      border: isMobile ? '12px solid rgba(255, 255, 255, 1)' : '30px solid rgba(255, 255, 255, 1)',
       transform: 'translate(-50%, -50%)', // Center like UnifiedRingLoader
       transition: 'all 3s cubic-bezier(0.4, 0.0, 0.2, 1)', // Same easing as UnifiedRingLoader corner transition
     };
