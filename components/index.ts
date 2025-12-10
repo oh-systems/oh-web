@@ -2,6 +2,7 @@
 export { default as PermanentRing } from './PermanentRing';
 export { default as UnifiedRingLoader } from './UnifiedRingLoader';
 export { default as Navigation } from './Navigation';
+export { default as MobileMenu } from './MobileMenu';
 export { default as SectionIndicator } from './SectionIndicator';
 export { default as Sound } from './Sound';
 export { default as Footer } from './Footer';

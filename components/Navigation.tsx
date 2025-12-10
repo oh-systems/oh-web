@@ -82,7 +82,7 @@ export default function Navigation({
   return (
     <div
       ref={navRef}
-      className={`navigation-container fixed top-4 ${className}`}
+      className={`navigation-container fixed top-4 hidden md:flex ${className}`}
       style={{
         right: "40px",
         ...style,
