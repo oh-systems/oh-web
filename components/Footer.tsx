@@ -147,7 +147,7 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
             name="newsletter-email"
             id="newsletter-email"
             placeholder="YOUR EMAIL"
-            className="email-input"
+            className="email-input text-[8px] md:text-[10px]"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             disabled={isSubmitting}
@@ -155,7 +155,6 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
             aria-label="Your email for newsletter subscription"
             aria-required="true"
             autoComplete="email"
-            className="text-[8px] md:text-[10px]"
             style={{
               width: "320px",
               background: "transparent",
