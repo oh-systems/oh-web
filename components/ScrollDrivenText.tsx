@@ -19,7 +19,7 @@ interface ScrollDrivenTextProps {
 
 export default function ScrollDrivenText({ 
   heroLines, 
-  fontSize = 20, 
+  fontSize = typeof window !== 'undefined' && window.innerWidth <= 768 ? 14 : 20, 
   className = "", 
   style = {}, 
   textAlign = 'left',

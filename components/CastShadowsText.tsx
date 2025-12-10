@@ -302,7 +302,7 @@ export default function CastShadowsText({
 
       {/* Operating Principles - Top Right */}
       <div
-        className="absolute text-white"
+        className="absolute text-white text-[18px] md:text-[32px]"
         style={{
           top: "12%",
           right: "8%",
@@ -310,7 +310,6 @@ export default function CastShadowsText({
           transform: `translate(${offsets.operatingPrinciples.x}px, ${offsets.operatingPrinciples.y + 20 * (1 - operatingPrinciplesOpacity)}px)`,
           transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
-          fontSize: "32px",
           fontWeight: "normal",
           lineHeight: "1.2",
         }}
@@ -320,7 +319,7 @@ export default function CastShadowsText({
 
       {/* Everything is built - Lower Left Area */}
       <div
-        className="absolute text-white"
+        className="absolute text-white text-[24px] md:text-[48px]"
         style={{
           top: "20%",
           left: "15%",
@@ -328,7 +327,6 @@ export default function CastShadowsText({
           transform: `translate(${offsets.everythingBuilt.x}px, ${offsets.everythingBuilt.y + 30 * (1 - everythingBuiltOpacity)}px)`,
           transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
-          fontSize: "48px",
           fontWeight: "normal",
           lineHeight: "1.2",
         }}
@@ -338,7 +336,7 @@ export default function CastShadowsText({
 
       {/* Interactivity is a requirement - Lower Center-Right */}
       <div
-        className="absolute text-white"
+        className="absolute text-white text-[20px] md:text-[36px]"
         style={{
           top: "32%",
           left: "40%",
@@ -346,7 +344,6 @@ export default function CastShadowsText({
           transform: `translate(${offsets.interactivity.x}px, ${offsets.interactivity.y + 25 * (1 - interactivityOpacity)}px)`,
           transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
-          fontSize: "36px",
           fontWeight: "normal",
           lineHeight: "1.2",
         }}
@@ -356,7 +353,7 @@ export default function CastShadowsText({
 
       {/* Deployments must be live - Lower Left */}
       <div
-        className="absolute text-white"
+        className="absolute text-white text-[32px] md:text-[64px]"
         style={{
           top: "47%",
           left: "5%",
@@ -364,18 +361,17 @@ export default function CastShadowsText({
           transform: `translate(${offsets.deployments.x}px, ${offsets.deployments.y + 35 * (1 - deploymentsOpacity)}px)`,
           transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
-          fontSize: "64px",
           fontWeight: "normal",
           lineHeight: "1.2",
         }}
       >
         <div>DEPLOYMENTS MUST</div>
-        <div style={{ paddingLeft: "440px" }}>BE LIVE</div>
+        <div style={{ paddingLeft: typeof window !== 'undefined' && window.innerWidth <= 768 ? "220px" : "440px" }}>BE LIVE</div>
       </div>
 
       {/* All systems are modular - Below Deployments */}
       <div
-        className="absolute text-white"
+        className="absolute text-white text-[22px] md:text-[40px]"
         style={{
           top: "70%",
           left: "10%",
@@ -383,7 +379,6 @@ export default function CastShadowsText({
           transform: `translate(${offsets.modular.x}px, ${offsets.modular.y + 30 * (1 - modularOpacity)}px)`,
           transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
-          fontSize: "40px",
           fontWeight: "normal",
           lineHeight: "1.2",
         }}
@@ -393,7 +388,7 @@ export default function CastShadowsText({
 
       {/* AI is built in, not added on - Same line as modular, to the right */}
       <div
-        className="absolute text-white"
+        className="absolute text-white text-[18px] md:text-[32px]"
         style={{
           top: "70%",
           left: "62%",
@@ -401,7 +396,6 @@ export default function CastShadowsText({
           transform: `translate(${offsets.aiBuiltIn.x}px, ${offsets.aiBuiltIn.y + 30 * (1 - aiBuiltInOpacity)}px)`,
           transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
-          fontSize: "32px",
           fontWeight: "normal",
           lineHeight: "1.2",
         }}
@@ -411,7 +405,7 @@ export default function CastShadowsText({
 
       {/* LATENCY MATTERS - Lower Center-Right */}
       <div
-        className="absolute text-white"
+        className="absolute text-white text-[32px] md:text-[64px]"
         style={{
           top: "84%",
           left: "50%",
@@ -419,7 +413,6 @@ export default function CastShadowsText({
           transform: `translate(${offsets.latency.x}px, ${offsets.latency.y + 40 * (1 - latencyOpacity)}px)`,
           transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
-          fontSize: "64px",
           fontWeight: "normal",
           lineHeight: "1.2",
           letterSpacing: "2px",

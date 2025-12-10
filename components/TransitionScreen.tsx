@@ -52,18 +52,17 @@ export default function TransitionScreen({
         <Image
           src="/assets/three-lines.png"
           alt=""
-          width={88}
-          height={121}
+          width={typeof window !== 'undefined' && window.innerWidth < 768 ? 44 : 88}
+          height={typeof window !== 'undefined' && window.innerWidth < 768 ? 60 : 121}
           priority
         />
       </div>
 
       {/* Main Text */}
       <div
-        className="text-white text-center mb-4"
+        className="text-white text-center mb-4 text-[16px] md:text-[24px]"
         style={{
           fontFamily: "'Be Vietnam', sans-serif",
-          fontSize: "24px",
           fontWeight: "bold",
           letterSpacing: "0.02em",
         }}
@@ -73,10 +72,9 @@ export default function TransitionScreen({
 
       {/* Secondary Text */}
       <div
-        className="text-white text-center"
+        className="text-white text-center text-[12px] md:text-[16px]"
         style={{
           fontFamily: "'Be Vietnam', sans-serif",
-          fontSize: "16px",
           fontWeight: "normal",
           letterSpacing: "0.02em",
         }}

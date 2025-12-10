@@ -102,7 +102,7 @@ export default function MobileMenu({ onNavClick }: MobileMenuProps) {
               onClick={() => handleItemClick(item)}
               style={{
                 fontFamily: "Helvetica, Arial, sans-serif",
-                fontSize: "32px",
+                fontSize: "24px",
                 fontWeight: "400",
                 color: "white",
                 backgroundColor: "transparent",

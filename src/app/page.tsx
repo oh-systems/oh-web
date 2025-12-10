@@ -719,7 +719,7 @@ export default function Home() {
       // Adaptive scroll sensitivity - with device-specific adjustments
       let scrollMultiplier = 0.3; // Base for trackpad
       let maxScrollDelta = 3; // Default cap for trackpad
-      
+
       if (isMouseWheel) {
         // Mouse wheel needs much higher multipliers and caps due to larger deltaY values
         maxScrollDelta = 15; // Much higher cap for mouse wheel
@@ -1072,6 +1072,7 @@ export default function Home() {
                   position: "absolute",
                   pointerEvents:
                     rawProgress < MODEL_SWAP_CONFIG.swapStart ? "auto" : "none",
+                  top: typeof window !== "undefined" && window.innerWidth < 768 ? "-15%" : "0",
                 }}
               >
                 <InitialScrollSequence
@@ -1112,7 +1113,6 @@ export default function Home() {
 
               {/* Cast Shadows sequence - no artificial fading, images handle their own transitions */}
               <div
-                className="hidden md:flex"
                 style={{
                   display:
                     castSwapProgress < 0.5 || laptopSwapProgress > 0.5
@@ -1128,15 +1128,21 @@ export default function Home() {
                     castSwapProgress < 0.5 || laptopSwapProgress > 0.5
                       ? "none"
                       : "auto",
+                  overflow: typeof window !== 'undefined' && window.innerWidth < 768 ? "hidden" : "visible",
                 }}
               >
-                <CastShadowsSequence
-                  width={viewportDimensions.width}
-                  height={viewportDimensions.height}
-                  scrollProgress={castAnimationProgress}
-                  priority={castSwapProgress > 0.1}
-                  fps={30}
-                />
+                <div style={{
+                  transform: typeof window !== 'undefined' && window.innerWidth < 768 ? "scaleX(3) scaleY(1)" : "scale(1)",
+                  transformOrigin: "center center",
+                }}>
+                  <CastShadowsSequence
+                    width={viewportDimensions.width}
+                    height={viewportDimensions.height}
+                    scrollProgress={castAnimationProgress}
+                    priority={castSwapProgress > 0.1}
+                    fps={30}
+                  />
+                </div>
               </div>
 
               {/* Black buffer overlay between Cast Shadows and Third Laptop */}
@@ -1217,7 +1223,12 @@ export default function Home() {
                 </div>
 
                 {/* Laptop images on top */}
-                <div style={{ position: "relative", zIndex: 10 }}>
+                <div style={{ 
+                  position: "relative", 
+                  zIndex: 10,
+                  transform: typeof window !== 'undefined' && window.innerWidth < 768 ? "scale(1.3)" : "scale(1)",
+                  transformOrigin: "center center",
+                }}>
                   <ThirdLaptopSequence
                     width={viewportDimensions.width}
                     height={viewportDimensions.height}
@@ -1232,12 +1243,16 @@ export default function Home() {
             <div
               className="absolute left-0 pl-4 md:pl-16 z-[150]"
               style={{
-                top: "50%",
+                top: typeof window !== "undefined" && window.innerWidth < 768 ? "35%" : "50%",
                 transform: "translateY(-50%)",
                 opacity: textOpacity,
                 transition: isTransitioning
                   ? "opacity 0.4s ease-in-out"
                   : "none",
+                maxWidth:
+                  typeof window !== "undefined" && window.innerWidth < 768
+                    ? "80%"
+                    : "none",
               }}
             >
               {(() => {
@@ -1269,16 +1284,7 @@ export default function Home() {
                       scrollProgress={animationProgress}
                       scrollThreshold={0.02}
                       animationDuration={0.15}
-                      textAlign={
-                        typeof window !== "undefined" && window.innerWidth < 768
-                          ? "center"
-                          : "left"
-                      }
-                      className={
-                        typeof window !== "undefined" && window.innerWidth < 768
-                          ? "w-full text-center px-2"
-                          : ""
-                      }
+                      textAlign="left"
                     />
                   </div>
                 );
@@ -1318,7 +1324,7 @@ export default function Home() {
                 heroLines={["THE FUTURE OF", "E-COMMERCE,", "TODAY."]}
                 fontSize={
                   typeof window !== "undefined" && window.innerWidth < 768
-                    ? 28
+                    ? 36
                     : 96
                 }
                 className=""
