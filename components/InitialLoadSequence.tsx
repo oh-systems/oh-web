@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getInitialLoadImageUrl } from '../lib/models-config';
+import { SequencePreloader } from '../lib/sequence-preloader';
 
 interface InitialLoadSequenceProps {
   className?: string;
@@ -58,6 +59,26 @@ export default function InitialLoadSequence({
 
   // Preload frame
   const preloadFrame = useCallback((frameIndex: number) => {
+    // Check global cache first
+    const cachedImg = SequencePreloader.getCachedImage('initialLoad', frameIndex);
+    if (cachedImg) {
+      imageCache.current.set(frameIndex, cachedImg);
+      
+      // Report loading progress
+      if (onLoadingProgress) {
+        const progress = imageCache.current.size / totalFrames;
+        onLoadingProgress(progress);
+      }
+      
+      if (imageCache.current.size >= Math.min(30, totalFrames)) {
+        setIsReady(true);
+        if (imageCache.current.size >= totalFrames) {
+          setLoadingComplete(true);
+        }
+      }
+      return;
+    }
+
     if (imageCache.current.has(frameIndex) || loadingFrames.current.has(frameIndex)) {
       return;
     }
