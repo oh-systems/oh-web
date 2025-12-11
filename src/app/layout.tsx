@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Be_Vietnam_Pro } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import ConditionalAppContent from "./ConditionalAppContent";
 
@@ -35,6 +36,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${beVietnamPro.variable} antialiased`}
       >
+        {process.env.NODE_ENV === 'production' && (
+          <Script
+            src="/disable-devtools.js"
+            strategy="beforeInteractive"
+          />
+        )}
         <ConditionalAppContent>{children}</ConditionalAppContent>
       </body>
     </html>
