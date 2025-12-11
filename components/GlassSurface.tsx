@@ -1,4 +1,5 @@
 import { useEffect, useRef, useId, useState } from 'react';
+import { gsap } from 'gsap';
 import './GlassSurface.css';
 
 interface GlassSurfaceProps {
@@ -97,7 +98,11 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
   const updateDisplacementMap = () => {
     if (!containerRef.current || !feImageRef.current) {
       // If refs aren't ready, try again on next frame
-      requestAnimationFrame(updateDisplacementMap);
+      const retry = () => {
+        updateDisplacementMap();
+        gsap.ticker.remove(retry);
+      };
+      gsap.ticker.add(retry);
       return;
     }
     feImageRef.current.setAttribute('href', generateDisplacementMap());
@@ -181,7 +186,11 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
     if (!containerRef.current || !isMounted) return;
 
     const resizeObserver = new ResizeObserver(() => {
-      requestAnimationFrame(updateDisplacementMap);
+      const update = () => {
+        updateDisplacementMap();
+        gsap.ticker.remove(update);
+      };
+      gsap.ticker.add(update);
     });
 
     resizeObserver.observe(containerRef.current);
@@ -194,7 +203,11 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
 
   useEffect(() => {
     if (!isMounted) return;
-    requestAnimationFrame(updateDisplacementMap);
+    const update = () => {
+      updateDisplacementMap();
+      gsap.ticker.remove(update);
+    };
+    gsap.ticker.add(update);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [width, height, isMounted]);
 

@@ -7,6 +7,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
+import gsap from "gsap";
 import { getThirdLaptopImageUrl } from "../lib/models-config";
 import { SequencePreloader } from "../lib/sequence-preloader";
 
@@ -37,7 +38,7 @@ export default function ThirdLaptopSequence({
   onSequenceComplete,
 }: ThirdLaptopSequenceProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [currentFrame, setCurrentFrame] = useState(0);
+  const currentFrame = useRef(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [loadingComplete, setLoadingComplete] = useState(false);
@@ -47,6 +48,7 @@ export default function ThirdLaptopSequence({
   const preloadQueue = useRef<Set<number>>(new Set());
   const loadingFrames = useRef<Set<number>>(new Set());
   const lastRenderedFrame = useRef<number>(-1);
+  const tickerCallbackRef = useRef<(() => void) | null>(null);
 
   const imagePaths = useMemo(() => {
     const paths: string[] = [];
@@ -73,8 +75,8 @@ export default function ThirdLaptopSequence({
       const frame = Math.floor(scrollProgress! * (totalFrames - 1));
       return Math.max(0, Math.min(frame, totalFrames - 1));
     }
-    return currentFrame;
-  }, [isScrollDriven, scrollProgress, currentFrame, totalFrames]);
+    return Math.floor(currentFrame.current);
+  }, [isScrollDriven, scrollProgress, totalFrames]);
 
   // Preload frame - use globally preloaded images when available
   const preloadFrame = useCallback(
@@ -190,25 +192,10 @@ export default function ThirdLaptopSequence({
     [width, height, scrollProgress, isScrollDriven, totalFrames]
   );
 
-  // Render current frame with RAF - responsive for scroll, throttled for auto-play
-  const lastRenderTime = useRef<number>(0);
+  // Render current frame for scroll-driven mode
   useEffect(() => {
-    const frame = requestAnimationFrame((currentTime) => {
-      if (isScrollDriven) {
-        // Immediate rendering for scroll-driven mode
-        renderFrame(displayFrame);
-      } else {
-        // 30fps throttling only for auto-play mode
-        const deltaTime = currentTime - lastRenderTime.current;
-        const frameInterval = 1000 / 30;
-
-        if (deltaTime >= frameInterval || lastRenderTime.current === 0) {
-          renderFrame(displayFrame);
-          lastRenderTime.current = currentTime;
-        }
-      }
-    });
-    return () => cancelAnimationFrame(frame);
+    if (!isScrollDriven) return;
+    renderFrame(displayFrame);
   }, [displayFrame, renderFrame, isScrollDriven]);
 
   // Populate local cache from global preloader cache on mount
@@ -258,56 +245,46 @@ export default function ThirdLaptopSequence({
     }
   }, [isReady, loadingComplete, startAnimation, autoPlay, isScrollDriven]);
 
-  const animationFrameRef = useRef<number | null>(null);
-  const lastUpdateTimeRef = useRef<number>(0);
+  // GSAP ticker-based animation loop
+  useEffect(() => {
+    if (!isPlaying || isScrollDriven) {
+      if (tickerCallbackRef.current) {
+        gsap.ticker.remove(tickerCallbackRef.current);
+        tickerCallbackRef.current = null;
+      }
+      return;
+    }
 
-  const animate = useCallback(() => {
-    if (!isPlaying) return;
-
-    const now = performance.now();
-    const deltaTime = now - lastUpdateTimeRef.current;
-    const frameInterval = 1000 / effectiveFPS;
-
-    if (deltaTime >= frameInterval) {
-      setCurrentFrame((prevFrame) => {
-        const nextFrame = prevFrame + 1;
-        if (nextFrame >= totalFrames) {
-          if (loop) {
-            return 0;
-          } else {
-            setIsPlaying(false);
-            if (onSequenceComplete) {
-              setTimeout(() => onSequenceComplete(), 0);
-            }
-            return prevFrame;
+    const frameIncrement = effectiveFPS / 60; // GSAP ticker runs at ~60fps
+    
+    const tickerCallback = () => {
+      currentFrame.current += frameIncrement;
+      
+      if (currentFrame.current >= totalFrames) {
+        if (loop) {
+          currentFrame.current = 0;
+        } else {
+          setIsPlaying(false);
+          currentFrame.current = totalFrames - 1;
+          if (onSequenceComplete) {
+            setTimeout(() => onSequenceComplete(), 0);
           }
         }
-        return nextFrame;
-      });
-
-      lastUpdateTimeRef.current = now - (deltaTime % frameInterval);
-    }
-
-    animationFrameRef.current = requestAnimationFrame(animate);
-  }, [isPlaying, effectiveFPS, totalFrames, loop, onSequenceComplete]);
-
-  useEffect(() => {
-    if (isPlaying) {
-      lastUpdateTimeRef.current = performance.now();
-      animationFrameRef.current = requestAnimationFrame(animate);
-    } else {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
       }
-    }
+      
+      renderFrame(Math.floor(currentFrame.current));
+    };
+
+    tickerCallbackRef.current = tickerCallback;
+    gsap.ticker.add(tickerCallback);
 
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+      if (tickerCallbackRef.current) {
+        gsap.ticker.remove(tickerCallbackRef.current);
+        tickerCallbackRef.current = null;
       }
     };
-  }, [isPlaying, animate]);
+  }, [isPlaying, effectiveFPS, totalFrames, loop, onSequenceComplete, isScrollDriven, renderFrame]);
 
   return (
     <div

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { gsap } from 'gsap';
 import { getInitialLoadImageUrl } from '../lib/models-config';
 
 interface InitialLoadSequenceProps {
@@ -133,8 +134,7 @@ export default function InitialLoadSequence({
     }
   }, [isReady, startAnimation, autoPlay, isPlaying, loadingComplete]);
 
-  // Animation loop
-  const animationFrameRef = useRef<number | null>(null);
+  // Animation loop using GSAP ticker
   const lastUpdateTimeRef = useRef<number>(0);
 
   const animate = useCallback(() => {
@@ -160,34 +160,26 @@ export default function InitialLoadSequence({
 
       lastUpdateTimeRef.current = now - (deltaTime % frameInterval);
     }
-
-    animationFrameRef.current = requestAnimationFrame(animate);
   }, [isPlaying, effectiveFPS, totalFrames, onSequenceComplete]);
 
   useEffect(() => {
     if (isPlaying) {
       lastUpdateTimeRef.current = performance.now();
-      animationFrameRef.current = requestAnimationFrame(animate);
+      gsap.ticker.add(animate);
     } else {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
+      gsap.ticker.remove(animate);
     }
 
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+      gsap.ticker.remove(animate);
     };
   }, [isPlaying, animate]);
 
-  // Render current frame
+  // Render current frame using GSAP ticker
   useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      renderFrame(currentFrame);
-    });
-    return () => cancelAnimationFrame(frame);
+    const renderCallback = () => renderFrame(currentFrame);
+    gsap.ticker.add(renderCallback);
+    return () => gsap.ticker.remove(renderCallback);
   }, [currentFrame, renderFrame]);
 
   return (

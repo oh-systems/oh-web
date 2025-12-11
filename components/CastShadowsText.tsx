@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+import gsap from "gsap";
 
 interface CastShadowsTextProps {
   scrollProgress: number; // 0 to 1 for the Cast Shadows sequence
@@ -39,36 +40,31 @@ export default function CastShadowsText({
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
-  // Smoothly interpolate mouse position
+  // Smoothly interpolate mouse position with GSAP ticker
   useEffect(() => {
-    let animationFrameId: number;
-
     const smoothUpdate = () => {
       setSmoothMousePosition((prev) => ({
         x: prev.x + (mousePositionRef.current.x - prev.x) * 0.1, // Lerp factor: 0.1 for smooth following
         y: prev.y + (mousePositionRef.current.y - prev.y) * 0.1,
       }));
-      animationFrameId = requestAnimationFrame(smoothUpdate);
     };
 
-    animationFrameId = requestAnimationFrame(smoothUpdate);
-    return () => cancelAnimationFrame(animationFrameId);
+    gsap.ticker.add(smoothUpdate);
+    return () => gsap.ticker.remove(smoothUpdate);
   }, []);
 
-  // Animate time for smooth random movement
+  // Animate time for smooth random movement with GSAP ticker
   useEffect(() => {
-    let animationFrameId: number;
     const startTime = Date.now();
 
     const animate = () => {
       setTime(Date.now() - startTime);
-      animationFrameId = requestAnimationFrame(animate);
     };
 
-    animationFrameId = requestAnimationFrame(animate);
+    gsap.ticker.add(animate);
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      gsap.ticker.remove(animate);
     };
   }, []);
 

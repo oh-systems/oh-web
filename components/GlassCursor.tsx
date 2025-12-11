@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
 import GlassSurface from "./GlassSurface";
 import "./GlassCursor.css";
 
@@ -12,8 +13,6 @@ const GlassCursor = () => {
   const glassCursorElementRef = useRef<HTMLDivElement>(null);
   const whiteCursorElementRef = useRef<HTMLDivElement>(null);
   const isHoveringRef = useRef(false);
-  const animationFrameRef = useRef<number>(0);
-  const whiteCursorAnimationRef = useRef<number>(0);
   const hoverCheckTimeoutRef = useRef<number>(0);
 
   useEffect(() => {
@@ -57,27 +56,28 @@ const GlassCursor = () => {
     };
   }, []);
 
-  // Fade in white cursor on initial load
+  // Fade in white cursor on initial load using GSAP ticker
   useEffect(() => {
     const fadeInDuration = 3000;
     const startTime = performance.now();
 
-    const fadeIn = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
+    const fadeIn = () => {
+      const elapsed = performance.now() - startTime;
       const progress = Math.min(elapsed / fadeInDuration, 1);
 
       const easedProgress = progress * progress * (3 - 2 * progress);
       setWhiteCursorOpacity(easedProgress);
 
-      if (progress < 1) {
-        requestAnimationFrame(fadeIn);
+      if (progress >= 1) {
+        gsap.ticker.remove(fadeIn);
       }
     };
 
-    requestAnimationFrame(fadeIn);
+    gsap.ticker.add(fadeIn);
+    return () => gsap.ticker.remove(fadeIn);
   }, []);
 
-  // Animation loop for crystal cursor
+  // Animation loop for crystal cursor using GSAP ticker
   useEffect(() => {
     const animate = () => {
       const targetX = mousePositionRef.current.x;
@@ -97,20 +97,16 @@ const GlassCursor = () => {
         glassCursorElementRef.current.style.left = `${newX}px`;
         glassCursorElementRef.current.style.top = `${newY}px`;
       }
-
-      animationFrameRef.current = requestAnimationFrame(animate);
     };
 
-    animate();
+    gsap.ticker.add(animate);
 
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+      gsap.ticker.remove(animate);
     };
   }, []);
 
-  // Animation loop for white cursor
+  // Animation loop for white cursor using GSAP ticker
   useEffect(() => {
     if (whiteCursorElementRef.current) {
       smoothWhiteCursorRef.current = {
@@ -139,17 +135,12 @@ const GlassCursor = () => {
         whiteCursorElementRef.current.style.left = `${newX}px`;
         whiteCursorElementRef.current.style.top = `${newY}px`;
       }
-
-      whiteCursorAnimationRef.current =
-        requestAnimationFrame(animateWhiteCursor);
     };
 
-    whiteCursorAnimationRef.current = requestAnimationFrame(animateWhiteCursor);
+    gsap.ticker.add(animateWhiteCursor);
 
     return () => {
-      if (whiteCursorAnimationRef.current) {
-        cancelAnimationFrame(whiteCursorAnimationRef.current);
-      }
+      gsap.ticker.remove(animateWhiteCursor);
     };
   }, []);
 

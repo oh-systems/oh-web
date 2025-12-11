@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { gsap } from 'gsap';
 
 interface WaveClothShaderProps {
   progress?: number; // 0 to 1, for fade out
@@ -25,8 +26,6 @@ const WaveClothShader = ({ progress = 0 }: WaveClothShaderProps) => {
     while (container.firstChild) {
       container.removeChild(container.firstChild);
     }
-    
-    let animationId: number;
     
     // Vertex Shader
     const vertexShader = `
@@ -163,7 +162,7 @@ const WaveClothShader = ({ progress = 0 }: WaveClothShaderProps) => {
     // Clock for animation
     const clock = new THREE.Clock();
 
-    // Animation loop
+    // Animation loop using GSAP ticker
     const animate = () => {
       const elapsedTime = clock.getElapsedTime();
       material.uniforms.uTime.value = elapsedTime;
@@ -177,9 +176,8 @@ const WaveClothShader = ({ progress = 0 }: WaveClothShaderProps) => {
       material.uniforms.uOpacity.value = fadeOutProgress;
       
       renderer.render(scene, camera);
-      animationId = requestAnimationFrame(animate);
     };
-    animate();
+    gsap.ticker.add(animate);
 
     // Handle resize
     const handleResize = () => {
@@ -190,16 +188,19 @@ const WaveClothShader = ({ progress = 0 }: WaveClothShaderProps) => {
     };
     window.addEventListener('resize', handleResize);
 
+    // Capture container ref for cleanup
+    const currentContainer = containerRef.current;
+
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
-      cancelAnimationFrame(animationId);
+      gsap.ticker.remove(animate);
       
       // Remove canvas from DOM
-      if (containerRef.current && renderer.domElement) {
+      if (currentContainer && renderer.domElement) {
         const canvas = renderer.domElement;
-        if (containerRef.current.contains(canvas)) {
-          containerRef.current.removeChild(canvas);
+        if (currentContainer.contains(canvas)) {
+          currentContainer.removeChild(canvas);
         }
       }
       

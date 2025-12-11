@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useLayoutEffect, useRef, useEffect } from "react";
+import gsap from "gsap";
 import {
   Navigation,
   MobileMenu,
@@ -77,7 +78,6 @@ export default function Home() {
   const [scrollContentReady, setScrollContentReady] = useState(false);
   const [allSequencesPreloaded, setAllSequencesPreloaded] = useState(false);
   const scrollAnimationStartedRef = useRef(false);
-  const [showWaves, setShowWaves] = useState(false);
   const wavesShownRef = useRef(false);
 
   // No cursor management needed - CSS always hides default cursor
@@ -213,95 +213,67 @@ export default function Home() {
     const isMovingForward = targetIndex > currentIndex;
 
     // Phase 1: Animate to boundary based on direction
-    // If moving forward, animate to end of current section
-    // If moving backward, animate to start of current section
     const exitProgress = isMovingForward
       ? currentBoundary.end
       : currentBoundary.start;
     const exitScroll = exitProgress * maxScroll;
-
-    const phase1Duration = 500; // Faster for testing
-    const phase1Start = Date.now();
     const phase1StartScroll = currentScroll;
     const phase1Distance = exitScroll - phase1StartScroll;
 
-    const animatePhase1 = () => {
-      const elapsed = Date.now() - phase1Start;
-      const progress = Math.min(elapsed / phase1Duration, 1);
+    // Create GSAP timeline for two-phase transition
+    const tl = gsap.timeline({
+      onComplete: () => {
+        skipNavigationFadeUpdateRef.current = false;
+        setIsTransitioning(false);
+        setCurrentSection(section);
+        scheduleAutoPlayResume();
+      },
+    });
 
-      // Use easeInOutCubic for smoother, more complete-feeling animation
-      const easeInOutCubic = (t: number) => {
-        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-      };
-
-      const easedProgress = easeInOutCubic(progress);
-
-      // Animate to boundary
-      scrollAccumulatorRef.current =
-        phase1StartScroll + phase1Distance * easedProgress;
-      targetScrollRef.current = scrollAccumulatorRef.current;
-      autoPlayTimeRef.current =
-        (scrollAccumulatorRef.current / maxScroll) * 100;
-
-      if (updateAnimationProgressRef.current) {
-        updateAnimationProgressRef.current();
+    // Phase 1: Animate to section boundary (0.5s)
+    tl.to(
+      {},
+      {
+        duration: 0.5,
+        ease: "power3.inOut",
+        onUpdate: function () {
+          const progress = this.progress();
+          scrollAccumulatorRef.current = phase1StartScroll + phase1Distance * progress;
+          targetScrollRef.current = scrollAccumulatorRef.current;
+          autoPlayTimeRef.current = (scrollAccumulatorRef.current / maxScroll) * 100;
+          
+          if (updateAnimationProgressRef.current) {
+            updateAnimationProgressRef.current();
+          }
+          
+          setTransitionProgress(progress * 0.5);
+        },
       }
+    );
 
-      // Update transition progress (0-0.5 for phase 1)
-      setTransitionProgress(progress * 0.5);
-
-      if (progress < 1) {
-        requestAnimationFrame(animatePhase1);
-      } else {
-        // Phase 1 complete, jump to target section start
-        startPhase2();
-      }
-    };
-
-    const startPhase2 = () => {
-      // Jump to the beginning of the target section
+    // Phase 2: Jump to target section and fade in (0.3s)
+    tl.add(() => {
       const targetStartScroll = targetBoundary.start * maxScroll;
       scrollAccumulatorRef.current = targetStartScroll;
       targetScrollRef.current = targetStartScroll;
       autoPlayTimeRef.current = (targetStartScroll / maxScroll) * 100;
-
+      
       if (updateAnimationProgressRef.current) {
         updateAnimationProgressRef.current();
       }
+    });
 
-      // Phase 2: Fade in new content
-      const phase2Duration = 300; // Faster fade in for testing
-      const phase2Start = Date.now();
-
-      const animatePhase2 = () => {
-        const elapsed = Date.now() - phase2Start;
-        const progress = Math.min(elapsed / phase2Duration, 1);
-
-        // Use ease out for natural fade in
-        const easeOut = (t: number) => {
-          return 1 - Math.pow(1 - t, 3);
-        };
-
-        const easedProgress = easeOut(progress);
-
-        // Update transition progress (0.5-1.0 for phase 2)
-        setTransitionProgress(0.5 + easedProgress * 0.5);
-
-        if (progress < 1) {
-          requestAnimationFrame(animatePhase2);
-        } else {
-          // Transition complete
-          skipNavigationFadeUpdateRef.current = false; // Re-enable automatic navigation fade updates
-          setIsTransitioning(false);
-          setCurrentSection(section);
-          scheduleAutoPlayResume();
-        }
-      };
-
-      requestAnimationFrame(animatePhase2);
-    };
-
-    requestAnimationFrame(animatePhase1);
+    tl.to(
+      {},
+      {
+        duration: 0.3,
+        ease: "power3.out",
+        onUpdate: function () {
+          const progress = this.progress();
+          setTransitionProgress(0.5 + progress * 0.5);
+        },
+      }
+    );
   };
 
   // Helper function to schedule auto-play resumption
@@ -409,8 +381,6 @@ export default function Home() {
   useLayoutEffect(() => {
     if (!scrollContentReady) return; // Only start animation when content is ready
 
-    let animationFrameId: number;
-
     // Initialize refs only when starting
     if (
       autoPlayTimeRef.current === undefined ||
@@ -476,25 +446,21 @@ export default function Home() {
 
       const rawProgress = scrollAccumulatorRef.current / maxScrollRange;
 
-      // Update rawProgress state for tracking - only if changed significantly
-      if (Math.abs(rawProgress - rawProgressRef.current) > 0.0001) {
-        rawProgressRef.current = rawProgress;
-        setRawProgress(rawProgress);
+      // Update rawProgress ref for internal tracking
+      rawProgressRef.current = rawProgress;
 
-        // Control wave shader visibility - show when Cast Shadows ends (at swap start)
-        if (
-          !wavesShownRef.current &&
-          rawProgress >= LAPTOP_SWAP_CONFIG.swapStart
-        ) {
-          wavesShownRef.current = true;
-          setShowWaves(true);
-        }
+      // Control wave shader visibility - show when Cast Shadows ends (at swap start)
+      if (
+        !wavesShownRef.current &&
+        rawProgress >= LAPTOP_SWAP_CONFIG.swapStart
+      ) {
+        wavesShownRef.current = true;
       }
 
-      // Apply smooth easing for more natural animation feel
+      // Apply smooth easing for more natural animation feel  
       const clampedProgress = Math.min(rawProgress, 1.5); // Allow progress up to 1.5 for laptop animation
-      const easedProgress =
-        clampedProgress * clampedProgress * (3 - 2 * clampedProgress); // smoothstep
+      // Use GSAP's power2 easing (smoothstep equivalent)
+      const easedProgress = gsap.parseEase("power2.inOut")(clampedProgress);
 
       setAnimationProgress(easedProgress);
 
@@ -520,9 +486,8 @@ export default function Home() {
             1
           );
 
-          // Apply easing to fade for smooth transition
-          const easedFadeProgress =
-            fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
+          // Use GSAP easing
+          const easedFadeProgress = gsap.parseEase("power2.inOut")(fadeProgress);
 
           setNavigationFadeProgress(easedFadeProgress);
         } else {
@@ -539,9 +504,8 @@ export default function Home() {
           1
         );
 
-        // Apply smoothstep easing for natural crossfade
-        const easedSwapProgress =
-          swapProgress * swapProgress * (3 - 2 * swapProgress);
+        // Use GSAP easing for natural crossfade
+        const easedSwapProgress = gsap.parseEase("power2.inOut")(swapProgress);
 
         setCastSwapProgress(easedSwapProgress);
       } else {
@@ -570,24 +534,24 @@ export default function Home() {
         setCastAnimationProgress(nextCastAnimationProgress);
       }
 
-      // Calculate first hero text fade out progress - very fast
+      // Calculate first hero text fade out progress - quick fade with immediate upward movement
       if (
-        rawProgress >= TEXT_SEQUENCE.firstHeroEnd - 0.015 &&
-        rawProgress <= TEXT_SEQUENCE.firstHeroEnd + 0.015
+        rawProgress >= TEXT_SEQUENCE.firstHeroEnd - 0.01 &&
+        rawProgress <= TEXT_SEQUENCE.firstHeroEnd + 0.01
       ) {
         const fadeProgress =
-          (rawProgress - (TEXT_SEQUENCE.firstHeroEnd - 0.015)) / 0.03;
-        // Apply smooth easing
-        const smoothFade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
+          (rawProgress - (TEXT_SEQUENCE.firstHeroEnd - 0.01)) / 0.02;
+        // Use GSAP easing for snappier fade
+        const smoothFade = gsap.parseEase("power2.out")(fadeProgress);
         setFirstHeroFadeOut(smoothFade);
-      } else if (rawProgress > TEXT_SEQUENCE.firstHeroEnd + 0.015) {
+      } else if (rawProgress > TEXT_SEQUENCE.firstHeroEnd + 0.01) {
         setFirstHeroFadeOut(1);
       } else {
         setFirstHeroFadeOut(0);
       }
 
       // Calculate second hero text - direct custom animation control
-      const scrollStartThreshold = 0.08; // Later than first hero text (which starts at 0.02)
+      const scrollStartThreshold = 0.14; // Start at same time as first hero fade (was 0.08)
       const moveToMiddleEnd = 0.2; // Move to middle completes at 20% (slower movement - was 16%)
       const pauseAtMiddleEnd = 0.22; // Shorter pause
       const fadeCompleteEnd = 0.27; // Fade completes much sooner, before cast shadows
@@ -624,7 +588,7 @@ export default function Home() {
         setSecondHeroPosition(heroPos);
         setDescriptiveTextPosition(heroPos + gapInVh); // Responsive gap below second hero
         const fadeProgress = continueProgress;
-        const smoothFade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
+        const smoothFade = gsap.parseEase("power2.inOut")(fadeProgress);
         const opacity = Math.max(0, 1 - smoothFade);
         setSecondHeroOpacity(opacity);
         setDescriptiveTextOpacity(opacity); // EXACT same opacity timing as second hero
@@ -659,9 +623,8 @@ export default function Home() {
           1
         );
 
-        // Apply smoothstep easing for natural crossfade
-        const easedLaptopProgress =
-          laptopProgress * laptopProgress * (3 - 2 * laptopProgress);
+        // Use GSAP easing for natural crossfade
+        const easedLaptopProgress = gsap.parseEase("power2.inOut")(laptopProgress);
 
         setLaptopSwapProgress(easedLaptopProgress);
       } else {
@@ -695,16 +658,12 @@ export default function Home() {
     // Make updateAnimationProgress accessible via ref
     updateAnimationProgressRef.current = updateAnimationProgress;
 
-    let lastFrameTime = 0;
-    const startAnimationLoop = (currentTime: number = 0) => {
-      // Throttle to 60fps to prevent excessive updates
-      if (currentTime - lastFrameTime >= 16.67) {
-        // ~60fps
-        updateAnimationProgress();
-        lastFrameTime = currentTime;
-      }
-      animationFrameId = requestAnimationFrame(startAnimationLoop);
+    // GSAP ticker instead of RAF for smoother animation loop
+    const tickerCallback = () => {
+      updateAnimationProgress();
     };
+    
+    gsap.ticker.add(tickerCallback);
 
     const handleWheel = (e: WheelEvent) => {
       if (!initialLoadComplete) return;
@@ -944,9 +903,6 @@ export default function Home() {
       scheduleAutoPlayResume();
     };
 
-    // Start the animation loop
-    startAnimationLoop();
-
     // Add event listeners
     window.addEventListener("wheel", handleWheel, { passive: false });
     window.addEventListener("touchstart", handleTouchStart, { passive: false });
@@ -954,12 +910,28 @@ export default function Home() {
     window.addEventListener("keydown", handleKeyDown, { passive: false });
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      gsap.ticker.remove(tickerCallback);
       window.removeEventListener("wheel", handleWheel);
       window.removeEventListener("touchstart", handleTouchStart);
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("keydown", handleKeyDown);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollContentReady]);
+
+  // Separate effect to update rawProgress state for JSX at a throttled rate (60fps max)
+  useEffect(() => {
+    if (!scrollContentReady) return;
+
+    const updateRawProgressState = () => {
+      const currentRawProgress = rawProgressRef.current;
+      setRawProgress(currentRawProgress);
+    };
+
+    // Update at 60fps instead of on every ticker callback
+    const intervalId = setInterval(updateRawProgressState, 16); // ~60fps
+
+    return () => clearInterval(intervalId);
   }, [scrollContentReady]);
 
   // Don't render main content until transition is complete
@@ -1345,11 +1317,9 @@ export default function Home() {
                   <div
                     style={{
                       opacity,
-                      transform: `translateY(${firstHeroFadeOut * 20}px)`,
+                      transform: `translateY(-${firstHeroFadeOut * 100}px)`,
                       pointerEvents: opacity < 0.05 ? "none" : "auto",
                       visibility: shouldHide ? "hidden" : "visible",
-                      transition:
-                        "opacity 0.5s ease-out, transform 0.5s ease-out",
                     }}
                   >
                     <ScrollDrivenText
