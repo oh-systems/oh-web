@@ -74,8 +74,7 @@ export default function Home() {
   const [animationProgress, setAnimationProgress] = useState(0);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [scrollContentReady, setScrollContentReady] = useState(false);
-  const [castShadowsPreloaded, setCastShadowsPreloaded] = useState(false);
-  const [thirdLaptopPreloaded, setThirdLaptopPreloaded] = useState(false);
+  const [allSequencesPreloaded, setAllSequencesPreloaded] = useState(false);
   const scrollAnimationStartedRef = useRef(false);
 
   // No cursor management needed - CSS always hides default cursor
@@ -143,8 +142,6 @@ export default function Home() {
   const autoPlayResumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const targetScrollRef = useRef(0);
   const skipNavigationFadeUpdateRef = useRef(false); // Skip auto nav fade updates during transitions
-  const castShadowsLoadingRef = useRef(false); // Track if castShadows is already loading
-  const thirdLaptopLoadingRef = useRef(false); // Track if thirdLaptop is already loading
 
   // Handle navigation clicks
   const handleNavClick = (item: string) => {
@@ -334,75 +331,28 @@ export default function Home() {
     setContextFadeProgress(navigationFadeProgress);
   }, [navigationFadeProgress, setContextFadeProgress]);
 
-  // Debug: Log display conditions
-  useEffect(() => {
-    const shouldShowCast = castSwapProgress > 0 && laptopSwapProgress < 0.5;
-    const shouldShowLaptop = laptopSwapProgress > 0.5;
-    if (castSwapProgress > 0 || laptopSwapProgress > 0) {
-      console.log('📺 Display state:', {
-        castSwapProgress: castSwapProgress.toFixed(3),
-        laptopSwapProgress: laptopSwapProgress.toFixed(3),
-        shouldShowCast,
-        shouldShowLaptop,
-        rawProgress: rawProgress.toFixed(3)
-      });
-    }
-  }, [castSwapProgress, laptopSwapProgress, rawProgress]);
-
-  // Start preloading priority sequences first, then lazy-load others based on scroll
+  // Start preloading all sequences immediately when component mounts
   useEffect(() => {
     const startPreloading = async () => {
       console.log(
-        "⚡ Starting priority preload (initialLoad + initialScroll)..."
+        "🎬 Starting to preload all sequences during initial load..."
       );
 
       try {
-        // Phase 1: Load only priority sequences (initialLoad + initialScroll)
-        await preloader.preloadPrioritySequences((progress: PreloadProgress) => {
+        await preloader.preloadAllSequences((progress: PreloadProgress) => {
           setLoadingProgress(progress.overall); // Report to AppContext for ring loader
           console.log(
-            `📊 Priority preload progress: ${(progress.overall * 100).toFixed(1)}%`
+            `📊 Preload progress: ${(progress.overall * 100).toFixed(1)}%`
           );
         });
 
-        console.log("✅ Priority sequences preloaded! Showing content now...");
+        console.log("✅ All sequences preloaded!");
+        setAllSequencesPreloaded(true);
         setIsLoadingComplete(true); // Signal to ring loader that loading is complete
-        
-        // Immediately start preloading Cast Shadows in the background
-        setTimeout(() => {
-          console.log("🔄 Background preloading Cast Shadows...");
-          castShadowsLoadingRef.current = true;
-          setCastShadowsPreloaded(true);
-          preloader.preloadCastShadows((loaded, total) => {
-            if (loaded % 200 === 0 || loaded === total) {
-              console.log(`📊 Cast Shadows background: ${loaded}/${total} frames`);
-            }
-          }).then(() => {
-            console.log("✅ Cast Shadows preloaded in background!");
-            
-            // After Cast Shadows completes, start preloading Laptop
-            setTimeout(() => {
-              console.log("🔄 Background preloading Third Laptop...");
-              thirdLaptopLoadingRef.current = true;
-              setThirdLaptopPreloaded(true);
-              preloader.preloadThirdLaptop((loaded, total) => {
-                if (loaded % 200 === 0 || loaded === total) {
-                  console.log(`📊 Third Laptop background: ${loaded}/${total} frames`);
-                }
-              }).then(() => {
-                console.log("✅ Third Laptop preloaded in background! All sequences ready.");
-              }).catch((error) => {
-                console.error("❌ Error preloading Third Laptop:", error);
-              });
-            }, 500);
-          }).catch((error) => {
-            console.error("❌ Error preloading Cast Shadows:", error);
-          });
-        }, 500); // Start after 500ms
-
       } catch (error) {
-        console.error("❌ Error preloading priority sequences:", error);
+        console.error("❌ Error preloading sequences:", error);
         // Still allow the app to continue even if preloading fails
+        setAllSequencesPreloaded(true);
         setIsLoadingComplete(true);
       }
     };
@@ -410,13 +360,13 @@ export default function Home() {
     startPreloading();
   }, [setLoadingProgress, setIsLoadingComplete]);
 
-  // Update initialLoadComplete when content becomes visible (no longer waiting for ALL sequences)
+  // Update initialLoadComplete when content becomes visible AND all sequences are preloaded
   useEffect(() => {
-    if (contentVisible && !initialLoadComplete) {
-      console.log("🎉 Initial load complete - priority sequences ready!");
+    if (contentVisible && allSequencesPreloaded && !initialLoadComplete) {
+      console.log("🎉 Initial load complete - all sequences ready!");
       setInitialLoadComplete(true);
     }
-  }, [contentVisible, initialLoadComplete]);
+  }, [contentVisible, allSequencesPreloaded, initialLoadComplete]);
 
   // Handle 2-second delay before showing scroll content
   useEffect(() => {
@@ -537,10 +487,6 @@ export default function Home() {
         }
       }
 
-      // Scroll-aware lazy loading: All sequences now preloaded in background
-      // Cast Shadows: loads after priority sequences (500ms delay)
-      // Third Laptop: loads after Cast Shadows completes
-      
       // Calculate fade progress for navigation and ring (Stage 1)
       if (!skipNavigationFadeUpdateRef.current) {
         if (rawProgress >= STAGE_1_CONFIG.fadeStartProgress) {
@@ -574,11 +520,6 @@ export default function Home() {
           swapProgress * swapProgress * (3 - 2 * swapProgress);
 
         setCastSwapProgress(easedSwapProgress);
-        
-        // Debug logging
-        if (rawProgress > 0.16 && rawProgress < 0.25) {
-          console.log('🎬 Cast Shadows - rawProgress:', rawProgress.toFixed(3), 'castSwapProgress:', easedSwapProgress.toFixed(3));
-        }
       } else {
         // Reset swap progress when scrolling back
         setCastSwapProgress(0);
@@ -587,24 +528,13 @@ export default function Home() {
       // Calculate Cast Shadows animation progress - match laptop approach exactly
       let nextCastAnimationProgress = 0;
       if (rawProgress >= MODEL_SWAP_CONFIG.animationStart) {
-        const castStart = MODEL_SWAP_CONFIG.animationStart; // 0.2 (20%)
-        const castEnd = MODEL_SWAP_CONFIG.animationEnd; // 0.533 (53.3%)
+        const castStart = MODEL_SWAP_CONFIG.animationStart; // 55.1%
+        const castEnd = MODEL_SWAP_CONFIG.animationEnd; // 90%
         const linearProgress =
           (rawProgress - castStart) / (castEnd - castStart);
 
         // Use linear progress for consistent, smooth animation speed - no clamping to allow full range
         nextCastAnimationProgress = Math.max(0, linearProgress);
-        
-        // Debug logging
-        if (rawProgress > 0.19 && rawProgress < 0.25) {
-          console.log('🎨 castAnimationProgress calc:', {
-            rawProgress: rawProgress.toFixed(3),
-            castStart,
-            castEnd,
-            linearProgress: linearProgress.toFixed(3),
-            nextCastAnimationProgress: nextCastAnimationProgress.toFixed(3)
-          });
-        }
       }
 
       // Only update state if the value actually changed to prevent render loops
@@ -710,11 +640,6 @@ export default function Home() {
           laptopProgress * laptopProgress * (3 - 2 * laptopProgress);
 
         setLaptopSwapProgress(easedLaptopProgress);
-        
-        // Debug logging
-        if (rawProgress > 0.53 && rawProgress < 0.60) {
-          console.log('💻 Laptop - rawProgress:', rawProgress.toFixed(3), 'laptopSwapProgress:', easedLaptopProgress.toFixed(3));
-        }
       } else {
         // Reset laptop swap progress when scrolling back
         setLaptopSwapProgress(0);
@@ -1011,7 +936,6 @@ export default function Home() {
       window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("keydown", handleKeyDown);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollContentReady]);
 
   // Don't render main content until transition is complete
@@ -1115,7 +1039,7 @@ export default function Home() {
                 startAnimation={true}
                 onSequenceComplete={() => {
                   // Note: we don't set initialLoadComplete here anymore
-                  // It's set when contentVisible becomes true
+                  // It's set when both contentVisible AND allSequencesPreloaded are true
                 }}
                 onLoadingProgress={() => {
                   // This tracks InitialLoadSequence progress (optional, not used for gating)
@@ -1126,8 +1050,8 @@ export default function Home() {
           </div>
         )}
 
-        {/* Scroll-driven Animation Content - only visible after initial load */}
-        {scrollContentReady && (
+        {/* Scroll-driven Animation Content - only visible after initial load + all sequences preloaded */}
+        {scrollContentReady && allSequencesPreloaded && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-full h-full flex items-center justify-center">
               {/* Initial Scroll sequence - no artificial fading, images handle their own transitions */}
@@ -1141,7 +1065,10 @@ export default function Home() {
                   position: "absolute",
                   pointerEvents:
                     rawProgress < MODEL_SWAP_CONFIG.swapStart ? "auto" : "none",
-                  top: typeof window !== "undefined" && window.innerWidth < 768 ? "-15%" : "0",
+                  top:
+                    typeof window !== "undefined" && window.innerWidth < 768
+                      ? "-15%"
+                      : "0",
                 }}
               >
                 <InitialScrollSequence
@@ -1184,27 +1111,34 @@ export default function Home() {
               <div
                 style={{
                   display:
-                    castSwapProgress > 0 && laptopSwapProgress < 0.5
-                      ? "flex"
-                      : "none",
+                    castSwapProgress < 0.5 || laptopSwapProgress > 0.5
+                      ? "none"
+                      : "flex",
                   position: "absolute",
                   inset: 0, // Full-screen positioning
                   width: "100vw",
                   height: "100vh",
                   alignItems: "center",
                   justifyContent: "center",
-                  zIndex: 50, // Ensure it's above other content
                   pointerEvents:
-                    castSwapProgress > 0 && laptopSwapProgress < 0.5
-                      ? "auto"
-                      : "none",
-                  overflow: typeof window !== 'undefined' && window.innerWidth < 768 ? "hidden" : "visible",
+                    castSwapProgress < 0.5 || laptopSwapProgress > 0.5
+                      ? "none"
+                      : "auto",
+                  overflow:
+                    typeof window !== "undefined" && window.innerWidth < 768
+                      ? "hidden"
+                      : "visible",
                 }}
               >
-                <div style={{
-                  transform: typeof window !== 'undefined' && window.innerWidth < 768 ? "scaleX(3) scaleY(1)" : "scale(1)",
-                  transformOrigin: "center center",
-                }}>
+                <div
+                  style={{
+                    transform:
+                      typeof window !== "undefined" && window.innerWidth < 768
+                        ? "scaleX(3) scaleY(1)"
+                        : "scale(1)",
+                    transformOrigin: "center center",
+                  }}
+                >
                   <CastShadowsSequence
                     width={viewportDimensions.width}
                     height={viewportDimensions.height}
@@ -1293,12 +1227,17 @@ export default function Home() {
                 </div>
 
                 {/* Laptop images on top */}
-                <div style={{ 
-                  position: "relative", 
-                  zIndex: 10,
-                  transform: typeof window !== 'undefined' && window.innerWidth < 768 ? "scale(1.3)" : "scale(1)",
-                  transformOrigin: "center center",
-                }}>
+                <div
+                  style={{
+                    position: "relative",
+                    zIndex: 10,
+                    transform:
+                      typeof window !== "undefined" && window.innerWidth < 768
+                        ? "scale(1.3)"
+                        : "scale(1)",
+                    transformOrigin: "center center",
+                  }}
+                >
                   <ThirdLaptopSequence
                     width={viewportDimensions.width}
                     height={viewportDimensions.height}
@@ -1313,7 +1252,10 @@ export default function Home() {
             <div
               className="absolute left-0 pl-4 md:pl-16 z-[150]"
               style={{
-                top: typeof window !== "undefined" && window.innerWidth < 768 ? "35%" : "50%",
+                top:
+                  typeof window !== "undefined" && window.innerWidth < 768
+                    ? "35%"
+                    : "50%",
                 transform: "translateY(-50%)",
                 opacity: textOpacity,
                 transition: isTransitioning
