@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
+import gsap from "gsap";
 import { getInitialScrollImageUrl } from "../lib/models-config";
 import { SequencePreloader } from "../lib/sequence-preloader";
 
@@ -40,11 +41,10 @@ export default function InitialScrollSequence({
   const containerRef = useRef<HTMLDivElement>(null);
   const lastRenderedFrame = useRef<number>(-1);
   
-  // Time-based animation state
-  const [currentTimeFrame, setCurrentTimeFrame] = useState(0);
+  // GSAP-based animation state
+  const currentTimeFrame = useRef(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const animationFrameRef = useRef<number | null>(null);
-  const lastUpdateTimeRef = useRef<number>(0);
+  const tickerCallbackRef = useRef<(() => void) | null>(null);
 
   // Generate array of image paths for Initial Scroll (1-indexed, 600 frames total)
   const imagePaths = useMemo(() => {
@@ -72,9 +72,9 @@ export default function InitialScrollSequence({
       const frame = Math.floor(scrollProgress * (totalFrames - 1));
       return Math.max(0, Math.min(frame, totalFrames - 1));
     } else {
-      return Math.max(0, Math.min(Math.floor(currentTimeFrame), totalFrames - 1));
+      return Math.max(0, Math.min(Math.floor(currentTimeFrame.current), totalFrames - 1));
     }
-  }, [scrollProgress, totalFrames, isScrollDriven, currentTimeFrame]);
+  }, [scrollProgress, totalFrames, isScrollDriven]);
 
   // Preload frame - use globally preloaded images when available
   const preloadFrame = useCallback(
@@ -158,59 +158,52 @@ export default function InitialScrollSequence({
     [width, height]
   );
 
-  // Time-based animation loop
-  const animate = useCallback(() => {
-    if (!isPlaying) return;
-
-    const now = performance.now();
-    const deltaTime = now - lastUpdateTimeRef.current;
-    const frameInterval = 1000 / effectiveFPS;
-
-    // Calculate exact frame position based on elapsed time
-    const frameIncrement = deltaTime / frameInterval;
-    
-    setCurrentTimeFrame((prevFrame) => {
-      const nextFrame = prevFrame + frameIncrement;
-      if (nextFrame >= totalFrames) {
-        setIsPlaying(false);
-        return totalFrames - 1;
+  // GSAP ticker-based animation loop
+  useEffect(() => {
+    if (!isPlaying || isScrollDriven) {
+      if (tickerCallbackRef.current) {
+        gsap.ticker.remove(tickerCallbackRef.current);
+        tickerCallbackRef.current = null;
       }
-      return nextFrame;
-    });
+      return;
+    }
 
-    lastUpdateTimeRef.current = now;
-    animationFrameRef.current = requestAnimationFrame(animate);
-  }, [isPlaying, effectiveFPS, totalFrames]);
+    const frameIncrement = effectiveFPS / 60; // GSAP ticker runs at 60fps typically
+    
+    const tickerCallback = () => {
+      currentTimeFrame.current += frameIncrement;
+      
+      if (currentTimeFrame.current >= totalFrames) {
+        setIsPlaying(false);
+        currentTimeFrame.current = totalFrames - 1;
+      }
+      
+      // Force re-render to update currentFrame
+      renderFrame(Math.floor(currentTimeFrame.current));
+    };
+
+    tickerCallbackRef.current = tickerCallback;
+    gsap.ticker.add(tickerCallback);
+
+    return () => {
+      if (tickerCallbackRef.current) {
+        gsap.ticker.remove(tickerCallbackRef.current);
+        tickerCallbackRef.current = null;
+      }
+    };
+  }, [isPlaying, effectiveFPS, totalFrames, isScrollDriven, renderFrame]);
 
   // Start/stop animation based on props
   useEffect(() => {
     if (autoPlay && startAnimation && !isScrollDriven) {
+      currentTimeFrame.current = 0;
       setIsPlaying(true);
     } else {
       setIsPlaying(false);
     }
   }, [autoPlay, startAnimation, isScrollDriven]);
 
-  // Animation loop management
-  useEffect(() => {
-    if (isPlaying) {
-      lastUpdateTimeRef.current = performance.now();
-      animationFrameRef.current = requestAnimationFrame(animate);
-    } else {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-    }
-
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, [isPlaying, animate]);
-
-  // Render current frame with RAF - smooth rendering for both modes
+  // Render current frame - smooth rendering for both modes
   const isScrollDrivenRef = useRef(isScrollDriven);
   
   // Update ref when isScrollDriven changes
@@ -218,25 +211,24 @@ export default function InitialScrollSequence({
     isScrollDrivenRef.current = isScrollDriven;
   }, [isScrollDriven]);
   
+  // Render current frame for scroll-driven mode
   useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      // Render immediately for smooth playback
-      const img = imageCache.current.get(currentFrame);
-      if (img && img.complete) {
-        renderFrame(currentFrame);
-      } else {
-        // Fallback: try rendering a nearby loaded frame to prevent blank canvas
-        for (let i = 1; i <= 3; i++) {
-          const fallbackFrame = currentFrame - i;
-          if (fallbackFrame >= 0 && imageCache.current.has(fallbackFrame)) {
-            renderFrame(fallbackFrame);
-            break;
-          }
+    if (!isScrollDriven) return;
+    
+    const img = imageCache.current.get(currentFrame);
+    if (img && img.complete) {
+      renderFrame(currentFrame);
+    } else {
+      // Fallback: try rendering a nearby loaded frame to prevent blank canvas
+      for (let i = 1; i <= 3; i++) {
+        const fallbackFrame = currentFrame - i;
+        if (fallbackFrame >= 0 && imageCache.current.has(fallbackFrame)) {
+          renderFrame(fallbackFrame);
+          break;
         }
       }
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [currentFrame, renderFrame]);
+    }
+  }, [currentFrame, renderFrame, isScrollDriven]);
 
   // Populate local cache from global preloader cache on mount
   useEffect(() => {
