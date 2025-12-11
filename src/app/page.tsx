@@ -1223,14 +1223,12 @@ export default function Home() {
                 {/* Animated gradient background - behind waves */}
                 <div
                   key="animated-gradient-laptop"
+                  className="animated-gradient-bg"
                   style={{
                     position: "absolute",
                     inset: 0,
                     zIndex: -1,
                     pointerEvents: "none",
-                    background: "linear-gradient(-45deg, #1a1a1a, #2d2d2d, #404040, #0a0a0a)",
-                    backgroundSize: "400% 400%",
-                    animation: "gradient 30s ease infinite",
                     opacity: (() => {
                       const fadeInDuration = 0.05; // 5% progress (~6 seconds)
                       const fadeOutDuration = 0.05; // 5% progress (~6 seconds)
