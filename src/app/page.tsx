@@ -471,10 +471,10 @@ export default function Home() {
         rawProgressRef.current = rawProgress;
         setRawProgress(rawProgress);
 
-        // Control wave shader visibility based on laptop section - only set once
+        // Control wave shader visibility - show when Cast Shadows ends (at swap start)
         if (
           !wavesShownRef.current &&
-          rawProgress >= LAPTOP_SWAP_CONFIG.animationStart
+          rawProgress >= LAPTOP_SWAP_CONFIG.swapStart
         ) {
           wavesShownRef.current = true;
           setShowWaves(true);
@@ -1220,6 +1220,35 @@ export default function Home() {
                   zIndex: 150,
                 }}
               >
+                {/* Animated gradient background - behind waves */}
+                {showWaves && (
+                  <div
+                    key="animated-gradient-laptop"
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      zIndex: -1,
+                      pointerEvents: "none",
+                      background: "linear-gradient(-45deg, #1a1a1a, #2d2d2d, #404040, #0a0a0a)",
+                      backgroundSize: "400% 400%",
+                      animation: "gradient 30s ease infinite",
+                      opacity: (() => {
+                        // Fade in at the start of laptop section
+                        if (rawProgress < LAPTOP_SWAP_CONFIG.swapStart + 0.03) {
+                          return Math.min(1, (rawProgress - LAPTOP_SWAP_CONFIG.swapStart) / 0.03);
+                        }
+                        // Fade out at the end of laptop section
+                        if (rawProgress > LAPTOP_SWAP_CONFIG.animationEnd - 0.03) {
+                          return Math.max(0, (LAPTOP_SWAP_CONFIG.animationEnd - rawProgress) / 0.03);
+                        }
+                        // Full opacity in between
+                        return 1;
+                      })(),
+                      transition: "opacity 1.2s ease-in-out",
+                    }}
+                  />
+                )}
+
                 {/* Wave shader background - behind everything, only render when visible */}
                 {showWaves && (
                   <div
@@ -1229,6 +1258,8 @@ export default function Home() {
                       inset: 0,
                       zIndex: 0,
                       pointerEvents: "none",
+                      opacity: Math.min(1, (rawProgress - LAPTOP_SWAP_CONFIG.swapStart) / 0.03), // Fade in over 3% progress (~3.6 seconds)
+                      transition: "opacity 1.2s ease-out",
                     }}
                   >
                     <WaveClothShader progress={laptopAnimationProgress} />
@@ -1262,9 +1293,11 @@ export default function Home() {
                     zIndex: 10,
                     transform:
                       typeof window !== "undefined" && window.innerWidth < 768
-                        ? "scale(1.3)"
-                        : "scale(1)",
+                        ? `scale(1.3) translateY(${Math.max(0, (1 - laptopAnimationProgress * 10) * 20)}px)`
+                        : `scale(1) translateY(${Math.max(0, (1 - laptopAnimationProgress * 10) * 30)}px)`,
                     transformOrigin: "center center",
+                    opacity: Math.min(1, laptopAnimationProgress * 10), // Fade in during first 10% of animation
+                    transition: "opacity 0.3s ease-out, transform 0.3s ease-out",
                   }}
                 >
                   <ThirdLaptopSequence

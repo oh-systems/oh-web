@@ -144,7 +144,7 @@ const WaveClothShader = ({ progress = 0 }: WaveClothShaderProps) => {
       side: THREE.DoubleSide,
       uniforms: {
         uTime: { value: 0 },
-        uOpacity: { value: 0 },
+        uOpacity: { value: 1 }, // Start at full opacity (CSS will handle fade in)
         uResolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
       },
       transparent: true,
@@ -162,23 +162,19 @@ const WaveClothShader = ({ progress = 0 }: WaveClothShaderProps) => {
 
     // Clock for animation
     const clock = new THREE.Clock();
-    const fadeInDuration = 1.0; // 1 second fade in
 
     // Animation loop
     const animate = () => {
       const elapsedTime = clock.getElapsedTime();
       material.uniforms.uTime.value = elapsedTime;
       
-      // Fade in opacity over fadeInDuration
-      const fadeProgress = Math.min(elapsedTime / fadeInDuration, 1);
-      
       // Apply fade out based on progress prop (85% to 100%)
       const fadeOutStart = 0.85;
       const currentProgress = progressRef.current;
       const fadeOutProgress = currentProgress < fadeOutStart ? 1 : 1 - ((currentProgress - fadeOutStart) / (1 - fadeOutStart));
       
-      // Combine fade in and fade out
-      material.uniforms.uOpacity.value = fadeProgress * fadeOutProgress;
+      // Set opacity based on fade out only (CSS handles fade in)
+      material.uniforms.uOpacity.value = fadeOutProgress;
       
       renderer.render(scene, camera);
       animationId = requestAnimationFrame(animate);
