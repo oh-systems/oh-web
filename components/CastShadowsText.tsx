@@ -93,6 +93,33 @@ export default function CastShadowsText({
     return () => clearInterval(interval);
   }, [scrollProgress]);
 
+  // Flickering effect for lines - randomly change opacity
+  const [lineFlicker, setLineFlicker] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const flickerInterval = setInterval(() => {
+      // Create flicker values for each line
+      const newFlicker: Record<string, number> = {};
+      
+      // Randomly select 2 lines to flicker
+      const linesToFlicker = new Set<number>();
+      while (linesToFlicker.size < 2) {
+        linesToFlicker.add(Math.floor(Math.random() * 9) + 1);
+      }
+      
+      for (let i = 1; i <= 9; i++) {
+        if (linesToFlicker.has(i)) {
+          newFlicker[`line${i}`] = 0; // Fully invisible
+        } else {
+          newFlicker[`line${i}`] = 1; // Full opacity
+        }
+      }
+      setLineFlicker(newFlicker);
+    }, 100); // Flicker every 100ms for faster glitchy effect
+
+    return () => clearInterval(flickerInterval);
+  }, []); // Empty dependency array - runs independently of scroll
+
   // Calculate random offsets for each text element with cursor-induced rotation
   const calculateOffset = (baseX: number, baseY: number, seed: number, range: number) => {
     // Random component (50% influence)
@@ -160,27 +187,40 @@ export default function CastShadowsText({
   const aiBuiltInOpacity = allTextOpacity;
   const latencyOpacity = allTextOpacity;
 
-  // Helper function to draw SVG line
-  const renderLine = (x1: string, y1: string, x2: string, y2: string, key: string) => (
-    <svg
-      key={key}
-      className="absolute inset-0 pointer-events-none"
-      style={{
-        width: "100%",
-        height: "100%",
-        opacity: allTextOpacity,
-      }}
-    >
-      <line
-        x1={x1}
-        y1={y1}
-        x2={x2}
-        y2={y2}
-        stroke="white"
-        strokeWidth="1.5"
-      />
-    </svg>
-  );
+  // Helper function to draw SVG line with circle at connection point
+  const renderLine = (x1: string, y1: string, x2: string, y2: string, key: string) => {
+    const flickerOpacity = lineFlicker[key] !== undefined ? lineFlicker[key] : 1;
+    const finalOpacity = flickerOpacity * allTextOpacity;
+    
+    return (
+      <svg
+        key={key}
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          width: "100%",
+          height: "100%",
+        }}
+      >
+        <line
+          x1={x1}
+          y1={y1}
+          x2={x2}
+          y2={y2}
+          stroke="white"
+          strokeWidth="1.5"
+          opacity={finalOpacity}
+        />
+        {/* Small white circle at the connection point (x2, y2) */}
+        <circle
+          cx={x2}
+          cy={y2}
+          r="3"
+          fill="white"
+          opacity={finalOpacity}
+        />
+      </svg>
+    );
+  };
 
   return (
     <>
