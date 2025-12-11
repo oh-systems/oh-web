@@ -10,9 +10,10 @@ interface FooterProps {
   style?: React.CSSProperties;
   scrollProgress?: number; // Progress within the footer section
   onRingCenterComplete?: () => void; // Callback when ring reaches center
+  onNavClick?: (item: string) => void; // Navigation click handler
 }
 
-export default function Footer({ className = "", style, scrollProgress = 0, onRingCenterComplete }: FooterProps) {
+export default function Footer({ className = "", style, scrollProgress = 0, onRingCenterComplete, onNavClick }: FooterProps) {
   const { setPermanentRingVisible } = useAppContext();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -309,9 +310,12 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
           transition: "opacity 0.5s ease",
         }}
       >
-        <a 
-          href="#" 
-          onClick={playClickSound}
+        <a
+          onClick={(e) => {
+            e.preventDefault();
+            playClickSound();
+            onNavClick?.("privacy");
+          }}
           style={{ 
             color: "#484848", 
             textDecoration: "none",
@@ -320,9 +324,12 @@ export default function Footer({ className = "", style, scrollProgress = 0, onRi
         >
           PRIVACY POLICY
         </a>
-        <a 
-          href="#" 
-          onClick={playClickSound}
+        <a
+          onClick={(e) => {
+            e.preventDefault();
+            playClickSound();
+            onNavClick?.("terms");
+          }}
           style={{ 
             color: "#484848", 
             textDecoration: "none",

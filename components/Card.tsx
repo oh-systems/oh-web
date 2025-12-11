@@ -23,7 +23,15 @@ interface ContactCardProps extends CardProps {
   }) => void;
 }
 
-type CardComponentProps = AboutCardProps | ContactCardProps;
+interface PrivacyCardProps extends CardProps {
+  type: "privacy";
+}
+
+interface TermsCardProps extends CardProps {
+  type: "terms";
+}
+
+type CardComponentProps = AboutCardProps | ContactCardProps | PrivacyCardProps | TermsCardProps;
 
 export default function Card(props: CardComponentProps) {
   const { title, className = "", style = {} } = props;
@@ -144,6 +152,97 @@ export default function Card(props: CardComponentProps) {
         >
           {props.body}
         </p>
+      )}
+
+      {props.type === "privacy" && (
+        <div
+          style={{
+            fontFamily: "Helvetica, Arial, sans-serif",
+            fontSize: "12px",
+            fontWeight: "400",
+            color: "rgba(255, 255, 255, 0.9)",
+            lineHeight: "1.6",
+            maxHeight: "400px",
+            overflowY: "auto",
+            paddingRight: "8px",
+          }}
+        >
+          <p style={{ marginBottom: "16px" }}>
+            <strong>Last Updated:</strong> December 11, 2025
+          </p>
+          
+          <p style={{ marginBottom: "16px" }}>
+            OH Systems ("OH", "we", "us", or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website or use our services.
+          </p>
+
+          <h3 style={{ fontWeight: "600", marginTop: "16px", marginBottom: "8px" }}>Information We Collect</h3>
+          <p style={{ marginBottom: "16px" }}>
+            We collect information that you provide directly to us, including name, email address, phone number, and any messages you send through our contact forms. We also automatically collect certain information about your device and how you interact with our services.
+          </p>
+
+          <h3 style={{ fontWeight: "600", marginTop: "16px", marginBottom: "8px" }}>How We Use Your Information</h3>
+          <p style={{ marginBottom: "16px" }}>
+            We use the information we collect to provide, maintain, and improve our services, to communicate with you, to respond to your inquiries, and to send you technical notices and support messages.
+          </p>
+
+          <h3 style={{ fontWeight: "600", marginTop: "16px", marginBottom: "8px" }}>Data Security</h3>
+          <p style={{ marginBottom: "16px" }}>
+            We implement appropriate technical and organizational measures to protect your personal information. However, no method of transmission over the Internet is 100% secure.
+          </p>
+
+          <h3 style={{ fontWeight: "600", marginTop: "16px", marginBottom: "8px" }}>Contact Us</h3>
+          <p style={{ marginBottom: "0" }}>
+            If you have questions about this Privacy Policy, please contact us through our website contact form.
+          </p>
+        </div>
+      )}
+
+      {props.type === "terms" && (
+        <div
+          style={{
+            fontFamily: "Helvetica, Arial, sans-serif",
+            fontSize: "12px",
+            fontWeight: "400",
+            color: "rgba(255, 255, 255, 0.9)",
+            lineHeight: "1.6",
+            maxHeight: "400px",
+            overflowY: "auto",
+            paddingRight: "8px",
+          }}
+        >
+          <p style={{ marginBottom: "16px" }}>
+            <strong>Last Updated:</strong> December 11, 2025
+          </p>
+          
+          <p style={{ marginBottom: "16px" }}>
+            These Terms and Conditions ("Terms") govern your use of the OH Systems website and services. By accessing or using our services, you agree to be bound by these Terms.
+          </p>
+
+          <h3 style={{ fontWeight: "600", marginTop: "16px", marginBottom: "8px" }}>Use of Services</h3>
+          <p style={{ marginBottom: "16px" }}>
+            You may use our services only in compliance with these Terms and all applicable laws. You are responsible for your use of the services and for any consequences thereof.
+          </p>
+
+          <h3 style={{ fontWeight: "600", marginTop: "16px", marginBottom: "8px" }}>Intellectual Property</h3>
+          <p style={{ marginBottom: "16px" }}>
+            All content, features, and functionality of our services are owned by OH Systems and are protected by international copyright, trademark, and other intellectual property laws.
+          </p>
+
+          <h3 style={{ fontWeight: "600", marginTop: "16px", marginBottom: "8px" }}>Limitation of Liability</h3>
+          <p style={{ marginBottom: "16px" }}>
+            To the fullest extent permitted by law, OH Systems shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of our services.
+          </p>
+
+          <h3 style={{ fontWeight: "600", marginTop: "16px", marginBottom: "8px" }}>Changes to Terms</h3>
+          <p style={{ marginBottom: "16px" }}>
+            We reserve the right to modify these Terms at any time. Your continued use of our services after any such changes constitutes your acceptance of the new Terms.
+          </p>
+
+          <h3 style={{ fontWeight: "600", marginTop: "16px", marginBottom: "8px" }}>Contact Information</h3>
+          <p style={{ marginBottom: "0" }}>
+            For questions about these Terms, please contact us through our website contact form.
+          </p>
+        </div>
       )}
 
         {props.type === "contact" && (

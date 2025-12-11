@@ -101,6 +101,8 @@ export default function Home() {
   const [firstHeroFadeOut, setFirstHeroFadeOut] = useState(0);
   const [showAbout, setShowAbout] = useState(false);
   const [showContact, setShowContact] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   const [viewportDimensions, setViewportDimensions] = useState({
     width: 1920,
     height: 1080,
@@ -154,10 +156,18 @@ export default function Home() {
     } else if (item === "contact") {
       setShowContact(!showContact);
       setActiveCard(null);
+    } else if (item === "privacy") {
+      setShowPrivacy(!showPrivacy);
+      setActiveCard(null);
+    } else if (item === "terms") {
+      setShowTerms(!showTerms);
+      setActiveCard(null);
     } else if (item === "space") {
       setActiveCard(null); // Hide cards for Space
       setShowAbout(false);
       setShowContact(false);
+      setShowPrivacy(false);
+      setShowTerms(false);
     }
   };
 
@@ -1483,6 +1493,7 @@ export default function Home() {
           >
             <Footer
               scrollProgress={(rawProgress - 0.8) / 0.2}
+              onNavClick={handleNavClick}
               onRingCenterComplete={() => {
                 // Lock scroll once ring reaches center
                 if (containerRef.current) {
@@ -1498,12 +1509,16 @@ export default function Home() {
         )}
       </div>
 
-      {/* Glass Sections for About and Contact - rendered outside main container like Navigation */}
+      {/* Glass Sections for About, Contact, Privacy, and Terms - rendered outside main container like Navigation */}
       <GlassSections
         showAbout={showAbout}
         showContact={showContact}
+        showPrivacy={showPrivacy}
+        showTerms={showTerms}
         onAboutClose={() => setShowAbout(false)}
         onContactClose={() => setShowContact(false)}
+        onPrivacyClose={() => setShowPrivacy(false)}
+        onTermsClose={() => setShowTerms(false)}
       />
     </>
   );

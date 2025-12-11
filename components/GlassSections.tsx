@@ -498,21 +498,208 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
   );
 };
 
+interface PrivacySectionProps {
+  isVisible: boolean;
+  onClose?: () => void;
+}
+
+export const PrivacySection: React.FC<PrivacySectionProps> = ({
+  isVisible,
+  onClose,
+}) => {
+  return (
+    <div
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'scale(1) translateY(0)' : 'scale(0.8) translateY(-20px)',
+        transition: 'opacity 0.3s ease-out, transform 0.3s ease-out',
+        pointerEvents: isVisible ? 'auto' : 'none',
+        visibility: isVisible ? 'visible' : 'hidden'
+      }}
+    >
+      <DraggableCard onClose={onClose || (() => {})}>
+        <div style={{ paddingTop: "60px" }}>
+          <h2
+            style={{
+              fontSize: "20px",
+              fontWeight: "400",
+              color: "white",
+              margin: "0 0 16px 0",
+              fontFamily: "Helvetica, Arial, sans-serif",
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "center",
+              lineHeight: "1.2",
+              position: "absolute",
+              top: "24px",
+              left: "24px",
+              right: "24px",
+            }}
+          >
+            Privacy Policy
+          </h2>
+          <div
+            style={{
+              fontFamily: "Helvetica, Arial, sans-serif",
+              fontSize: "12px",
+              fontWeight: "400",
+              color: "rgba(255, 255, 255, 0.9)",
+              lineHeight: "1.6",
+              maxHeight: "280px",
+              overflowY: "auto",
+              paddingRight: "8px",
+            }}
+          >
+            <p style={{ marginBottom: "16px" }}>
+              <strong>Last Updated:</strong> December 11, 2025
+            </p>
+            
+            <p style={{ marginBottom: "16px" }}>
+              OH Systems ("OH", "we", "us", or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website or use our services.
+            </p>
+
+            <h3 style={{ fontWeight: "600", marginTop: "16px", marginBottom: "8px" }}>Information We Collect</h3>
+            <p style={{ marginBottom: "16px" }}>
+              We collect information that you provide directly to us, including name, email address, phone number, and any messages you send through our contact forms. We also automatically collect certain information about your device and how you interact with our services.
+            </p>
+
+            <h3 style={{ fontWeight: "600", marginTop: "16px", marginBottom: "8px" }}>How We Use Your Information</h3>
+            <p style={{ marginBottom: "16px" }}>
+              We use the information we collect to provide, maintain, and improve our services, to communicate with you, to respond to your inquiries, and to send you technical notices and support messages.
+            </p>
+
+            <h3 style={{ fontWeight: "600", marginTop: "16px", marginBottom: "8px" }}>Data Security</h3>
+            <p style={{ marginBottom: "16px" }}>
+              We implement appropriate technical and organizational measures to protect your personal information. However, no method of transmission over the Internet is 100% secure.
+            </p>
+
+            <h3 style={{ fontWeight: "600", marginTop: "16px", marginBottom: "8px" }}>Contact Us</h3>
+            <p style={{ marginBottom: "0" }}>
+              If you have questions about this Privacy Policy, please contact us through our website contact form.
+            </p>
+          </div>
+        </div>
+      </DraggableCard>
+    </div>
+  );
+};
+
+interface TermsSectionProps {
+  isVisible: boolean;
+  onClose?: () => void;
+}
+
+export const TermsSection: React.FC<TermsSectionProps> = ({
+  isVisible,
+  onClose,
+}) => {
+  return (
+    <div
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'scale(1) translateY(0)' : 'scale(0.8) translateY(-20px)',
+        transition: 'opacity 0.3s ease-out, transform 0.3s ease-out',
+        pointerEvents: isVisible ? 'auto' : 'none',
+        visibility: isVisible ? 'visible' : 'hidden'
+      }}
+    >
+      <DraggableCard onClose={onClose || (() => {})}>
+        <div style={{ paddingTop: "60px" }}>
+          <h2
+            style={{
+              fontSize: "20px",
+              fontWeight: "400",
+              color: "white",
+              margin: "0 0 16px 0",
+              fontFamily: "Helvetica, Arial, sans-serif",
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "center",
+              lineHeight: "1.2",
+              position: "absolute",
+              top: "24px",
+              left: "24px",
+              right: "24px",
+            }}
+          >
+            Terms and Conditions
+          </h2>
+          <div
+            style={{
+              fontFamily: "Helvetica, Arial, sans-serif",
+              fontSize: "12px",
+              fontWeight: "400",
+              color: "rgba(255, 255, 255, 0.9)",
+              lineHeight: "1.6",
+              maxHeight: "280px",
+              overflowY: "auto",
+              paddingRight: "8px",
+            }}
+          >
+            <p style={{ marginBottom: "16px" }}>
+              <strong>Last Updated:</strong> December 11, 2025
+            </p>
+            
+            <p style={{ marginBottom: "16px" }}>
+              These Terms and Conditions ("Terms") govern your use of the OH Systems website and services. By accessing or using our services, you agree to be bound by these Terms.
+            </p>
+
+            <h3 style={{ fontWeight: "600", marginTop: "16px", marginBottom: "8px" }}>Use of Services</h3>
+            <p style={{ marginBottom: "16px" }}>
+              You may use our services only in compliance with these Terms and all applicable laws. You are responsible for your use of the services and for any consequences thereof.
+            </p>
+
+            <h3 style={{ fontWeight: "600", marginTop: "16px", marginBottom: "8px" }}>Intellectual Property</h3>
+            <p style={{ marginBottom: "16px" }}>
+              All content, features, and functionality of our services are owned by OH Systems and are protected by international copyright, trademark, and other intellectual property laws.
+            </p>
+
+            <h3 style={{ fontWeight: "600", marginTop: "16px", marginBottom: "8px" }}>Limitation of Liability</h3>
+            <p style={{ marginBottom: "16px" }}>
+              To the fullest extent permitted by law, OH Systems shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of our services.
+            </p>
+
+            <h3 style={{ fontWeight: "600", marginTop: "16px", marginBottom: "8px" }}>Changes to Terms</h3>
+            <p style={{ marginBottom: "16px" }}>
+              We reserve the right to modify these Terms at any time. Your continued use of our services after any such changes constitutes your acceptance of the new Terms.
+            </p>
+
+            <h3 style={{ fontWeight: "600", marginTop: "16px", marginBottom: "8px" }}>Contact Information</h3>
+            <p style={{ marginBottom: "0" }}>
+              For questions about these Terms, please contact us through our website contact form.
+            </p>
+          </div>
+        </div>
+      </DraggableCard>
+    </div>
+  );
+};
+
 export function GlassSections({
   showAbout,
   showContact,
+  showPrivacy,
+  showTerms,
   onAboutClose,
   onContactClose,
+  onPrivacyClose,
+  onTermsClose,
 }: {
   showAbout: boolean;
   showContact: boolean;
+  showPrivacy: boolean;
+  showTerms: boolean;
   onAboutClose: () => void;
   onContactClose: () => void;
+  onPrivacyClose: () => void;
+  onTermsClose: () => void;
 }) {
   return (
     <>
       <AboutSection isVisible={showAbout} onClose={onAboutClose} />
       <ContactSection isVisible={showContact} onClose={onContactClose} />
+      <PrivacySection isVisible={showPrivacy} onClose={onPrivacyClose} />
+      <TermsSection isVisible={showTerms} onClose={onTermsClose} />
     </>
   );
 }
