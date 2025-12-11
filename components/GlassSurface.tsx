@@ -46,6 +46,7 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
   className = '',
   style = {}
 }) => {
+  const [isMounted, setIsMounted] = useState(false);
   const uniqueId = useId().replace(/:/g, '-');
   const filterId = `glass-filter-${uniqueId}`;
   const redGradId = `red-grad-${uniqueId}`;
@@ -57,9 +58,13 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
   const greenChannelRef = useRef<SVGFEDisplacementMapElement>(null);
   const blueChannelRef = useRef<SVGFEDisplacementMapElement>(null);
   const gaussianBlurRef = useRef<SVGFEGaussianBlurElement>(null);
-  const [isMounted, setIsMounted] = useState(false);
   const [useSVGFilter, setUseSVGFilter] = useState(true); // Default to true for Chrome/Edge
   const [isReady, setIsReady] = useState(false);
+
+  // Set mounted state after hydration
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const generateDisplacementMap = () => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -200,7 +205,7 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
     borderRadius: `${borderRadius}px`,
     '--glass-frost': Math.max(backgroundOpacity, 0.05), // Ensure minimum visibility
     '--glass-saturation': saturation,
-    '--filter-id': `url(#${filterId})`,
+    ...(isMounted && { '--filter-id': `url(#${filterId})` }),
     opacity: isReady ? 1 : 0,
     transition: 'opacity 0.15s ease-out'
   };
@@ -211,10 +216,11 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
       className={`glass-surface ${useSVGFilter ? 'glass-surface--svg' : 'glass-surface--fallback'} ${className}`}
       style={containerStyle}
     >
-      <svg className="glass-surface__filter" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <filter id={filterId} colorInterpolationFilters="sRGB" x="0%" y="0%" width="100%" height="100%">
-            <feImage ref={feImageRef} x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map" />
+      {isMounted && (
+        <svg className="glass-surface__filter" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id={filterId} colorInterpolationFilters="sRGB" x="0%" y="0%" width="100%" height="100%">
+              <feImage ref={feImageRef} x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map" />
 
             <feDisplacementMap ref={redChannelRef} in="SourceGraphic" in2="map" id="redchannel" result="dispRed" />
             <feColorMatrix
@@ -261,6 +267,7 @@ const GlassSurface: React.FC<GlassSurfaceProps> = ({
           </filter>
         </defs>
       </svg>
+      )}
 
       <div className="glass-surface__content">{children}</div>
     </div>
