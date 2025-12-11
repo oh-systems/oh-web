@@ -1221,50 +1221,50 @@ export default function Home() {
                 }}
               >
                 {/* Animated gradient background - behind waves */}
-                {showWaves && (
-                  <div
-                    key="animated-gradient-laptop"
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      zIndex: -1,
-                      pointerEvents: "none",
-                      background: "linear-gradient(-45deg, #1a1a1a, #2d2d2d, #404040, #0a0a0a)",
-                      backgroundSize: "400% 400%",
-                      animation: "gradient 30s ease infinite",
-                      opacity: (() => {
-                        // Fade in at the start of laptop section
-                        if (rawProgress < LAPTOP_SWAP_CONFIG.swapStart + 0.03) {
-                          return Math.min(1, (rawProgress - LAPTOP_SWAP_CONFIG.swapStart) / 0.03);
-                        }
-                        // Fade out at the end of laptop section
-                        if (rawProgress > LAPTOP_SWAP_CONFIG.animationEnd - 0.03) {
-                          return Math.max(0, (LAPTOP_SWAP_CONFIG.animationEnd - rawProgress) / 0.03);
-                        }
-                        // Full opacity in between
-                        return 1;
-                      })(),
-                      transition: "opacity 1.2s ease-in-out",
-                    }}
-                  />
-                )}
+                <div
+                  key="animated-gradient-laptop"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    zIndex: -1,
+                    pointerEvents: "none",
+                    background: "linear-gradient(-45deg, #1a1a1a, #2d2d2d, #404040, #0a0a0a)",
+                    backgroundSize: "400% 400%",
+                    animation: "gradient 30s ease infinite",
+                    opacity: (() => {
+                      const fadeInDuration = 0.05; // 5% progress (~6 seconds)
+                      const fadeOutDuration = 0.05; // 5% progress (~6 seconds)
+                      // Don't show before laptop section starts
+                      if (rawProgress < LAPTOP_SWAP_CONFIG.swapStart) return 0;
+                      // Fade in at the start of laptop section
+                      if (rawProgress < LAPTOP_SWAP_CONFIG.swapStart + fadeInDuration) {
+                        return (rawProgress - LAPTOP_SWAP_CONFIG.swapStart) / fadeInDuration;
+                      }
+                      // Fade out at the end of laptop section
+                      if (rawProgress > LAPTOP_SWAP_CONFIG.animationEnd - fadeOutDuration) {
+                        return Math.max(0, (LAPTOP_SWAP_CONFIG.animationEnd - rawProgress) / fadeOutDuration);
+                      }
+                      // Full opacity in between
+                      return 1;
+                    })(),
+                  }}
+                />
 
                 {/* Wave shader background - behind everything, only render when visible */}
-                {showWaves && (
-                  <div
-                    key="wave-shader-laptop"
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      zIndex: 0,
-                      pointerEvents: "none",
-                      opacity: Math.min(1, (rawProgress - LAPTOP_SWAP_CONFIG.swapStart) / 0.03), // Fade in over 3% progress (~3.6 seconds)
-                      transition: "opacity 1.2s ease-out",
-                    }}
-                  >
-                    <WaveClothShader progress={laptopAnimationProgress} />
-                  </div>
-                )}
+                <div
+                  key="wave-shader-laptop"
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    zIndex: 0,
+                    pointerEvents: "none",
+                    opacity: rawProgress < LAPTOP_SWAP_CONFIG.swapStart
+                      ? 0
+                      : Math.min(1, (rawProgress - LAPTOP_SWAP_CONFIG.swapStart) / 0.05), // Fade in over 5% progress (~6 seconds)
+                  }}
+                >
+                  <WaveClothShader progress={laptopAnimationProgress} />
+                </div>
 
                 {/* TransitionScreen as background - inside laptop container */}
                 <div
