@@ -17,9 +17,14 @@ export default function CastShadowsText({
   fadeOutProgress,
 }: CastShadowsTextProps) {
   const [time, setTime] = useState(0);
-  const [glitchLines, setGlitchLines] = useState<Array<{ id: number; x1: number; y1: number; x2: number; y2: number }>>([]);
+  const [glitchLines, setGlitchLines] = useState<
+    Array<{ id: number; x1: number; y1: number; x2: number; y2: number }>
+  >([]);
   const mousePositionRef = useRef({ x: 50, y: 50 }); // Use ref instead of state
-  const [smoothMousePosition, setSmoothMousePosition] = useState({ x: 50, y: 50 }); // Interpolated position
+  const [smoothMousePosition, setSmoothMousePosition] = useState({
+    x: 50,
+    y: 50,
+  }); // Interpolated position
 
   // Track mouse position using ref to avoid re-renders
   useEffect(() => {
@@ -30,16 +35,16 @@ export default function CastShadowsText({
       };
     };
 
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
   // Smoothly interpolate mouse position
   useEffect(() => {
     let animationFrameId: number;
-    
+
     const smoothUpdate = () => {
-      setSmoothMousePosition(prev => ({
+      setSmoothMousePosition((prev) => ({
         x: prev.x + (mousePositionRef.current.x - prev.x) * 0.1, // Lerp factor: 0.1 for smooth following
         y: prev.y + (mousePositionRef.current.y - prev.y) * 0.1,
       }));
@@ -71,7 +76,11 @@ export default function CastShadowsText({
   useEffect(() => {
     const interval = setInterval(() => {
       // Randomly decide whether to show glitch lines (30% chance)
-      if (Math.random() > 0.7 && scrollProgress > 0.1 && scrollProgress < 0.85) {
+      if (
+        Math.random() > 0.7 &&
+        scrollProgress > 0.1 &&
+        scrollProgress < 0.85
+      ) {
         const numLines = Math.floor(Math.random() * 3) + 1; // 1-3 lines
         const newGlitchLines = Array.from({ length: numLines }, (_, i) => ({
           id: Date.now() + i,
@@ -80,9 +89,9 @@ export default function CastShadowsText({
           x2: Math.random() * 100,
           y2: Math.random() * 100,
         }));
-        
+
         setGlitchLines(newGlitchLines);
-        
+
         // Remove them quickly
         setTimeout(() => {
           setGlitchLines([]);
@@ -95,18 +104,21 @@ export default function CastShadowsText({
 
   // Flickering effect for lines - randomly change opacity
   const [lineFlicker, setLineFlicker] = useState<Record<string, number>>({});
+  const [dynamicConnections, setDynamicConnections] = useState<
+    Array<{ key: string; from: string; to: string }>
+  >([]);
 
   useEffect(() => {
     const flickerInterval = setInterval(() => {
       // Create flicker values for each line
       const newFlicker: Record<string, number> = {};
-      
+
       // Randomly select 2 lines to flicker
       const linesToFlicker = new Set<number>();
       while (linesToFlicker.size < 2) {
         linesToFlicker.add(Math.floor(Math.random() * 9) + 1);
       }
-      
+
       for (let i = 1; i <= 9; i++) {
         if (linesToFlicker.has(i)) {
           newFlicker[`line${i}`] = 0; // Fully invisible
@@ -115,31 +127,89 @@ export default function CastShadowsText({
         }
       }
       setLineFlicker(newFlicker);
-    }, 100); // Flicker every 100ms for faster glitchy effect
+    }, 1200); // Flicker every 1.2 seconds for longer-lasting effect
 
     return () => clearInterval(flickerInterval);
   }, []); // Empty dependency array - runs independently of scroll
 
+  // Generate random new connections periodically
+  useEffect(() => {
+    const textPoints = [
+      "operatingPrinciples",
+      "everythingBuilt",
+      "interactivity",
+      "deployments",
+      "modular",
+      "aiBuiltIn",
+      "latency",
+    ];
+
+    const generateRandomConnections = () => {
+      const newConnections: Array<{ key: string; from: string; to: string }> =
+        [];
+      const usedPairs = new Set<string>();
+
+      // Generate 2-3 random connections
+      const numConnections = Math.floor(Math.random() * 2) + 2; // 2-3 connections
+
+      let attempts = 0;
+      while (newConnections.length < numConnections && attempts < 20) {
+        const fromIdx = Math.floor(Math.random() * textPoints.length);
+        const toIdx = Math.floor(Math.random() * textPoints.length);
+
+        if (fromIdx !== toIdx) {
+          const from = textPoints[fromIdx];
+          const to = textPoints[toIdx];
+          const pairKey = [from, to].sort().join("-");
+
+          if (!usedPairs.has(pairKey)) {
+            usedPairs.add(pairKey);
+            newConnections.push({
+              key: `dynamic-${newConnections.length}`,
+              from,
+              to,
+            });
+          }
+        }
+        attempts++;
+      }
+
+      setDynamicConnections(newConnections);
+    };
+
+    generateRandomConnections();
+    const connectionInterval = setInterval(generateRandomConnections, 2500); // New connections every 2.5 seconds
+
+    return () => clearInterval(connectionInterval);
+  }, []); // Empty dependency - interval runs continuously
+
   // Calculate random offsets for each text element with cursor-induced rotation
-  const calculateOffset = (baseX: number, baseY: number, seed: number, range: number) => {
+  const calculateOffset = (
+    baseX: number,
+    baseY: number,
+    seed: number,
+    range: number
+  ) => {
     // Random component (50% influence)
     const randomX = getRandomOffset(time, seed, range) * 0.5;
     const randomY = getRandomOffset(time, seed + 100, range) * 0.5;
-    
+
     // Cursor-induced rotation (50% influence)
     // Calculate angle from cursor to text element using smoothed mouse position
     const deltaX = baseX - smoothMousePosition.x;
     const deltaY = baseY - smoothMousePosition.y;
     const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    
+
     // Rotate around the element's position based on cursor location
     const rotationStrength = 2.5; // Increased rotation strength significantly
     const angle = Math.atan2(deltaY, deltaX);
     const perpAngle = angle + Math.PI / 2; // Perpendicular for orbital movement
-    
-    const rotationX = Math.cos(perpAngle) * (100 - distance) * rotationStrength * 0.3;
-    const rotationY = Math.sin(perpAngle) * (100 - distance) * rotationStrength * 0.3;
-    
+
+    const rotationX =
+      Math.cos(perpAngle) * (100 - distance) * rotationStrength * 0.3;
+    const rotationY =
+      Math.sin(perpAngle) * (100 - distance) * rotationStrength * 0.3;
+
     return {
       x: randomX + rotationX,
       y: randomY + rotationY,
@@ -156,9 +226,25 @@ export default function CastShadowsText({
     latency: calculateOffset(60, 84, 13, 30),
   };
 
+  // Text element base positions (before offsets)
+  const textPositions: Record<string, { x: number; y: number }> = {
+    operatingPrinciples: { x: 84, y: 13 },
+    everythingBuilt: { x: 28, y: 22 },
+    interactivity: { x: 60, y: 32 },
+    deployments: { x: 33, y: 50 },
+    modular: { x: 25, y: 70 },
+    aiBuiltIn: { x: 72, y: 70 },
+    latency: { x: 60, y: 84 },
+  };
+
   // Calculate dynamic line positions based on text offsets
-  const getLinePos = (basePercent: number, offset: number, isHorizontal: boolean) => {
-    const pixelOffset = offset / (isHorizontal ? window.innerWidth : window.innerHeight) * 100;
+  const getLinePos = (
+    basePercent: number,
+    offset: number,
+    isHorizontal: boolean
+  ) => {
+    const pixelOffset =
+      (offset / (isHorizontal ? window.innerWidth : window.innerHeight)) * 100;
     return `${basePercent + pixelOffset}%`;
   };
 
@@ -169,7 +255,7 @@ export default function CastShadowsText({
       return scrollProgress / 0.1;
     } else if (scrollProgress > 0.85) {
       // Fade out phase (last 15% of Cast Shadows sequence)
-      return 1 - ((scrollProgress - 0.85) / 0.15);
+      return 1 - (scrollProgress - 0.85) / 0.15;
     } else {
       // Full visibility phase (middle 75%)
       return 1;
@@ -188,10 +274,17 @@ export default function CastShadowsText({
   const latencyOpacity = allTextOpacity;
 
   // Helper function to draw SVG line with circle at connection point
-  const renderLine = (x1: string, y1: string, x2: string, y2: string, key: string) => {
-    const flickerOpacity = lineFlicker[key] !== undefined ? lineFlicker[key] : 1;
+  const renderLine = (
+    x1: string,
+    y1: string,
+    x2: string,
+    y2: string,
+    key: string
+  ) => {
+    const flickerOpacity =
+      lineFlicker[key] !== undefined ? lineFlicker[key] : 1;
     const finalOpacity = flickerOpacity * allTextOpacity;
-    
+
     return (
       <svg
         key={key}
@@ -211,13 +304,7 @@ export default function CastShadowsText({
           opacity={finalOpacity}
         />
         {/* Small white circle at the connection point (x2, y2) */}
-        <circle
-          cx={x2}
-          cy={y2}
-          r="3"
-          fill="white"
-          opacity={finalOpacity}
-        />
+        <circle cx={x2} cy={y2} r="3" fill="white" opacity={finalOpacity} />
       </svg>
     );
   };
@@ -233,7 +320,7 @@ export default function CastShadowsText({
         getLinePos(32, offsets.interactivity.y, false),
         "line1"
       )}
-      
+
       {/* Everything is built to Interactivity */}
       {renderLine(
         getLinePos(28, offsets.everythingBuilt.x, true),
@@ -242,7 +329,7 @@ export default function CastShadowsText({
         getLinePos(32, offsets.interactivity.y, false),
         "line2"
       )}
-      
+
       {/* Everything is built to Deployments Must */}
       {renderLine(
         getLinePos(28, offsets.everythingBuilt.x, true),
@@ -251,7 +338,7 @@ export default function CastShadowsText({
         getLinePos(50, offsets.deployments.y, false),
         "line3"
       )}
-      
+
       {/* Interactivity to Deployments Must */}
       {renderLine(
         getLinePos(60, offsets.interactivity.x, true),
@@ -260,7 +347,7 @@ export default function CastShadowsText({
         getLinePos(50, offsets.deployments.y, false),
         "line4"
       )}
-      
+
       {/* Interactivity to Latency Matters */}
       {renderLine(
         getLinePos(60, offsets.interactivity.x, true),
@@ -269,7 +356,7 @@ export default function CastShadowsText({
         getLinePos(84, offsets.latency.y, false),
         "line5"
       )}
-      
+
       {/* Interactivity to AI is built in */}
       {renderLine(
         getLinePos(60, offsets.interactivity.x, true),
@@ -278,7 +365,7 @@ export default function CastShadowsText({
         getLinePos(70, offsets.aiBuiltIn.y, false),
         "line6"
       )}
-      
+
       {/* Deployments to All systems are modular */}
       {renderLine(
         getLinePos(33, offsets.deployments.x, true),
@@ -287,7 +374,7 @@ export default function CastShadowsText({
         getLinePos(70, offsets.modular.y, false),
         "line7"
       )}
-      
+
       {/* Deployments to Latency Matters */}
       {renderLine(
         getLinePos(33, offsets.deployments.x, true),
@@ -296,7 +383,7 @@ export default function CastShadowsText({
         getLinePos(84, offsets.latency.y, false),
         "line8"
       )}
-      
+
       {/* Latency Matters to AI is built in */}
       {renderLine(
         getLinePos(60, offsets.latency.x, true),
@@ -329,6 +416,47 @@ export default function CastShadowsText({
         </svg>
       ))}
 
+      {/* Dynamic random connections between text elements */}
+      {dynamicConnections.map((connection) => {
+        const fromPos =
+          textPositions[connection.from as keyof typeof textPositions];
+        const toPos =
+          textPositions[connection.to as keyof typeof textPositions];
+        const fromOffset = offsets[connection.from as keyof typeof offsets];
+        const toOffset = offsets[connection.to as keyof typeof offsets];
+
+        if (!fromPos || !toPos || !fromOffset || !toOffset) return null;
+
+        return (
+          <svg
+            key={connection.key}
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              width: "100%",
+              height: "100%",
+            }}
+          >
+            <line
+              x1={getLinePos(fromPos.x, fromOffset.x, true)}
+              y1={getLinePos(fromPos.y, fromOffset.y, false)}
+              x2={getLinePos(toPos.x, toOffset.x, true)}
+              y2={getLinePos(toPos.y, toOffset.y, false)}
+              stroke="white"
+              strokeWidth="1.5"
+              opacity={allTextOpacity}
+            />
+            {/* Circle at connection end point */}
+            <circle
+              cx={getLinePos(toPos.x, toOffset.x, true)}
+              cy={getLinePos(toPos.y, toOffset.y, false)}
+              r="2"
+              fill="white"
+              opacity={allTextOpacity * 0.5}
+            />
+          </svg>
+        );
+      })}
+
       {/* "THE FUTURE OF..." fade out overlay */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -347,7 +475,10 @@ export default function CastShadowsText({
           top: "12%",
           right: "8%",
           opacity: operatingPrinciplesOpacity,
-          transform: `translate(${offsets.operatingPrinciples.x}px, ${offsets.operatingPrinciples.y + 20 * (1 - operatingPrinciplesOpacity)}px)`,
+          transform: `translate(${offsets.operatingPrinciples.x}px, ${
+            offsets.operatingPrinciples.y +
+            20 * (1 - operatingPrinciplesOpacity)
+          }px)`,
           transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
           fontWeight: "normal",
@@ -364,7 +495,9 @@ export default function CastShadowsText({
           top: "20%",
           left: "15%",
           opacity: everythingBuiltOpacity,
-          transform: `translate(${offsets.everythingBuilt.x}px, ${offsets.everythingBuilt.y + 30 * (1 - everythingBuiltOpacity)}px)`,
+          transform: `translate(${offsets.everythingBuilt.x}px, ${
+            offsets.everythingBuilt.y + 30 * (1 - everythingBuiltOpacity)
+          }px)`,
           transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
           fontWeight: "normal",
@@ -381,7 +514,9 @@ export default function CastShadowsText({
           top: "32%",
           left: "40%",
           opacity: interactivityOpacity,
-          transform: `translate(${offsets.interactivity.x}px, ${offsets.interactivity.y + 25 * (1 - interactivityOpacity)}px)`,
+          transform: `translate(${offsets.interactivity.x}px, ${
+            offsets.interactivity.y + 25 * (1 - interactivityOpacity)
+          }px)`,
           transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
           fontWeight: "normal",
@@ -398,7 +533,9 @@ export default function CastShadowsText({
           top: "47%",
           left: "5%",
           opacity: deploymentsOpacity,
-          transform: `translate(${offsets.deployments.x}px, ${offsets.deployments.y + 35 * (1 - deploymentsOpacity)}px)`,
+          transform: `translate(${offsets.deployments.x}px, ${
+            offsets.deployments.y + 35 * (1 - deploymentsOpacity)
+          }px)`,
           transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
           fontWeight: "normal",
@@ -406,7 +543,16 @@ export default function CastShadowsText({
         }}
       >
         <div>DEPLOYMENTS MUST</div>
-        <div style={{ paddingLeft: typeof window !== 'undefined' && window.innerWidth <= 768 ? "220px" : "440px" }}>BE LIVE</div>
+        <div
+          style={{
+            paddingLeft:
+              typeof window !== "undefined" && window.innerWidth <= 768
+                ? "220px"
+                : "440px",
+          }}
+        >
+          BE LIVE
+        </div>
       </div>
 
       {/* All systems are modular - Below Deployments */}
@@ -416,7 +562,9 @@ export default function CastShadowsText({
           top: "70%",
           left: "10%",
           opacity: modularOpacity,
-          transform: `translate(${offsets.modular.x}px, ${offsets.modular.y + 30 * (1 - modularOpacity)}px)`,
+          transform: `translate(${offsets.modular.x}px, ${
+            offsets.modular.y + 30 * (1 - modularOpacity)
+          }px)`,
           transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
           fontWeight: "normal",
@@ -433,7 +581,9 @@ export default function CastShadowsText({
           top: "70%",
           left: "62%",
           opacity: aiBuiltInOpacity,
-          transform: `translate(${offsets.aiBuiltIn.x}px, ${offsets.aiBuiltIn.y + 30 * (1 - aiBuiltInOpacity)}px)`,
+          transform: `translate(${offsets.aiBuiltIn.x}px, ${
+            offsets.aiBuiltIn.y + 30 * (1 - aiBuiltInOpacity)
+          }px)`,
           transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
           fontWeight: "normal",
@@ -450,7 +600,9 @@ export default function CastShadowsText({
           top: "84%",
           left: "50%",
           opacity: latencyOpacity,
-          transform: `translate(${offsets.latency.x}px, ${offsets.latency.y + 40 * (1 - latencyOpacity)}px)`,
+          transform: `translate(${offsets.latency.x}px, ${
+            offsets.latency.y + 40 * (1 - latencyOpacity)
+          }px)`,
           transition: "opacity 0.5s ease-out, transform 0.15s ease-out",
           fontFamily: "Helvetica, Arial, sans-serif",
           fontWeight: "normal",
