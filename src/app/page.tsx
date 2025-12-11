@@ -18,6 +18,7 @@ import {
   Footer,
   LaptopText,
   ClosingRing,
+  WaveClothShader,
 } from "../../components";
 import { GlassSections } from "../../components/GlassSections";
 import { useAppContext } from "./AppContent";
@@ -76,6 +77,8 @@ export default function Home() {
   const [scrollContentReady, setScrollContentReady] = useState(false);
   const [allSequencesPreloaded, setAllSequencesPreloaded] = useState(false);
   const scrollAnimationStartedRef = useRef(false);
+  const [showWaves, setShowWaves] = useState(false);
+  const wavesShownRef = useRef(false);
 
   // No cursor management needed - CSS always hides default cursor
   const [navigationFadeProgress, setNavigationFadeProgress] = useState(0);
@@ -467,6 +470,15 @@ export default function Home() {
       if (Math.abs(rawProgress - rawProgressRef.current) > 0.0001) {
         rawProgressRef.current = rawProgress;
         setRawProgress(rawProgress);
+
+        // Control wave shader visibility based on laptop section - only set once
+        if (
+          !wavesShownRef.current &&
+          rawProgress >= LAPTOP_SWAP_CONFIG.animationStart
+        ) {
+          wavesShownRef.current = true;
+          setShowWaves(true);
+        }
       }
 
       // Apply smooth easing for more natural animation feel
@@ -1208,6 +1220,21 @@ export default function Home() {
                   zIndex: 150,
                 }}
               >
+                {/* Wave shader background - behind everything, only render when visible */}
+                {showWaves && (
+                  <div
+                    key="wave-shader-laptop"
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      zIndex: 0,
+                      pointerEvents: "none",
+                    }}
+                  >
+                    <WaveClothShader progress={laptopAnimationProgress} />
+                  </div>
+                )}
+
                 {/* TransitionScreen as background - inside laptop container */}
                 <div
                   style={{

@@ -16,6 +16,7 @@ export { default as CardDemo } from './CardDemo';
 export { default as GlassSurface } from './GlassSurface';
 export { default as GlassCursor } from './GlassCursor';
 export { default as LaptopText } from './LaptopText';
+export { default as WaveClothShader } from './WaveClothShader';
 
 // Animation Sequences  
 export { default as InitialLoadSequence } from './InitialLoadSequence';
