@@ -24,6 +24,17 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!cardRef.current) return;
 
+    // Prevent dragging when interacting with scrollable content or form elements
+    const target = e.target as HTMLElement;
+    if (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.tagName === 'BUTTON' ||
+      target.closest('[data-scrollable="true"]')
+    ) {
+      return;
+    }
+
     const rect = cardRef.current.getBoundingClientRect();
     setDragOffset({
       x: e.clientX - rect.left,
@@ -81,6 +92,156 @@ const DraggableCard: React.FC<DraggableCardProps> = ({
       greenOffset={10}
       blueOffset={20}
       className="draggable-card"
+      style={{
+        position: "fixed",
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        cursor: isDragging ? "grabbing" : "grab",
+        userSelect: "none",
+        zIndex: 999999,
+        transition: isDragging ? "none" : "all 0.2s ease",
+      }}
+    >
+      <div
+        ref={cardRef}
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "stretch",
+          justifyContent: "center",
+          padding: "24px",
+          position: "relative",
+        }}
+        onMouseDown={handleMouseDown}
+      >
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            playClickSound();
+            onClose();
+          }}
+          style={{
+            position: "absolute",
+            top: "15px",
+            right: "20px",
+            background: "none",
+            border: "none",
+            color: "rgba(255, 255, 255, 0.7)",
+            fontSize: "20px",
+            cursor: "pointer",
+            padding: "5px",
+            borderRadius: "50%",
+            transition: "color 0.2s ease",
+            zIndex: 20000,
+            pointerEvents: "auto",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = "white";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = "rgba(255, 255, 255, 0.7)";
+          }}
+        >
+          ×
+        </button>
+        {children}
+      </div>
+    </GlassSurface>
+  );
+};
+
+interface LargeDraggableCardProps {
+  children: React.ReactNode;
+  onClose: () => void;
+  initialPosition?: { x: number; y: number };
+}
+
+const LargeDraggableCard: React.FC<LargeDraggableCardProps> = ({
+  children,
+  onClose,
+  initialPosition = {
+    x: window.innerWidth / 2 - 229,
+    y: window.innerHeight / 2 - 248.5,
+  },
+}) => {
+  const [position, setPosition] = useState(initialPosition);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!cardRef.current) return;
+
+    // Prevent dragging when interacting with scrollable content or form elements
+    const target = e.target as HTMLElement;
+    if (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.tagName === 'BUTTON' ||
+      target.closest('[data-scrollable="true"]')
+    ) {
+      return;
+    }
+
+    const rect = cardRef.current.getBoundingClientRect();
+    setDragOffset({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+    setIsDragging(true);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+
+      const newX = e.clientX - dragOffset.x;
+      const newY = e.clientY - dragOffset.y;
+
+      // Keep card within viewport bounds
+      const maxX = window.innerWidth - 458;
+      const maxY = window.innerHeight - 497;
+
+      setPosition({
+        x: Math.max(0, Math.min(newX, maxX)),
+        y: Math.max(0, Math.min(newY, maxY)),
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging, dragOffset]);
+
+  return (
+    <GlassSurface
+      width={458}
+      height={497}
+      borderRadius={42}
+      borderWidth={0}
+      brightness={50}
+      opacity={0.93}
+      blur={40}
+      displace={0.7}
+      backgroundOpacity={0.04}
+      saturation={1.5}
+      distortionScale={-180}
+      redOffset={0}
+      greenOffset={10}
+      blueOffset={20}
+      className="draggable-card-large"
       style={{
         position: "fixed",
         left: `${position.x}px`,
@@ -517,7 +678,7 @@ export const PrivacySection: React.FC<PrivacySectionProps> = ({
         visibility: isVisible ? 'visible' : 'hidden'
       }}
     >
-      <DraggableCard onClose={onClose || (() => {})}>
+      <LargeDraggableCard onClose={onClose || (() => {})}>
         <div style={{ paddingTop: "60px" }}>
           <h2
             style={{
@@ -539,15 +700,26 @@ export const PrivacySection: React.FC<PrivacySectionProps> = ({
             Privacy Policy
           </h2>
           <div
+            data-scrollable="true"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+            onWheel={(e) => {
+              e.stopPropagation();
+            }}
             style={{
               fontFamily: "Helvetica, Arial, sans-serif",
               fontSize: "12px",
               fontWeight: "400",
               color: "rgba(255, 255, 255, 0.9)",
               lineHeight: "1.6",
-              maxHeight: "280px",
+              maxHeight: "380px",
               overflowY: "auto",
+              overflowX: "hidden",
               paddingRight: "8px",
+              cursor: "auto",
+              pointerEvents: "auto",
+              userSelect: "text",
             }}
           >
             <p style={{ marginBottom: "16px" }}>
@@ -579,7 +751,7 @@ export const PrivacySection: React.FC<PrivacySectionProps> = ({
             </p>
           </div>
         </div>
-      </DraggableCard>
+      </LargeDraggableCard>
     </div>
   );
 };
@@ -603,7 +775,7 @@ export const TermsSection: React.FC<TermsSectionProps> = ({
         visibility: isVisible ? 'visible' : 'hidden'
       }}
     >
-      <DraggableCard onClose={onClose || (() => {})}>
+      <LargeDraggableCard onClose={onClose || (() => {})}>
         <div style={{ paddingTop: "60px" }}>
           <h2
             style={{
@@ -625,15 +797,26 @@ export const TermsSection: React.FC<TermsSectionProps> = ({
             Terms and Conditions
           </h2>
           <div
+            data-scrollable="true"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+            onWheel={(e) => {
+              e.stopPropagation();
+            }}
             style={{
               fontFamily: "Helvetica, Arial, sans-serif",
               fontSize: "12px",
               fontWeight: "400",
               color: "rgba(255, 255, 255, 0.9)",
               lineHeight: "1.6",
-              maxHeight: "280px",
+              maxHeight: "380px",
               overflowY: "auto",
+              overflowX: "hidden",
               paddingRight: "8px",
+              cursor: "auto",
+              pointerEvents: "auto",
+              userSelect: "text",
             }}
           >
             <p style={{ marginBottom: "16px" }}>
@@ -670,7 +853,7 @@ export const TermsSection: React.FC<TermsSectionProps> = ({
             </p>
           </div>
         </div>
-      </DraggableCard>
+      </LargeDraggableCard>
     </div>
   );
 };
