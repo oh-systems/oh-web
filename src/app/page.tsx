@@ -1212,19 +1212,6 @@ export default function Home() {
                     priority={castSwapProgress > 0.1}
                     fps={30}
                   />
-                  {castSwapProgress > 0 && (
-                    <div style={{
-                      position: 'fixed',
-                      top: 10,
-                      left: 10,
-                      color: 'white',
-                      zIndex: 9999,
-                      background: 'rgba(0,0,0,0.7)',
-                      padding: '10px'
-                    }}>
-                      Cast Shadows Active: {castAnimationProgress.toFixed(3)}
-                    </div>
-                  )}
                 </div>
               </div>
 
